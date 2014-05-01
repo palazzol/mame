@@ -36,10 +36,10 @@ const device_type WD1773 = &device_creator<wd1773_t>;
 #define TRACE_SHIFT 0
 
 // Shows operations on the CPU side
-#define TRACE_COMP 0
+#define TRACE_COMP 1
 
 // Shows command invocation
-#define TRACE_COMMAND 0
+#define TRACE_COMMAND 1
 
 // Shows sync actions
 #define TRACE_SYNC 0
