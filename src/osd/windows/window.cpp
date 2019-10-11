@@ -45,6 +45,7 @@ using namespace Windows::UI::Core;
 #include "modules/render/drawnone.h"
 #include "modules/render/drawd3d.h"
 #include "modules/render/drawgdi.h"
+#include "modules/render/drawnewvg.h"
 #if (USE_OPENGL)
 #include "modules/render/drawogl.h"
 #endif
@@ -183,6 +184,9 @@ bool windows_osd_interface::window_init()
 				break;
 			case VIDEO_MODE_SOFT:
 				fatalerror("SDL1 renderer unavailable on Windows OSD.");
+				break;
+			case VIDEO_MODE_NEWVG:
+				error = renderer_newvg::init(machine());
 				break;
 			default:
 				fatalerror("Unknown video mode.");

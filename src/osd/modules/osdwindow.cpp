@@ -11,6 +11,7 @@
 
 #include "render/drawnone.h"
 #include "render/drawbgfx.h"
+#include "render/drawnewvg.h"
 #if (USE_OPENGL)
 #include "render/drawogl.h"
 #endif
@@ -52,6 +53,8 @@ std::unique_ptr<osd_renderer> osd_renderer::make_for_type(int mode, std::shared_
 		case VIDEO_MODE_SOFT:
 			return std::make_unique<renderer_sdl1>(window, extra_flags);
 #endif
+		case VIDEO_MODE_NEWVG:
+			return std::make_unique<renderer_newvg>(window, extra_flags);
 		default:
 			return nullptr;
 	}

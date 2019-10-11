@@ -176,6 +176,8 @@ void windows_osd_interface::extract_video_config()
 	else if (strcmp(stemp, "opengl") == 0)
 		video_config.mode = VIDEO_MODE_OPENGL;
 #endif
+	else if (strcmp(stemp, "newvg") == 0)
+		video_config.mode = VIDEO_MODE_NEWVG;
 	else
 	{
 		osd_printf_warning("Invalid video value %s; reverting to gdi\n", stemp);
