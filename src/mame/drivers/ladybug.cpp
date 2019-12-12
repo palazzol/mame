@@ -85,7 +85,7 @@ WRITE8_MEMBER(sraider_state::sraider_misc_w)
 {
 	switch(offset)
 	{
-	// These 8 bits are stored in the latch at A7
+	// These 8 bits are stored in the LS259 latch at A7
 	case 0x00:
 	case 0x01:
 	case 0x02:
@@ -96,11 +96,11 @@ WRITE8_MEMBER(sraider_state::sraider_misc_w)
 	case 0x07:
 		m_weird_value[offset & 7] = data & 1;
 		break;
-	// These 6 bits are stored in the latch at N7
+	// These 6 bits are stored in the LS174 latch at N7
 	case 0x08:
 		m_sraider_0x30 = data & 0x3f;
 		break;
-	// These 6 bits are stored in the latch at N8
+	// These 6 bits are stored in the LS174 latch at N8
 	case 0x10:
 		m_sraider_0x38 = data & 0x3f;
 		break;
@@ -137,39 +137,41 @@ void dorodon_state::decrypted_opcodes_map(address_map &map)
 
 void sraider_state::sraider_cpu1_map(address_map &map)
 {
-	map(0x0000, 0x5fff).rom();
-	map(0x6000, 0x6fff).ram();
+	map(0x0000, 0x5fff).rom();	// 2764s at M4,N4 & R4
+	map(0x6000, 0x67ff).ram();  // 6116 @ K3, also clk on PAL K2 (16R6, U001)
+	map(0x6800, 0x6fff).ram();  // 6116 @ M3
 	map(0x7000, 0x73ff).w("video", FUNC(ladybug_video_device::spr_w));
-	map(0x8005, 0x8005).r(FUNC(sraider_state::sraider_8005_r));  // protection check?
-	map(0x8006, 0x8006).writeonly().share("sound_low");
-	map(0x8007, 0x8007).writeonly().share("sound_high");
+	map(0x8005, 0x8005).r(FUNC(sraider_state::sraider_8005_r));  // OE on PAL @ K2 (16R6, U001) (100x xxxx xxxx x101)
+	map(0x8006, 0x8006).writeonly().share("sound_low");  // LS374 @ P6
+	map(0x8007, 0x8007).writeonly().share("sound_high"); // LS374 @ R6
 	map(0x9000, 0x9000).portr("IN0");
 	map(0x9001, 0x9001).portr("IN1");
 	map(0x9002, 0x9002).portr("DSW0");
 	map(0x9003, 0x9003).portr("DSW1");
+	//map(0x9004, 0x9004).portr("IN2"); // extra JAMMA pins
 	map(0xd000, 0xd7ff).w("video", FUNC(ladybug_video_device::bg_w));
-	map(0xe000, 0xe000).nopw();  //unknown 0x10 when in attract, 0x20 when coined/playing
+	map(0xe000, 0xe000).nopw();  //unknown 0x10 when in attract, 0x20 when coined/playing - watchdog??
 }
 
 void sraider_state::sraider_cpu2_map(address_map &map)
 {
-	map(0x0000, 0x5fff).rom();
-	map(0x6000, 0x63ff).ram();
+	map(0x0000, 0x5fff).rom(); // 2764's at H6, J6, and L6
+	map(0x6000, 0x63ff).ram(); // 2x2114 @ M6/N6
 	map(0x8000, 0x8000).readonly().share("sound_low");
 	map(0xa000, 0xa000).readonly().share("sound_high");
 	map(0xc000, 0xc000).nopr(); //some kind of sync
-	map(0xe000, 0xe0ff).writeonly().share("grid_data");
-	map(0xe800, 0xe800).w(FUNC(sraider_state::sraider_io_w));
+	map(0xe000, 0xe0ff).writeonly().share("grid_data"); // HD6148P @ D6
+	map(0xe800, 0xe800).w(FUNC(sraider_state::sraider_io_w)); // LS273 @ D4
 }
 
 void sraider_state::sraider_cpu2_io_map(address_map &map)
 {
 	map.global_mask(0xff);
-	map(0x00, 0x00).w("sn1", FUNC(sn76489_device::write));
-	map(0x08, 0x08).w("sn2", FUNC(sn76489_device::write));
-	map(0x10, 0x10).w("sn3", FUNC(sn76489_device::write));
-	map(0x18, 0x18).w("sn4", FUNC(sn76489_device::write));
-	map(0x20, 0x20).w("sn5", FUNC(sn76489_device::write));
+	map(0x00, 0x00).w("sn1", FUNC(sn76489_device::write));   // J214X2 @ N9
+	map(0x08, 0x08).w("sn2", FUNC(sn76489_device::write));   // J214X2 @ M9
+	map(0x10, 0x10).w("sn3", FUNC(sn76489_device::write));   // J214X2 @ L9
+	map(0x18, 0x18).w("sn4", FUNC(sn76489_device::write));   // J214X2 @ K9
+	map(0x20, 0x20).w("sn5", FUNC(sn76489_device::write));   // J214X2 @ J9
 	map(0x28, 0x3f).w(FUNC(sraider_state::sraider_misc_w));  // lots unknown
 }
 
@@ -553,7 +555,7 @@ static INPUT_PORTS_START( sraider )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_START1 )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN ) // JAMMA PIN 12
 
 	PORT_START("IN1")   /* IN1 */
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT ) PORT_4WAY PORT_COCKTAIL
@@ -565,33 +567,33 @@ static INPUT_PORTS_START( sraider )
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN2 )
 
-	PORT_START("DSW0")  /* DSW0 */
-	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )
+	PORT_START("DSW0")  /* DSW0 @ R3 via '244 @ R2 */
+	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Difficulty ) )  // DIP SW 7 & 8
 	PORT_DIPSETTING(    0x03, DEF_STR( Easy ) )
 	PORT_DIPSETTING(    0x02, DEF_STR( Medium ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( Hard ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Hardest ) )
-	PORT_DIPNAME( 0x04, 0x04, "High Score Names" )
+	PORT_DIPNAME( 0x04, 0x04, "High Score Names" )     // DIP SW 6
 	PORT_DIPSETTING(    0x00, "3 Letters" )
 	PORT_DIPSETTING(    0x04, "10 Letters" )
-	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Allow_Continue ) )
+	PORT_DIPNAME( 0x08, 0x08, DEF_STR( Allow_Continue ) )  // DIP SW 5
 	PORT_DIPSETTING(    0x08, DEF_STR( No ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Yes ) )
-	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )
+	PORT_DIPNAME( 0x10, 0x10, DEF_STR( Unknown ) )  // DIP SW 4
 	PORT_DIPSETTING(    0x10, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPNAME( 0x20, 0x00, DEF_STR( Cabinet ) )  // DIP SW 3
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Cocktail ) )
-	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Lives ) )
+	PORT_DIPNAME( 0xc0, 0xc0, DEF_STR( Lives ) )  // DIP SW 1 and 2
 	PORT_DIPSETTING(    0x00, "2" )
 	PORT_DIPSETTING(    0xc0, "3" )
 	PORT_DIPSETTING(    0x80, "4" )
 	PORT_DIPSETTING(    0x40, "5" )
 
 	/* Free Play setting works when it's set for both */
-	PORT_START("DSW1")  /* DSW1 */
-	PORT_DIPNAME( 0x0f, 0x0f, DEF_STR( Coin_A ) )
+	PORT_START("DSW1")  /* DSW1 @ P3 via '244 @ P2 */
+	PORT_DIPNAME( 0x0f, 0x0f, DEF_STR( Coin_A ) )   // DIP SW 5678
 	/* settings 0x00 through 0x05 all give 1 Coin/1 Credit */
 	PORT_DIPSETTING(    0x06, DEF_STR( 4C_1C ) )
 	PORT_DIPSETTING(    0x08, DEF_STR( 3C_1C ) )
@@ -604,7 +606,7 @@ static INPUT_PORTS_START( sraider )
 	PORT_DIPSETTING(    0x0c, DEF_STR( 1C_4C ) )
 	PORT_DIPSETTING(    0x0b, DEF_STR( 1C_5C ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Free_Play ) )
-	PORT_DIPNAME( 0xf0, 0xf0, DEF_STR( Coin_B ) )
+	PORT_DIPNAME( 0xf0, 0xf0, DEF_STR( Coin_B ) )    // DIP SW 1234
 	/* settings 0x00 through 0x50 all give 1 Coin/1 Credit */
 	PORT_DIPSETTING(    0x60, DEF_STR( 4C_1C ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( 3C_1C ) )
