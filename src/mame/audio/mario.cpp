@@ -372,7 +372,8 @@ static DISCRETE_SOUND_START(mario_discrete)
 	/* This provides a close simulation of the IC 3M, pin 10 filter circuit */
 	/* The Measured and SPICEd low freq gain is 1, it then has a high frequency
 	 * drop close to the following RC filter. */
-	DISCRETE_RCFILTER_VREF(DS_OUT_DAC, NODE_171, RES_K(750), CAP_P(180), 2.5)
+	DISCRETE_RCFILTER(NODE_172, NODE_171, RES_K(750), CAP_P(180))
+	DISCRETE_ADDER(DS_OUT_DAC, NODE_172, 2.5)
 	DISCRETE_TASK_END()
 
 
