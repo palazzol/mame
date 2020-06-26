@@ -1027,6 +1027,18 @@ end
 
 --------------------------------------------------
 --
+--@src/lib/formats/intvkbd_cas.h,FORMATS["INTVKBD_CAS"] = true
+--------------------------------------------------
+
+if (FORMATS["INTVKBD_CAS"]~=null  or _OPTIONS["with-tools"]) then
+	files {
+		MAME_DIR.. "src/lib/formats/intvkbd_cas.cpp",
+		MAME_DIR.. "src/lib/formats/intvkbd_cas.h",
+	}
+end
+
+--------------------------------------------------
+--
 --@src/lib/formats/iq151_dsk.h,FORMATS["IQ151_DSK"] = true
 --------------------------------------------------
 

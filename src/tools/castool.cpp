@@ -32,6 +32,7 @@
 #include "formats/fmsx_cas.h"
 #include "formats/gtp_cas.h"
 #include "formats/hect_tap.h"
+#include "formats/intvkbd_cas.h"
 #include "formats/kc_cas.h"
 #include "formats/kim1_cas.h"
 #include "formats/lviv_lvt.h"
@@ -82,6 +83,7 @@ const struct SupportedCassetteFormats formats[] = {
 	{"fmsx", fmsx_cassette_formats             ,"MSX"},
 	{"gtp", gtp_cassette_formats               ,"Elektronika inzenjering Galaksija"},
 	{"hector", hector_cassette_formats         ,"Micronique Hector & Interact Family Computer"},
+	{"ikc", intvkbd_cassette_formats           ,"Mattel Intellivision Keyboard Component"},
 	{"jupiter", ace_cassette_formats           ,"Jupiter Cantab Jupiter Ace"},
 	{"kc85", kc_cassette_formats               ,"VEB Mikroelektronik KC 85"},
 	{"kim1", kim1_cassette_formats             ,"MOS KIM-1"},

@@ -60,7 +60,6 @@ RO-3-9506 = 8KiB (4Kiw) self decoding address mask rom with external address dec
 #include "softlist.h"
 #include "speaker.h"
 
-
 #ifndef VERBOSE
 #ifdef MAME_DEBUG
 #define VERBOSE 1
@@ -428,9 +427,6 @@ void intv_state::device_timer(emu_timer &timer, device_timer_id id, int param, v
 {
 	switch (id)
 	{
-	case TIMER_INTV_INTERRUPT2_COMPLETE:
-		intv_interrupt2_complete(ptr, param);
-		break;
 	case TIMER_INTV_INTERRUPT_COMPLETE:
 		intv_interrupt_complete(ptr, param);
 		break;
@@ -442,19 +438,24 @@ void intv_state::device_timer(emu_timer &timer, device_timer_id id, int param, v
 	}
 }
 
-
-/* This is needed because MAME core does not allow PULSE_LINE.
-    The time interval is not critical, although it should be below 1000. */
-
-TIMER_CALLBACK_MEMBER(intv_state::intv_interrupt2_complete)
-{
-	m_keyboard->set_input_line(0, CLEAR_LINE);
-}
-
 INTERRUPT_GEN_MEMBER(intv_state::intv_interrupt2)
 {
-	m_keyboard->set_input_line(0, ASSERT_LINE);
-	timer_set(m_keyboard->cycles_to_attotime(100), TIMER_INTV_INTERRUPT2_COMPLETE);
+	LOG("%04X: SR1 IRQ REQUESTED\n",m_keyboard->pc());
+	m_sr1_int_pending = true;
+	if (m_tape_int_pending == false) {
+		m_keyboard->set_input_line(0, ASSERT_LINE);
+	}
+}
+
+WRITE_LINE_MEMBER(intv_state::tape_interrupt_w)
+{
+	LOG("%04X: TAPE IRQ REQUESTED\n",m_keyboard->pc());
+	if (m_tape_int_enable) {
+		m_tape_int_pending = true;
+		if (m_sr1_int_pending == false) {
+			m_keyboard->set_input_line(0, ASSERT_LINE);
+		}
+	}
 }
 
 void intv_state::intv(machine_config &config)
@@ -559,6 +560,11 @@ void intv_state::intvkbd(machine_config &config)
 
 	subdevice<screen_device>("screen")->set_screen_update(FUNC(intv_state::screen_update_intvkbd));
 
+	/* tape drive */
+	INTVKBD_TAPEDRIVE(config, m_cass);
+	m_cass->int_callback().set(FUNC(intv_state::tape_interrupt_w));
+	//MCFG_INTVKBD_TAPEDRIVE_TAPE_INT_CB(WRITELINE(*this, intv_state, tape_interrupt_w));
+
 	/* I/O cartslots for BASIC */
 	GENERIC_CARTSLOT(config, m_iocart1, generic_plain_slot, "intbasic_cart");
 	GENERIC_CARTSLOT(config, m_iocart2, generic_plain_slot, "intbasic_cart");
@@ -661,7 +667,7 @@ void intv_state::init_intvkbd()
 /*    YEAR  NAME      PARENT  COMPAT  MACHINE   INPUT    CLASS       INIT          COMPANY   FULLNAME */
 CONS( 1979, intv,     0,      0,      intv,     0,       intv_state, init_intv,    "Mattel", "Intellivision", MACHINE_SUPPORTS_SAVE )
 CONS( 1981, intvsrs,  intv,   0,      intv,     0,       intv_state, init_intv,    "Sears",  "Super Video Arcade", MACHINE_SUPPORTS_SAVE )
-COMP( 1981, intvkbd,  intv,   0,      intvkbd,  intvkbd, intv_state, init_intvkbd, "Mattel", "Intellivision Keyboard Component (Unreleased)", MACHINE_NOT_WORKING | MACHINE_SUPPORTS_SAVE )
+COMP( 1981, intvkbd,  intv,   0,      intvkbd,  intvkbd, intv_state, init_intvkbd, "Mattel", "Intellivision Keyboard Component (Unreleased)", MACHINE_IS_INCOMPLETE | MACHINE_NODEVICE_MICROPHONE | MACHINE_SUPPORTS_SAVE )
 CONS( 1982, intv2,    intv,   0,      intv2,    0,       intv_state, init_intv,    "Mattel", "Intellivision II", MACHINE_SUPPORTS_SAVE )
 
 // made up, user friendlier machines with pre-mounted passthu expansions

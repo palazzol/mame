@@ -25,8 +25,14 @@
 #include "bus/generic/slot.h"
 #include "bus/generic/carts.h"
 
+#include "imagedev/cassette.h"
+#include "formats/intvkbd_cas.h"
+#include "machine/intvkbd_tapedrive.h"
+
 #include "emupal.h"
 
+#define VERBOSE 0
+#define LOG(...) do { if (VERBOSE) logerror(__VA_ARGS__); } while (0)
 
 class intv_state : public driver_device
 {
@@ -40,6 +46,7 @@ public:
 		m_cart(*this, "cartslot"),
 		m_intvkbd_dualport_ram(*this, "dualport_ram"),
 		m_videoram(*this, "videoram"),
+		m_cass(*this, "tapedrive"),
 		m_keyboard(*this, "keyboard"),
 		m_iocart1(*this, "ioslot1"),
 		m_iocart2(*this, "ioslot2"),
@@ -75,6 +82,7 @@ private:
 	optional_device<intv_cart_slot_device> m_cart;
 	optional_shared_ptr<uint16_t> m_intvkbd_dualport_ram;
 	optional_shared_ptr<uint8_t> m_videoram;
+	optional_device<intvkbd_tapedrive_device> m_cass;
 
 	uint16_t intv_stic_r(offs_t offset);
 	void intv_stic_w(offs_t offset, uint16_t data);
@@ -89,7 +97,7 @@ private:
 	uint8_t m_bus_copy_mode;
 	uint8_t m_backtab_row;
 	uint16_t m_ram16[0x160];
-	int m_sr1_int_pending;
+	//int m_sr1_int_pending;
 	uint8_t m_ram8[256];
 	bool m_maincpu_reset;
 
@@ -112,9 +120,9 @@ private:
 
 	int m_intvkbd_text_blanked;
 	int m_intvkbd_keyboard_col;
+	int m_sr1_int_pending;
+	int m_tape_int_enable;
 	int m_tape_int_pending;
-	int m_tape_interrupts_enabled;
-	int m_tape_motor_mode;
 
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
@@ -124,9 +132,9 @@ private:
 	uint32_t screen_update_intvkbd(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	INTERRUPT_GEN_MEMBER(intv_interrupt2);
 	INTERRUPT_GEN_MEMBER(intv_interrupt);
-	TIMER_CALLBACK_MEMBER(intv_interrupt2_complete);
 	TIMER_CALLBACK_MEMBER(intv_interrupt_complete);
 	TIMER_CALLBACK_MEMBER(intv_btb_fill);
+    WRITE_LINE_MEMBER(tape_interrupt_w);
 
 	void intv2_mem(address_map &map);
 	void intv_mem(address_map &map);

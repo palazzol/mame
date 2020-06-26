@@ -17,6 +17,9 @@ void intv_state::intvkbd_dualport16_w(offs_t offset, uint16_t data, uint16_t mem
 	/* copy the LSB over to the 6502 OP RAM, in case they are opcodes */
 	RAM  = m_region_keyboard->base();
 	RAM[offset] = (uint8_t) (data >> 0);
+
+	/******* MSB? *******/
+	RAM[offset+0x4000] = (data&0x0300)>>8;
 }
 
 uint8_t intv_state::intvkbd_dualport8_lsb_r(offs_t offset)
@@ -47,6 +50,7 @@ void intv_state::intvkbd_dualport8_msb_w(offs_t offset, uint8_t data)
 	m_intvkbd_dualport_ram[offset+0x200] = mask | ((data<<8)&0x0300);
 }
 
+#if 0
 // I/O for the Tape Drive
 // (to be moved to a device)
 struct tape_drive_state_type
@@ -71,18 +75,11 @@ struct tape_drive_state_type
 	/* bit_counter */
 	int bit_counter;
 } tape_drive;
-
-//static const char *const tape_motor_mode_desc[8] =
-//{
-//  "IDLE", "IDLE", "IDLE", "IDLE",
-//  "EJECT", "PLAY/RECORD", "REWIND", "FF"
-//};
-
+#endif
 
 uint8_t intv_state::intvkbd_io_r(offs_t offset)
 {
-	unsigned char rv = 0x00;
-
+	uint8_t rv = 0x00;
 	switch (offset)
 	{
 		// These next 8 locations all map to bit7
@@ -90,42 +87,68 @@ uint8_t intv_state::intvkbd_io_r(offs_t offset)
 			// "Data from Cassette"
 			// Tape drive does the decoding to bits
 			//rv = m_io_test->read() & 0x80;
-			rv = tape_drive.read_data << 7;
+			if (m_cass->get_read_data())
+				rv = 0x80;
+			else
+				rv = 0x00;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - Data\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x001:
 			// "Watermark"
 			// 0 = Drive Busy Executing Command?, 1 = Drive Ok?
 			//rv = (m_io_test->read() & 0x40) << 1;
-			rv = tape_drive.ready << 7;
+			if (m_cass->get_ready())
+				rv = 0x80;
+			else
+				rv = 0x00;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - Ready\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x002:
 			// "End of Tape"
 			// 0 = Recordable surface, 1 = Leader Detect
 			// (Leader is transparent, optical sensor)
 			//rv = (m_io_test->read() & 0x20) << 2;
-			rv = tape_drive.leader_detect << 7;
-			//logerror("TAPE: Read %02x from 0x40%02x - Sense 2?\n",rv,offset);
+			//rv = tape_drive.leader_detect << 7;
+			if (m_cass->get_leader_detect())
+				rv = 0x80;
+			else
+				rv = 0x00;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - Leader Detect\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x003:
 			// "Cassette Present"
 			// 0 = Tape Present, 1 = Tape Not Present
 			//rv = (m_io_test->read() & 0x10) << 3;
-			rv = tape_drive.tape_missing << 7;
-			//logerror("TAPE: Read %02x from 0x40%02x - Tape Present\n",rv,offset);
+			//rv = tape_drive.tape_missing << 7;
+			if (m_cass->get_tape_missing())
+				rv = 0x80;
+			else
+				rv = 0x00;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - Tape Missing\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x004:
 			// "NOT Inter Record Gap (IRG)"
 			// 0 = Not Playing/Recording?, 1 = Playing/Recording?
 			//rv = (m_io_test->read() & 0x08) << 4;
-			rv = tape_drive.playing << 7;
+			//rv = tape_drive.playing << 7;
 			//logerror("TAPE: Read %02x from 0x40%02x - Comp (339/1)\n",rv,offset);
+			if (m_cass->get_playing())
+				rv = 0x80;
+			else
+				rv = 0x00;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - Playing/Recording\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x005:
 			// "Dropout"
 			// 0 = Data Detect, 1 = No Data
 			//rv = (m_io_test->read() & 0x04) << 5;
-			rv = tape_drive.no_data << 7;
+			//rv = tape_drive.no_data << 7;
 			//logerror("TAPE: Read %02x from 0x40%02x - Clocked Comp (339/13)\n",rv,offset);
+			if (m_cass->get_no_data())
+				rv = 0x80;
+			else
+				rv = 0x00;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - No Data\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x006:
 			// "NOT Clock Interrupt"
@@ -133,7 +156,7 @@ uint8_t intv_state::intvkbd_io_r(offs_t offset)
 				rv = 0x00;
 			else
 				rv = 0x80;
-			//logerror("TAPE: Read %02x from 0x40%02x - SR1 Int Pending\n",rv,offset);
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - SR1 Int Pending\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x007:
 			// "NOT Tape Interrupt"
@@ -141,28 +164,34 @@ uint8_t intv_state::intvkbd_io_r(offs_t offset)
 				rv = 0x00;
 			else
 				rv = 0x80;
-			//logerror("TAPE: Read %02x from 0x40%02x - Tape? Int Pending\n",rv,offset);
+			LOG("%04X: TAPE: Read %02x from 0x40%02x - Tape Int Pending\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0x060:
 			// "Read Keyboard"
-			rv = 0xff;
 			if (m_intvkbd_keyboard_col < 10)
 				rv = m_intv_keyboard[m_intvkbd_keyboard_col]->read();
+			else
+				rv = 0xff;
 			break;
 		case 0x80:
 			// "Clear Tape Interrupt"
+			m_tape_int_pending = false;
+			if (m_sr1_int_pending == false)
+				m_keyboard->set_input_line(0, CLEAR_LINE);
 			rv = 0x00;
-			//logerror("TAPE: Read %02x from 0x40%02x, clear tape int pending\n",rv,offset);
-			m_tape_int_pending = 0;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x, clear tape int pending\n",m_keyboard->pc(),rv,offset);
 			break;
 		case 0xa0:
 			// "Clear Clock Interrupt"
+			m_sr1_int_pending = false;
+			if (m_tape_int_pending == false)
+				m_keyboard->set_input_line(0, CLEAR_LINE);
 			rv = 0x00;
-			//logerror("TAPE: Read %02x from 0x40%02x, clear SR1 int pending\n",rv,offset);
-			m_sr1_int_pending = 0;
+			LOG("%04X: TAPE: Read %02x from 0x40%02x, clear SR1 int pending\n",m_keyboard->pc(),rv,offset);
 			break;
 		default:
-			//logerror("Unknown read %02x from 0x40%02x\n",rv,offset);
+			rv = 0x00;
+			LOG("%04X: Unknown read %02x from 0x40%02x\n",m_keyboard->pc(),rv,offset);
 			break;
 	}
 	return rv;
@@ -176,39 +205,63 @@ void intv_state::intvkbd_io_w(offs_t offset, uint8_t data)
 		// These are all set to zero by system reset
 		case 0x020:
 			// "Tape Drive Control: Enable"
-			tape_drive.motor_state &= 3;
-			if (data & 1)
-				tape_drive.motor_state |= 4;
+			//tape_drive.motor_state &= 3;
+			//if (data & 1)
+			//	tape_drive.motor_state |= 4;
 			//logerror("TAPE: Motor Mode: %s\n",tape_motor_mode_desc[m_tape_motor_mode]);
+			//m_cass->set_motor_state(tape_drive.motor_state);
+			m_cass->set_motor_enable(data & 1);
+			if (data & 1) {
+				LOG("%04X: TAPE: Motor Mode Enable: ON\n",m_keyboard->pc());
+			} else {
+				LOG("%04X: TAPE: Motor Mode Enable: OFF\n",m_keyboard->pc());
+			}
 			break;
 		case 0x021:
 			// "Tape Drive Control: Forward"
-			tape_drive.motor_state &= 5;
-			if (data & 1)
-				tape_drive.motor_state |= 2;
+			//tape_drive.motor_state &= 5;
+			//if (data & 1)
+			//	tape_drive.motor_state |= 2;
 			//logerror("TAPE: Motor Mode: %s\n",tape_motor_mode_desc[m_tape_motor_mode]);
+			//m_cass->set_motor_state(tape_drive.motor_state);
+			m_cass->set_motor_forward(data & 1);
+			if (data & 1) {
+				LOG("%04X: TAPE: Motor Mode Forward: ON\n",m_keyboard->pc());
+			} else {
+				LOG("%04X: TAPE: Motor Mode Forward: OFF\n",m_keyboard->pc());
+			}
 			break;
 		case 0x022:
 			// "Tape Drive Control: Fast"
-			tape_drive.motor_state &= 6;
-			if (data & 1)
-				tape_drive.motor_state |= 1;
+			//tape_drive.motor_state &= 6;
+			//if (data & 1)
+			//	tape_drive.motor_state |= 1;
 			//logerror("TAPE: Motor Mode: %s\n",tape_motor_mode_desc[m_tape_motor_mode]);
+			//m_cass->set_motor_state(tape_drive.motor_state);
+			m_cass->set_motor_fast(data & 1);
+			if (data & 1) {
+				LOG("%04X: TAPE: Motor Mode Fast: ON\n",m_keyboard->pc());
+			} else {
+				LOG("%04X: TAPE: Motor Mode Fast: OFF\n",m_keyboard->pc());
+			}
 			break;
 		case 0x023:
 			// "Tape Drive Control: Record"
 			// 0=Read, 1=Write
-			tape_drive.writing = (data & 1);
+			//tape_drive.writing = (data & 1);
+			m_cass->set_write_mode(data & 1);
 			break;
 		case 0x024:
 			// "Tape Drive Control: Mute 1"
 			// 0=Enable Channel B Audio, 1=Mute
-			tape_drive.audio_b_mute = (data & 1);
+			//tape_drive.audio_b_mute = (data & 1);
+			m_cass->set_audio_b_mute(data & 1);
 			break;
 		case 0x025:
 			// "Tape Drive Control: Mute 2"
 			// 0=Enable Channel A Audio, 1=Mute
-			tape_drive.audio_a_mute = (data & 1);
+			//tape_drive.audio_a_mute = (data & 1);
+			m_cass->set_audio_a_mute(data & 1);
 			break;
 		case 0x026:
 			// "Tape Drive Control: Mode"
@@ -216,30 +269,34 @@ void intv_state::intvkbd_io_w(offs_t offset, uint8_t data)
 			//  0=Read Channel B Data, 1 = Read Channel A Data
 			// If write mode:
 			//  0=Write Channel B data, 1 = Record Channel B Audio
-			tape_drive.channel_select = (data & 1);
+			//tape_drive.channel_select = (data & 1);
+			m_cass->set_channel(data & 1);
+			LOG("%04X: TAPE: Channel Select: %d\n",m_keyboard->pc(),data & 1);
 			break;
 		case 0x027:
 			// "Tape Drive Control: Erase"
-			tape_drive.erase = (data & 1);
+			//tape_drive.erase = (data & 1);
+			m_cass->set_erase(data & 1);
 			break;
 		case 0x040:
 			// Data to Tape
-			tape_drive.write_data = (data & 1);
+			//tape_drive.write_data = (data & 1);
+			m_cass->set_write_data(data & 1);
 			break;
 		case 0x041:
 			// "Tape Interrupt Enable"
-			//if (data & 1)
-				//logerror("TAPE: Tape Interrupts Enabled\n");
-			//else
-				//logerror("TAPE: Tape Interrupts Disabled\n");
-			m_tape_interrupts_enabled = (data & 1);
+			m_tape_int_enable = (data & 1);
+			if (data & 1)
+				LOG("%04X: TAPE: Tape Interrupts Enabled\n",m_keyboard->pc());
+			else
+				LOG("%04X: TAPE: Tape Interrupts Disabled\n",m_keyboard->pc());
 			break;
 		case 0x042:
 			// "NOT External Interrupt Enable"
-			//if (data & 1)
-				//logerror("TAPE: Cart Bus Interrupts Disabled\n");
-			//else
-				//logerror("TAPE: Cart Bus Interrupts Enabled\n");
+			if (data & 1)
+				LOG("%04X: TAPE: Cart Bus Interrupts Disabled\n",m_keyboard->pc());
+			else
+				LOG("%04X: TAPE: Cart Bus Interrupts Enabled\n",m_keyboard->pc());
 			break;
 		case 0x043:
 			// "NOT Blank Screen"
@@ -266,16 +323,20 @@ void intv_state::intvkbd_io_w(offs_t offset, uint8_t data)
 			break;
 		case 0x80:
 			// "Clear Tape Interrupt"
-			//logerror("TAPE: Write to 0x40%02x, clear tape int pending\n",offset);
-			m_tape_int_pending = 0;
+			m_tape_int_pending = false;
+			if (m_sr1_int_pending == false)
+				m_keyboard->set_input_line(0, CLEAR_LINE);
+			LOG("%04X: TAPE: Write to 0x40%02x, clear tape int pending\n",m_keyboard->pc(),offset);
 			break;
 		case 0xa0:
 			// "Clear Clock Interrupt"
-			//logerror("TAPE: Write to 0x40%02x, clear SR1 int pending\n",offset);
-			m_sr1_int_pending = 0;
+			m_sr1_int_pending = false;
+			if (m_tape_int_pending == false)
+				m_keyboard->set_input_line(0, CLEAR_LINE);
+			LOG("%04X: TAPE: Write to 0x40%02x, clear SR1 int pending\n",m_keyboard->pc(),offset);
 			break;
 		default:
-			//logerror("%04X: Unknown write %02x to 0x40%02x\n",m_keyboard->pc(),data,offset);
+			LOG("%04X: Unknown write %02x to 0x40%02x\n",m_keyboard->pc(),data,offset);
 			break;
 	}
 }
@@ -578,7 +639,7 @@ void intv_state::machine_start()
 	save_item(NAME(m_bus_copy_mode));
 	save_item(NAME(m_backtab_row));
 	save_item(NAME(m_ram16));
-	save_item(NAME(m_sr1_int_pending));
+	//save_item(NAME(m_sr1_int_pending));
 	save_item(NAME(m_ram8));
 	save_item(NAME(m_maincpu_reset));
 
@@ -594,9 +655,9 @@ void intv_state::machine_start()
 
 		save_item(NAME(m_intvkbd_text_blanked));
 		save_item(NAME(m_intvkbd_keyboard_col));
-		save_item(NAME(m_tape_int_pending));
-		save_item(NAME(m_tape_interrupts_enabled));
-		save_item(NAME(m_tape_motor_mode));
+		//save_item(NAME(m_tape_int_pending));
+		//save_item(NAME(m_tape_interrupts_enabled));
+		//save_item(NAME(m_tape_motor_mode));
 	}
 
 	if (m_cart && m_cart->exists())
@@ -663,7 +724,7 @@ INTERRUPT_GEN_MEMBER(intv_state::intv_interrupt)
 {
 	int delay = m_stic->read_row_delay();
 	m_maincpu->set_input_line(CP1610_INT_INTRM, ASSERT_LINE);
-	m_sr1_int_pending = 1;
+	//m_sr1_int_pending = 1;
 	m_bus_copy_mode = 1;
 	m_backtab_row = 0;
 
