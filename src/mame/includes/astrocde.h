@@ -143,6 +143,8 @@ public:
 	void init_gorf();
 	void init_astrocde();
 	virtual void video_start() override;
+	void RGB_converter_PCB(double R_minus_Y, double B_minus_Y, double Y, double Vee,
+		                   double& R, double& G, double& B) const;
 	void astrocade_palette(palette_device &palette) const;
 	DECLARE_VIDEO_START(profpac);
 	void profpac_palette(palette_device &palette) const;
