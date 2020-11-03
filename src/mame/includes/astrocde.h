@@ -142,6 +142,8 @@ public:
 	void init_ebases();
 	void init_gorf();
 	void init_astrocde();
+	void RGB_converter_PCB(double R_minus_Y, double B_minus_Y, double Y, double Vee,
+		                   double& R, double& G, double& B) const;
 	void astrocade_palette(palette_device &palette) const;
 	DECLARE_VIDEO_START(profpac);
 	void profpac_palette(palette_device &palette) const;
