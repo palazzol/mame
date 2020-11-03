@@ -97,6 +97,18 @@ void coleco_state::paddle_on_w(uint8_t data)
 	m_joy_mode = 1;
 }
 
+void bit90_state::init()
+{
+	auto pgm = &m_maincpu->space(AS_PROGRAM);
+	
+	if(m_ram_extra->size() == 32768)
+		return;
+	else if(m_ram_extra->size() == 16384)
+		pgm->unmap_readwrite(0xc000, 0xffff);
+	else if(m_ram_extra->size() == 1024)
+		pgm->unmap_readwrite(0x8000, 0xffff);
+}
+
 uint8_t bit90_state::bankswitch_u4_r(address_space &space)
 {
 	if (!machine().side_effects_disabled()) {
@@ -141,7 +153,7 @@ void bit90_state::u32_w(uint8_t data)
 void coleco_state::coleco_map(address_map &map)
 {
 	map(0x0000, 0x1fff).rom();
-	map(0x6000, 0x63ff).ram().mirror(0x1c00).share("ram");
+	map(0x6000, 0x63ff).ram().mirror(0x1c00);
 	map(0x8000, 0xffff).rom();
 }
 
@@ -150,8 +162,8 @@ void bit90_state::bit90_map(address_map &map)
 	map(0x0000, 0x1fff).bankr("bank");
 	map(0x2000, 0x3fff).rom();
 	map(0x4000, 0x5fff).rom();  // Decoded through pin 5 of the Bit90 expansion port
-	map(0x6000, 0x67ff).ram().mirror(0x1800).share("ram");
-	map(0x8000, 0xffff).rom();  // More RAM could also appear here (TBD)
+	map(0x6000, 0x67ff).ram().mirror(0x1800);
+	map(0x8000, 0xffff).ram().share("ram_extra");
 }
 
 void coleco_state::coleco_io_map(address_map &map)
@@ -195,7 +207,7 @@ void bit90_state::bit90_io_map(address_map &map)
 void coleco_state::czz50_map(address_map &map)
 {
 	map(0x0000, 0x3fff).rom();
-	map(0x6000, 0x63ff).ram().mirror(0x1c00).share("ram");
+	map(0x6000, 0x63ff).ram().mirror(0x1c00);
 	map(0x8000, 0xffff).rom();
 }
 
@@ -490,8 +502,6 @@ uint8_t coleco_state::coleco_paddle_read(int port, int joy_mode, uint8_t joy_sta
 
 void coleco_state::machine_start()
 {
-	memset(m_ram, 0xff, m_ram.bytes()); // initialize RAM
-
 	// init paddles
 	for (int port = 0; port < 2; port++)
 	{
@@ -617,6 +627,9 @@ void bit90_state::bit90(machine_config &config)
 	/* software lists */
 	SOFTWARE_LIST(config, "cart_list").set_original("coleco");
 
+	/* internal ram */
+	RAM(config, m_ram_extra).set_default_size("1K").set_extra_options("16K,32K");
+	
 	TIMER(config, "paddle_timer").configure_periodic(FUNC(coleco_state::paddle_update_callback), attotime::from_msec(20));
 }
 
@@ -715,19 +728,19 @@ MONITOR3
 */
 
 ROM_START( bit90 )
-	ROM_DEFAULT_BIOS( "3.0" )
+	ROM_DEFAULT_BIOS( "3.1" )
 	ROM_SYSTEM_BIOS( 0, "3.0", "BASIC 3.0" )
 	ROM_SYSTEM_BIOS( 1, "3.1", "BASIC 3.1" )
 
 	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROMX_LOAD("bit90b3.u2",  0x2000, 0x2000, CRC(b992b940) SHA1(c7dd96a1944fac40cbae20630f303a69de7e6313), ROM_BIOS(0))
-	ROMX_LOAD("d32522e.u2",  0x2000, 0x2000, NO_DUMP, ROM_BIOS(1)) // MONITOR3
+	ROMX_LOAD("d32522e.u2",  0x2000, 0x2000, CRC(66fc66b0) SHA1(6644c217860aa9940bef7c6aeb50768810d9035b), ROM_BIOS(1)) // MONITOR3
 
 	ROM_REGION( 0x4000, "banked", 0 )
 	ROMX_LOAD("bit90b3.u4", 0x0000, 0x2000, CRC(06d21fc2) SHA1(6d296b09b661babd4c2ef6993f8e768a67932388), ROM_BIOS(0))
 	ROMX_LOAD("bit90b3.u3", 0x2000, 0x2000, CRC(61fdccbb) SHA1(25cac13627c0916d3ed2b92f0b2218b405de5be4), ROM_BIOS(0))
-	ROMX_LOAD("d32351e.u4", 0x0000, 0x2000, NO_DUMP, ROM_BIOS(1)) // BIT-99C1
-	ROMX_LOAD("d32521e.u3", 0x2000, 0x2000, NO_DUMP, ROM_BIOS(1)) // MONITOR2
+	ROMX_LOAD("d32351e.u4", 0x0000, 0x2000, CRC(d00c7137) SHA1(43328257136aff5a4984cceafdb5601200ac24b4), ROM_BIOS(1)) // BIT-99C1
+	ROMX_LOAD("d32521e.u3", 0x2000, 0x2000, CRC(f6401dd8) SHA1(78bc7f0fe4f5eb114773d654c92598512481abec), ROM_BIOS(1)) // MONITOR2
 ROM_END
 
 /* System Drivers */
@@ -739,4 +752,4 @@ CONS( 1983, colecop,  coleco, 0,      colecop,  coleco, coleco_state, empty_init
 CONS( 1986, czz50,    0,      coleco, czz50,    czz50,  coleco_state, empty_init, "Bit Corporation",  "Chuang Zao Zhe 50",                0 )
 CONS( 1988, dina,     czz50,  0,      dina,     czz50,  coleco_state, empty_init, "Telegames",        "Dina",                             0 )
 CONS( 1988, prsarcde, czz50,  0,      czz50,    czz50,  coleco_state, empty_init, "Telegames",        "Personal Arcade",                  0 )
-COMP( 1983, bit90,    0,      coleco, bit90,    bit90,  bit90_state,  empty_init, "Bit Corporation",  "Bit90",                            0 )
+COMP( 1983, bit90,    0,      coleco, bit90,    bit90,  bit90_state,  init,       "Bit Corporation",  "Bit90",                            0 )
