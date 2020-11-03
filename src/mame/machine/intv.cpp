@@ -532,8 +532,8 @@ void intv_state::intvkbd_periph_w(offs_t offset, uint8_t data)
 		case 0x07:
 			//logerror("Printing: 0x%02x, %c\n",data,data);
 			// For testing, print to stdout
-			fputc(data, stdout);
-			fflush(stdout);
+			///fputc(data, stdout);
+			///fflush(stdout);
 			m_printer_not_busy = false;
 		break;
 		default:

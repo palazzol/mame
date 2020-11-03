@@ -15,7 +15,7 @@
 #include "ui/uimain.h"
 
 #define VERBOSE 0
-#define LOG(...) do { if (VERBOSE) logerror(__VA_ARGS__); } while (0)
+#include "logmacro.h"
 
 /* The nominal bit rate is 3000bps.  We update the tape at a faster rate to minimize latency */
 #define INTVKBD_TAPEDRIVE_UPDATE_RATE (24000)
@@ -261,9 +261,9 @@ double intvkbd_tapedrive_device::get_position()
 }
 
 double intvkbd_tapedrive_device::get_length()
-{	
+{
 	if (!m_cassette) return 0.0;
-	
+
 	struct CassetteInfo info;
 	cassette_get_info(m_cassette, &info);
 	return ((double) info.sample_count) / info.sample_frequency;

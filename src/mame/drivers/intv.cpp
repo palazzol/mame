@@ -563,7 +563,6 @@ void intv_state::intvkbd(machine_config &config)
 	/* tape drive */
 	INTVKBD_TAPEDRIVE(config, m_cass);
 	m_cass->int_callback().set(FUNC(intv_state::tape_interrupt_w));
-	//MCFG_INTVKBD_TAPEDRIVE_TAPE_INT_CB(WRITELINE(*this, intv_state, tape_interrupt_w));
 
 	/* I/O cartslots for BASIC */
 	GENERIC_CARTSLOT(config, m_iocart1, generic_plain_slot, "intbasic_cart");
