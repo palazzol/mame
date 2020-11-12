@@ -353,6 +353,18 @@ end
 
 --------------------------------------------------
 --
+--@src/devices/video/hd61202.h,VIDEOS["HD61202"] = true
+--------------------------------------------------
+
+if (VIDEOS["HD61202"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/video/hd61202.cpp",
+		MAME_DIR .. "src/devices/video/hd61202.h",
+	}
+end
+
+--------------------------------------------------
+--
 --@src/devices/video/hd61603.h,VIDEOS["HD61603"] = true
 --------------------------------------------------
 
@@ -396,6 +408,18 @@ if (VIDEOS["HD66421"]~=null) then
 	files {
 		MAME_DIR .. "src/devices/video/hd66421.cpp",
 		MAME_DIR .. "src/devices/video/hd66421.h",
+	}
+end
+
+--------------------------------------------------
+--
+--@src/devices/video/hlcd0438.h,VIDEOS["HLCD0438"] = true
+--------------------------------------------------
+
+if (VIDEOS["HLCD0438"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/video/hlcd0438.cpp",
+		MAME_DIR .. "src/devices/video/hlcd0438.h",
 	}
 end
 

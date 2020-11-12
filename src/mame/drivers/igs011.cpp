@@ -77,6 +77,8 @@ Notes:
 #include "speaker.h"
 
 
+namespace {
+
 class igs011_state : public driver_device
 {
 public:
@@ -394,10 +396,10 @@ u32 igs011_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, con
 
 #ifdef MAME_DEBUG
 			if ((layer_enable != -1) && (pri_addr == 0xff))
-				bitmap.pix16(y, x) = m_palette->black_pen();
+				bitmap.pix(y, x) = m_palette->black_pen();
 			else
 #endif
-				bitmap.pix16(y, x) = m_layer[l][scr_addr] | (l << 8);
+				bitmap.pix(y, x) = m_layer[l][scr_addr] | (l << 8);
 		}
 	}
 	return 0;
@@ -618,6 +620,8 @@ void igs011_state::igs011_blit_flags_w(offs_t offset, u16 data, u16 mem_mask)
 
 void igs011_state::machine_start()
 {
+	m_prot1_addr = 0;
+
 	save_item(NAME(m_igs_dips_sel));
 	save_item(NAME(m_igs_input_sel));
 	save_item(NAME(m_igs_hopper));
@@ -4904,6 +4908,8 @@ ROM_START( xymg )
 	ROM_LOAD( "m0202.snd", 0x00000, 0x80000, CRC(220949aa) SHA1(1e0dba168a0687d32aaaed42714ae24358f4a3e7) ) // 2 banks
 	ROM_CONTINUE(          0x00000, 0x80000 ) // 1ST+2ND IDENTICAL
 ROM_END
+
+} // Anonymous namespace
 
 
 /***************************************************************************

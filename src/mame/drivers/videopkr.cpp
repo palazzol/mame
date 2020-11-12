@@ -282,7 +282,6 @@
 #include "machine/timer.h"
 #include "sound/ay8910.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 
 #include "emupal.h"
 #include "screen.h"
@@ -957,10 +956,10 @@ void videopkr_state::i8751_io_port(address_map &map)
 {
 	map(0x0000, 0x0fff).ram(); // NVRAM?
 	map(0x8000, 0x8000).noprw(); // ???
-	map(0x9000, 0x9000).writeonly(); // ???
+	map(0x9000, 0x9000).nopw(); // ???
 	map(0xa000, 0xbfff).ram(); // video RAM?
 	map(0xc000, 0xc003).rw("ppi", FUNC(i8255_device::read), FUNC(i8255_device::write));
-	map(0xf000, 0xf000).writeonly(); // ???
+	map(0xf000, 0xf000).nopw(); // ???
 }
 
 void videopkr_state::i8039_sound_mem(address_map &map)
@@ -995,7 +994,7 @@ static INPUT_PORTS_START( videopkr )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_GAMBLE_BOOK ) PORT_NAME("Books")
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_COIN1 ) PORT_IMPULSE(2)
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_START1 ) PORT_NAME("Start")
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_OTHER ) PORT_NAME("Discard") PORT_CODE(KEYCODE_2)
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_GAMBLE_DEAL ) PORT_NAME("Discard")
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_POKER_CANCEL )
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_POKER_HOLD1 )
 	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_POKER_HOLD2 )
@@ -1104,7 +1103,7 @@ static INPUT_PORTS_START( babypkr )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_GAMBLE_BOOK ) PORT_NAME("Books")
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_COIN1 ) PORT_IMPULSE(2)
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_START1 ) PORT_NAME("Start")
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_GAMBLE_D_UP ) PORT_NAME("Double / Discard") PORT_CODE(KEYCODE_3)
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_GAMBLE_DEAL ) PORT_NAME("Double / Discard")
 	PORT_BIT( 0x20, IP_ACTIVE_HIGH, IPT_POKER_CANCEL ) PORT_NAME("Cancel / Take")
 	PORT_BIT( 0x40, IP_ACTIVE_HIGH, IPT_POKER_HOLD1 )
 	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_POKER_HOLD2 )
@@ -1261,9 +1260,6 @@ void videopkr_state::videopkr(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	MC1408(config, "dac", 0).add_route(ALL_OUTPUTS, "speaker", 0.275);
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 

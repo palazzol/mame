@@ -49,7 +49,7 @@ public:
 		m_sn2(*this, "sn2"),
 		m_discrete(*this, "discrete"),
 		m_paletteram(*this, "paletteram"),
-		m_videoram(*this, "videoram"),
+		m_videoram(*this, "videoram", 0x10000, ENDIANNESS_BIG),
 		m_videoram_address(*this, "videoram_addr"),
 		m_videoram_mask(*this, "videoram_mask"),
 		m_scanline_latch(*this, "scanline_latch"),
@@ -90,7 +90,7 @@ protected:
 
 	/* video state */
 	required_shared_ptr<uint8_t> m_paletteram;
-	optional_shared_ptr<uint8_t> m_videoram;
+	memory_share_creator<uint8_t> m_videoram;
 	required_shared_ptr<uint8_t> m_videoram_address;
 	optional_shared_ptr<uint8_t> m_videoram_mask;
 	required_shared_ptr<uint8_t> m_scanline_latch;
@@ -168,6 +168,8 @@ public:
 protected:
 	virtual void machine_start() override;
 
+	optional_device<m68705p_device> m_mcu;
+
 private:
 	uint8_t coin_r();
 	void coin_w(uint8_t data);
@@ -177,8 +179,6 @@ private:
 	uint8_t mcu_portc_r();
 	void mcu_porta_w(uint8_t data);
 	void mcu_portb_w(uint8_t data);
-
-	required_device<m68705p_device> m_mcu;
 
 	/* machine state */
 	uint8_t  m_68705_porta_out;
@@ -194,6 +194,7 @@ public:
 	{ }
 
 	void zookeep(machine_config &config);
+	void zookeepbl(machine_config &config);
 	void video(machine_config &config);
 
 protected:

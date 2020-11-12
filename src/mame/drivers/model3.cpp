@@ -735,6 +735,8 @@ JP4/5/6/7 - Jumpers to configure ROMs
 #include "includes/model3.h"
 
 #include "cpu/m68000/m68000.h"
+#include "cpu/z80/kl5c80a16.h"
+#include "machine/315_5296.h"
 #include "machine/clock.h"
 #include "machine/eepromser.h"
 #include "machine/53c810.h"
@@ -1689,7 +1691,7 @@ void model3_state::daytona2_rombank_w(offs_t offset, uint64_t data, uint64_t mem
 		data >>= 56;
 		data = (~data) & 0xf;
 		membank("bank1")->set_base(memregion( "user1" )->base() + 0x800000 + (data * 0x800000)); /* banked CROM */
-		membank("bank2")->set_base(memregion( "user1" )->base() + 0x800000 + (data * 0x800000)); /* banked CROM */
+		m_bank2->set_base(memregion( "user1" )->base() + 0x800000 + (data * 0x800000)); /* banked CROM */
 	}
 }
 
@@ -6006,6 +6008,31 @@ void model3_state::model3_10(machine_config &config)
 	MCFG_MACHINE_RESET_OVERRIDE(model3_state,model3_10)
 }
 
+void model3_state::getbass_iocpu_mem(address_map &map)
+{
+	map(0x00000, 0x0efff).rom();
+	map(0x0f000, 0x0ffff).ram();
+}
+
+void model3_state::getbass_iocpu_io(address_map &map)
+{
+	map.global_mask(0xff);
+	map(0x60, 0x6f).rw("io60", FUNC(sega_315_5296_device::read), FUNC(sega_315_5296_device::write));
+	map(0x70, 0x7f).rw("io70", FUNC(sega_315_5649_device::read), FUNC(sega_315_5649_device::write));
+}
+
+void model3_state::getbass(machine_config &config)
+{
+	model3_10(config);
+
+	kl5c80a16_device &iocpu(KL5C80A16(config, "iocpu", 32_MHz_XTAL / 2));
+	iocpu.set_addrmap(AS_PROGRAM, &model3_state::getbass_iocpu_mem);
+	iocpu.set_addrmap(AS_IO, &model3_state::getbass_iocpu_io);
+
+	SEGA_315_5296(config, "io60", 32_MHz_XTAL);
+	SEGA_315_5649(config, "io70", 0);
+}
+
 void model3_state::model3_15(machine_config &config)
 {
 	add_cpu_100mhz(config);
@@ -6129,7 +6156,7 @@ void model3_state::init_model3_10()
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xc0000000, 0xc00000ff, read64s_delegate(*this, FUNC(model3_state::scsi_r)), write64s_delegate(*this, FUNC(model3_state::scsi_w)));
 
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1" );
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1") );
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xf0800cf8, 0xf0800cff, read64s_delegate(*this, FUNC(model3_state::mpc105_addr_r)), write64s_delegate(*this, FUNC(model3_state::mpc105_addr_w)));
 	m_maincpu->space(AS_PROGRAM).install_read_handler(0xf0c00cf8, 0xf0c00cff, read64smo_delegate(*this, FUNC(model3_state::mpc105_data_r)));
@@ -6140,7 +6167,7 @@ void model3_state::init_model3_10()
 void model3_state::init_model3_15()
 {
 	interleave_vroms();
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1");
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1"));
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xf0800cf8, 0xf0800cff, read64s_delegate(*this, FUNC(model3_state::mpc105_addr_r)), write64s_delegate(*this, FUNC(model3_state::mpc105_addr_w)));
 	m_maincpu->space(AS_PROGRAM).install_read_handler(0xf0c00cf8, 0xf0c00cff, read64smo_delegate(*this, FUNC(model3_state::mpc105_data_r)));
@@ -6151,7 +6178,7 @@ void model3_state::init_model3_15()
 void model3_state::init_model3_20()
 {
 	interleave_vroms();
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1" );
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1") );
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xc2000000, 0xc20000ff, read64s_delegate(*this, FUNC(model3_state::real3d_dma_r)), write64s_delegate(*this, FUNC(model3_state::real3d_dma_w)));
 
@@ -6220,7 +6247,7 @@ void model3_state::init_vs215()
 	m_step15_with_mpc106 = true;
 
 	interleave_vroms();
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1" );
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1") );
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xf9000000, 0xf90000ff, read64s_delegate(*this, FUNC(model3_state::scsi_r)), write64s_delegate(*this, FUNC(model3_state::scsi_w)));
 
@@ -6241,7 +6268,7 @@ void model3_state::init_vs29815()
 	rom[(0x60290c^4)/4] = 0x60000000;
 
 	interleave_vroms();
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1" );
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1") );
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xf9000000, 0xf90000ff, read64s_delegate(*this, FUNC(model3_state::scsi_r)), write64s_delegate(*this, FUNC(model3_state::scsi_w)));
 
@@ -6257,7 +6284,7 @@ void model3_state::init_bass()
 	m_step15_with_mpc106 = true;
 
 	interleave_vroms();
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1" );
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1") );
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xf9000000, 0xf90000ff, read64s_delegate(*this, FUNC(model3_state::scsi_r)), write64s_delegate(*this, FUNC(model3_state::scsi_w)));
 
@@ -6271,7 +6298,7 @@ void model3_state::init_bass()
 void model3_state::init_getbass()
 {
 	interleave_vroms();
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, "bank1" );
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xff000000, 0xff7fffff, membank("bank1") );
 
 	m_maincpu->space(AS_PROGRAM).install_readwrite_handler(0xf9000000, 0xf90000ff, read64s_delegate(*this, FUNC(model3_state::scsi_r)), write64s_delegate(*this, FUNC(model3_state::scsi_w)));
 
@@ -6370,7 +6397,7 @@ void model3_state::init_daytona2()
 	init_model3_20();
 
 	m_maincpu->space(AS_PROGRAM).install_write_handler(0xc3800000, 0xc3800007, write64s_delegate(*this, FUNC(model3_state::daytona2_rombank_w)));
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xc3000000, 0xc37fffff, "bank2");
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xc3000000, 0xc37fffff, m_bank2);
 
 	//rom[(0x68468c^4)/4] = 0x60000000;
 	//rom[(0x6063c4^4)/4] = 0x60000000;
@@ -6384,7 +6411,7 @@ void model3_state::init_dayto2pe()
 	init_model3_20();
 
 	m_maincpu->space(AS_PROGRAM).install_write_handler(0xc3800000, 0xc3800007, write64s_delegate(*this, FUNC(model3_state::daytona2_rombank_w)));
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xc3000000, 0xc37fffff, "bank2");
+	m_maincpu->space(AS_PROGRAM).install_read_bank(0xc3000000, 0xc37fffff, m_bank2);
 
 //  rom[(0x606784^4)/4] = 0x60000000;
 //  rom[(0x69a3fc^4)/4] = 0x60000000;       // jump to encrypted code
@@ -6469,7 +6496,7 @@ GAME( 1996, vf3a,         vf3, model3_10, model3, model3_state,        init_vf3,
 GAME( 1996, vf3tb,        vf3, model3_10, model3, model3_state,  init_model3_10, ROT0, "Sega", "Virtua Fighter 3 Team Battle", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
 GAME( 1997, bass,           0, model3_10, bass,   model3_state,       init_bass, ROT0, "Sega", "Sega Bass Fishing", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
 GAME( 1997, bassdx,      bass, model3_10, bass,   model3_state,    init_getbass, ROT0, "Sega", "Sega Bass Fishing Deluxe", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
-GAME( 1997, getbass,     bass, model3_10, bass,   model3_state,    init_getbass, ROT0, "Sega", "Get Bass", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
+GAME( 1997, getbass,     bass,   getbass, bass,   model3_state,    init_getbass, ROT0, "Sega", "Get Bass", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
 
 /* Model 3 Step 1.5 */
 GAME( 1996, scud,           0,      scud, scud,     model3_state,     init_scud, ROT0, "Sega", "Scud Race Twin (Australia)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )

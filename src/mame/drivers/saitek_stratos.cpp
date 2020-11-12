@@ -9,7 +9,6 @@ SciSys/Saitek Stratos chesscomputer family (1987-1990)
 - Stratos
 - Turbo King
 - Corona --> saitek_corona.cpp
-- Simultano --> saitek_simultano.cpp
 
 IMPORTANT: The user is expected to press the STOP button to turn off the computer.
 When not using -autosave, press that button before exiting MAME, or NVRAM can get corrupt.
@@ -38,7 +37,6 @@ Hardware notes:
 
 Stratos/Turbo King are identical.
 Corona has magnet sensors and two HELIOS chips.
-Simultano has an extra LCD screen representing the chessboard state.
 
 There is no official Saitek program versioning for these. The D/D+ versions are known since
 they're the same chess engine as later Saitek modules, such as the Analyst module.
@@ -57,7 +55,6 @@ very few bytes difference between revisions. The first Corona is engine version 
 #include "machine/nvram.h"
 #include "machine/sensorboard.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "bus/generic/slot.h"
 #include "bus/generic/carts.h"
 
@@ -492,7 +489,6 @@ void stratos_state::stratos(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 
 	/* extension rom */
 	GENERIC_CARTSLOT(config, "extrom", generic_plain_slot, "saitek_egr");

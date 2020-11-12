@@ -19,6 +19,9 @@ Hardware notes:
 It also appeared in Tandy's Chess Champion 2150, not as a simple rebrand, but
 with hardware differences: 3MHz R65C02, 1 64KB ROM and no EGR socket.
 
+TODO:
+- where does the IRQ come from? same problem as with stratos
+
 ***************************************************************************/
 
 #include "emu.h"
@@ -28,7 +31,6 @@ with hardware differences: 3MHz R65C02, 1 64KB ROM and no EGR socket.
 #include "machine/nvram.h"
 #include "machine/sensorboard.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/pwm.h"
 #include "video/sed1500.h"
 #include "bus/generic/slot.h"
@@ -331,7 +333,6 @@ void simultano_state::simultano(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 
 	/* extension rom */
 	GENERIC_CARTSLOT(config, "extrom", generic_plain_slot, "saitek_egr");

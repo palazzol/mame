@@ -138,7 +138,7 @@ video_manager::video_manager(running_machine &machine)
 			util::xml::data_node *const viewnode(layoutnode->add_child("view", nullptr));
 			if (!viewnode)
 				throw emu_fatalerror("Couldn't create XML node??");
-			viewnode->set_attribute("name", util::xml::normalize_string(util::string_format("s%1$u", i).c_str()));
+			viewnode->set_attribute("name", util::string_format("s%1$u", i).c_str());
 			util::xml::data_node *const screennode(viewnode->add_child("screen", nullptr));
 			if (!screennode)
 				throw emu_fatalerror("Couldn't create XML node??");
@@ -266,7 +266,7 @@ void video_manager::frame_update(bool from_debugger)
 		screen_device *const screen = screen_device_iterator(machine().root_device()).first();
 		bool const debugger_enabled = machine().debug_flags & DEBUG_FLAG_ENABLED;
 		bool const within_instruction_hook = debugger_enabled && machine().debugger().within_instruction_hook();
-		if (screen && (machine().paused() || from_debugger || within_instruction_hook))
+		if (screen && ((machine().paused() && machine().options().update_in_pause()) || from_debugger || within_instruction_hook))
 			screen->reset_partial_updates();
 	}
 }
@@ -329,16 +329,16 @@ void video_manager::save_snapshot(screen_device *screen, emu_file &file)
 	// add two text entries describing the image
 	std::string text1 = std::string(emulator_info::get_appname()).append(" ").append(emulator_info::get_build_version());
 	std::string text2 = std::string(machine().system().manufacturer).append(" ").append(machine().system().type.fullname());
-	png_info pnginfo;
+	util::png_info pnginfo;
 	pnginfo.add_text("Software", text1.c_str());
 	pnginfo.add_text("System", text2.c_str());
 
 	// now do the actual work
 	const rgb_t *palette = (screen != nullptr && screen->has_palette()) ? screen->palette().palette()->entry_list_adjusted() : nullptr;
 	int entries = (screen != nullptr && screen->has_palette()) ? screen->palette().entries() : 0;
-	png_error error = png_write_bitmap(file, &pnginfo, m_snap_bitmap, entries, palette);
-	if (error != PNGERR_NONE)
-		osd_printf_error("Error generating PNG for snapshot: png_error = %d\n", error);
+	util::png_error error = util::png_write_bitmap(file, &pnginfo, m_snap_bitmap, entries, palette);
+	if (error != util::png_error::NONE)
+		osd_printf_error("Error generating PNG for snapshot: png_error = %d\n", std::underlying_type_t<util::png_error>(error));
 }
 
 
@@ -642,7 +642,10 @@ bool video_manager::finish_screen_updates()
 	bool has_live_screen = false;
 	for (screen_device &screen : iter)
 	{
+		if (screen.partial_scan_hpos() >= 0) // previous update ended mid-scanline
+			screen.update_now();
 		screen.update_partial(screen.visible_area().max_y);
+
 		if (machine().render().is_live(screen))
 			has_live_screen = true;
 	}
@@ -1072,9 +1075,9 @@ void video_manager::create_snapshot_bitmap(screen_device *screen)
 	render_primitive_list &primlist = m_snap_target->get_primitives();
 	primlist.acquire_lock();
 	if (machine().options().snap_bilinear())
-		snap_renderer_bilinear::draw_primitives(primlist, &m_snap_bitmap.pix32(0), width, height, m_snap_bitmap.rowpixels());
+		snap_renderer_bilinear::draw_primitives(primlist, &m_snap_bitmap.pix(0), width, height, m_snap_bitmap.rowpixels());
 	else
-		snap_renderer::draw_primitives(primlist, &m_snap_bitmap.pix32(0), width, height, m_snap_bitmap.rowpixels());
+		snap_renderer::draw_primitives(primlist, &m_snap_bitmap.pix(0), width, height, m_snap_bitmap.rowpixels());
 	primlist.release_lock();
 }
 

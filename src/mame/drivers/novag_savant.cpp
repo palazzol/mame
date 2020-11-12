@@ -31,7 +31,6 @@ TODO:
 #include "machine/sensorboard.h"
 #include "machine/nvram.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/hlcd0538.h"
 #include "video/pwm.h"
 
@@ -231,7 +230,6 @@ void savant_state::control_w(u8 data)
 	m_lcd1->lcd_w(BIT(~data, 4));
 
 	// d5-d7: keypad mux
-
 	m_control = data;
 }
 
@@ -373,7 +371,9 @@ void savant_state::savant(machine_config &config)
 	config.set_perfect_quantum(m_mcu);
 
 	SENSORBOARD(config, m_board).set_type(sensorboard_device::BUTTONS);
+	m_board->set_delay(attotime::from_msec(200));
 	m_board->set_ui_enable(false); // no chesspieces
+	m_board->set_mod_enable(true);
 
 	NVRAM(config, "nvram", nvram_device::DEFAULT_ALL_1);
 
@@ -392,7 +392,6 @@ void savant_state::savant(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 }
 
 

@@ -246,6 +246,12 @@ VIDEO_START_MEMBER(tmnt_state,lgtnfght)/* also tmnt2, ssriders */
 
 	m_dim_c = m_dim_v = m_lastdim = m_lasten = 0;
 
+	for (int i = 0; i < 3; i++)
+	{
+		m_layer_colorbase[i] = 0;
+		m_sorted_layer[i] = 0;
+	}
+
 	save_item(NAME(m_dim_c));
 	save_item(NAME(m_dim_v));
 	save_item(NAME(m_lastdim));
@@ -650,7 +656,7 @@ uint32_t tmnt_state::screen_update_glfgreat(screen_device &screen, bitmap_ind16 
 	if (m_layerpri[0] >= 0x30 && m_layerpri[1] < 0x30)
 	{
 		m_k053936->zoom_draw(screen, bitmap, cliprect, m_roz_tilemap, 0, 1, 1);
-		m_glfgreat_pixel = bitmap.pix16(0x80, 0x105);
+		m_glfgreat_pixel = bitmap.pix(0x80, 0x105);
 	}
 
 	m_k052109->tilemap_draw(screen, bitmap, cliprect, m_sorted_layer[1], 0, 2);
@@ -658,7 +664,7 @@ uint32_t tmnt_state::screen_update_glfgreat(screen_device &screen, bitmap_ind16 
 	if (m_layerpri[1] >= 0x30 && m_layerpri[2] < 0x30)
 	{
 		m_k053936->zoom_draw(screen, bitmap, cliprect, m_roz_tilemap, 0, 1, 1);
-		m_glfgreat_pixel = bitmap.pix16(0x80, 0x105);
+		m_glfgreat_pixel = bitmap.pix(0x80, 0x105);
 	}
 
 	m_k052109->tilemap_draw(screen, bitmap, cliprect, m_sorted_layer[2], 0, 4);
@@ -666,7 +672,7 @@ uint32_t tmnt_state::screen_update_glfgreat(screen_device &screen, bitmap_ind16 
 	if (m_layerpri[2] >= 0x30)
 	{
 		m_k053936->zoom_draw(screen, bitmap, cliprect, m_roz_tilemap, 0, 1, 1);
-		m_glfgreat_pixel = bitmap.pix16(0x80, 0x105);
+		m_glfgreat_pixel = bitmap.pix(0x80, 0x105);
 	}
 
 	m_k053245->sprites_draw(bitmap, cliprect, screen.priority());

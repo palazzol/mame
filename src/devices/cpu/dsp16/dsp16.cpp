@@ -32,7 +32,7 @@
 
     There's a 15-word "cache" that the DSP can execute from without the
     cost of instruction fetches.  There's an instruction to cache the
-    next N instructions and repeat them M times, and in instruction to
+    next N instructions and repeat them M times, and an instruction to
     execute the currently cached instructions M times.  Interrupts are
     not serviced while executing from cache, and not all instructions
     can be cached.
@@ -854,7 +854,7 @@ template <bool Debugger, bool Caching> inline void dsp16_device_base::execute_so
 				m_phase = phase::OP2;
 				break;
 
-			case 0x0e: // do K { instr1...instrIN } # redo K
+			case 0x0e: // do K { instr1...instrNI } # redo K
 				{
 					u16 const ni(op_ni(op));
 					if (ni)
@@ -1601,7 +1601,7 @@ inline bool dsp16_device_base::op_interruptible(u16 op)
 		return true;
 	case 0x00: // goto JA
 	case 0x01:
-	case 0x0e: // do K { instre1...instrNI } # redo K
+	case 0x0e: // do K { instr1...instrNI } # redo K
 	case 0x10: // call JA
 	case 0x11:
 	case 0x18: // goto B
@@ -2082,7 +2082,7 @@ dsp16_device::dsp16_device(machine_config const &mconfig, char const *tag, devic
 			mconfig, DSP16, tag, owner, clock,
 			9,
 			address_map_constructor(FUNC(dsp16_device::data_map), this))
-	, m_rom(*this, DEVICE_SELF, 0x0800)
+	, m_rom(*this, DEVICE_SELF)
 {
 }
 
@@ -2114,7 +2114,7 @@ dsp16a_device::dsp16a_device(machine_config const &mconfig, char const *tag, dev
 			mconfig, DSP16A, tag, owner, clock,
 			16,
 			address_map_constructor(FUNC(dsp16a_device::data_map), this))
-	, m_rom(*this, DEVICE_SELF, 0x1000)
+	, m_rom(*this, DEVICE_SELF)
 {
 }
 

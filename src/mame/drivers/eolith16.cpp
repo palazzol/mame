@@ -28,7 +28,7 @@ public:
 	eolith16_state(const machine_config &mconfig, device_type type, const char *tag)
 		: eolith_state(mconfig, type, tag)
 		, m_special_io(*this, "SPECIAL")
-		, m_vram(*this, "vram", 16)
+		, m_vram(*this, "vram")
 		, m_vrambank(*this, "vrambank")
 	{
 	}
@@ -129,7 +129,7 @@ uint32_t eolith16_state::screen_update_eolith16(screen_device &screen, bitmap_in
 	{
 		for (int x = 0; x < 320; x++)
 		{
-			bitmap.pix16(y, x) = m_vram[(y * 320) + x] & 0xff;
+			bitmap.pix(y, x) = m_vram[(y * 320) + x] & 0xff;
 		}
 	}
 	return 0;

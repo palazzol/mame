@@ -32,7 +32,6 @@ TODO:
 #include "cpu/tms1000/tms1100.h"
 #include "machine/timer.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/hlcd0488.h"
 #include "video/pwm.h"
 
@@ -204,13 +203,20 @@ DEVICE_IMAGE_LOAD_MEMBER(microvision_state::cart_load)
 
 	if (image.loaded_through_softlist())
 	{
-		u32 sclock = strtoul(image.get_feature("clock"), nullptr, 0);
+		const char *cclock = image.get_feature("clock");
+		u32 sclock = cclock ? strtoul(cclock, nullptr, 0) : 0;
 		if (sclock != 0)
 			clock = sclock;
 
-		m_butmask_auto = ~strtoul(image.get_feature("butmask"), nullptr, 0) & 0xfff;
-		m_pla_auto = strtoul(image.get_feature("pla"), nullptr, 0) ? 1 : 0;
-		m_paddle_auto = bool(strtoul(image.get_feature("paddle"), nullptr, 0) ? 1 : 0);
+		const char *butmask = image.get_feature("butmask");
+		m_butmask_auto = butmask ? strtoul(butmask, nullptr, 0) : 0;
+		m_butmask_auto = ~m_butmask_auto & 0xfff;
+
+		const char *pla = image.get_feature("pla");
+		m_pla_auto = pla && strtoul(pla, nullptr, 0) ? 1 : 0;
+
+		const char *paddle = image.get_feature("paddle");
+		m_paddle_auto = paddle && strtoul(paddle, nullptr, 0);
 	}
 
 	// detect MCU on file size
@@ -259,7 +265,8 @@ uint32_t microvision_state::screen_update(screen_device &screen, bitmap_rgb32 &b
 			int p = m_lcd_pwm->read_element_bri(y ^ 15, x ^ 15) * 10000;
 			p = (p > 255) ? 0 : p ^ 255;
 
-			bitmap.pix32(y, x) = p << 16 | p << 8 | p;
+			if (cliprect.contains(x, y))
+				bitmap.pix(y, x) = p << 16 | p << 8 | p;
 		}
 	}
 
@@ -469,9 +476,6 @@ void microvision_state::microvision(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_2BIT_BINARY_WEIGHTED_ONES_COMPLEMENT(config, m_dac, 0).add_route(ALL_OUTPUTS, "speaker", 0.25); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 
 	/* cartridge */
 	GENERIC_CARTSLOT(config, m_cart, generic_plain_slot, "microvision_cart");

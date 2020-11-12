@@ -166,8 +166,8 @@ void mbc200_state::main_io(address_map &map)
 void mbc200_state::sub_mem(address_map &map)
 {
 	map.unmap_value_high();
-	map(0x0000, 0x2fff).rom();
-	map(0x3000, 0x7fff).ram();
+	map(0x0000, 0x1fff).rom();
+	map(0x2000, 0x7fff).ram();
 	map(0x8000, 0xffff).ram().share("vram");
 }
 
@@ -268,15 +268,13 @@ static void mbc200_floppies(device_slot_interface &device)
 
 MC6845_UPDATE_ROW( mbc200_state::update_row )
 {
-	const rgb_t *palette = m_palette->palette()->entry_list_raw();
-	u8 gfx;
-	u16 mem,x;
-	u32 *p = &bitmap.pix32(y);
+	rgb_t const *const palette = m_palette->palette()->entry_list_raw();
+	u32 *p = &bitmap.pix(y);
 
-	for (x = 0; x < x_count; x++)
+	for (u16 x = 0; x < x_count; x++)
 	{
-		mem = (ma+x)*4+ra;
-		gfx = m_vram[mem & 0x7fff];
+		u16 mem = (ma+x)*4+ra;
+		u8 gfx = m_vram[mem & 0x7fff];
 		*p++ = palette[BIT(gfx, 7)];
 		*p++ = palette[BIT(gfx, 6)];
 		*p++ = palette[BIT(gfx, 5)];

@@ -6,6 +6,7 @@
  */
 
 #include "nlid_proxy.h"
+#include "core/setup.h"
 #include "nl_errstr.h"
 #include "solver/nld_solver.h"
 
@@ -20,7 +21,7 @@ namespace netlist
 	// nld_base_proxy
 	// -----------------------------------------------------------------------------
 
-	static const std::array<std::pair<const char *, const char *>, 3> power_syms = {{ {"VCC", "VEE"}, {"VCC", "GND"}, {"VDD", "VSS"}}};
+	static constexpr std::array<std::pair<const char *, const char *>, 3> power_syms = {{ {"VCC", "VEE"}, {"VCC", "GND"}, {"VDD", "VSS"}}};
 
 	nld_base_proxy::nld_base_proxy(netlist_state_t &anetlist, const pstring &name,
 		const logic_t *inout_proxied)
@@ -84,15 +85,11 @@ namespace netlist
 	nld_a_to_d_proxy::nld_a_to_d_proxy(netlist_state_t &anetlist, const pstring &name, const logic_input_t *in_proxied)
 	: nld_base_a_to_d_proxy(anetlist, name, in_proxied)
 	, m_Q(*this, "Q")
-	, m_I(*this, "I")
+	, m_I(*this, "I", nldelegate(&nld_a_to_d_proxy::input, this))
 	{
 	}
 
-	NETLIB_RESET(a_to_d_proxy)
-	{
-	}
-
-	NETLIB_UPDATE(a_to_d_proxy)
+	NETLIB_HANDLER(a_to_d_proxy, input)
 	{
 		const auto v(m_I.Q_Analog());
 		const auto vn(m_tn->net().Q_Analog());
@@ -120,26 +117,16 @@ namespace netlist
 
 	nld_d_to_a_proxy::nld_d_to_a_proxy(netlist_state_t &anetlist, const pstring &name, const logic_output_t *out_proxied)
 	: nld_base_d_to_a_proxy(anetlist, name, out_proxied)
-	, m_I(*this, "I")
+	, m_I(*this, "I", nldelegate(&nld_d_to_a_proxy :: input, this))
 	, m_RP(*this, "RP")
 	, m_RN(*this, "RN")
 	, m_last_state(*this, "m_last_var", terminal_t::OUT_TRISTATE())
 	{
-		register_subalias("Q", m_RN.P());
+		register_subalias("Q", "RN.1");
 
-		log().verbose("D/A Proxy: Found power terminals on device {1}", out_proxied->device().name());
-		if (anetlist.is_extended_validation())
-		{
-			// During validation, don't connect to terminals found
-			// This will cause terminals not connected to a rail net to
-			// fail connection stage.
-			connect(m_RN.N(), m_RP.P());
-		}
-		else
-		{
-			connect(m_RN.N(), *m_tn);
-			connect(m_RP.P(), *m_tp);
-		}
+		connect(m_RN.N(), *m_tn);
+		connect(m_RP.P(), *m_tp);
+
 		connect(m_RN.P(), m_RP.N());
 	}
 
@@ -157,7 +144,7 @@ namespace netlist
 			nlconst::zero());
 	}
 
-	NETLIB_UPDATE(d_to_a_proxy)
+	NETLIB_HANDLER(d_to_a_proxy ,input)
 	{
 		const auto state = m_I();
 		if (state != m_last_state)

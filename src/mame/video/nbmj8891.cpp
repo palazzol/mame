@@ -296,13 +296,13 @@ void nbmj8891_state::vramflip(int vram)
 void nbmj8891_state::update_pixel0(int x, int y)
 {
 	uint8_t color = m_videoram0[(y * m_screen->width()) + x];
-	m_tmpbitmap0.pix16(y, x) = color;
+	m_tmpbitmap0.pix(y, x) = color;
 }
 
 void nbmj8891_state::update_pixel1(int x, int y)
 {
 	uint8_t color = m_videoram1[(y * m_screen->width()) + x];
-	m_tmpbitmap1.pix16(y, x) = (color == 0x7f) ? 0xff : color;
+	m_tmpbitmap1.pix(y, x) = (color == 0x7f) ? 0xff : color;
 }
 
 void nbmj8891_state::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
@@ -526,6 +526,7 @@ void nbmj8891_state::video_start()
 	memset(m_videoram1.get(), 0xff, (width * height * sizeof(uint8_t)));
 	m_gfxdraw_mode = 1;
 	m_screen_refresh = 1;
+	m_blitter_src_addr = 0;
 
 	common_save_state();
 	save_pointer(NAME(m_videoram1), width * height);

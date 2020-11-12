@@ -37,7 +37,7 @@ public:
 		, m_term2_adc(*this, "adc")
 		, m_nvram(*this, "nvram")
 		, m_generic_paletteram_16(*this, "paletteram")
-		, m_gfx_rom(*this, "gfx_rom", 16)
+		, m_gfx_rom(*this, "gfx_rom")
 		, m_mainram(*this, "mainram")
 		, m_ports(*this, { { "IN0", "IN1", "IN2", "DSW", "UNK0", "UNK1" } })
 	{
@@ -63,6 +63,7 @@ public:
 	void init_trog();
 	void init_totcarn();
 	void init_mkyawdim();
+	void init_mkyawdim2();
 	void init_shimpact();
 	void init_hiimpact();
 	void init_mkyturbo();
@@ -115,6 +116,7 @@ private:
 	optional_ioport_array<6> m_ports;
 
 	std::unique_ptr<uint16_t[]> m_cmos_ram;
+	std::unique_ptr<uint8_t[]> m_hidden_ram;
 	uint32_t m_cmos_page;
 	uint16_t m_prot_result;
 	uint16_t m_prot_sequence[3];
@@ -156,6 +158,8 @@ private:
 	uint16_t midyunit_dma_r(offs_t offset);
 	void midyunit_dma_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void yawdim_oki_bank_w(uint8_t data);
+	void yawdim2_oki_bank_w(uint8_t data);
+	uint8_t yawdim2_soundlatch_r();
 	TMS340X0_TO_SHIFTREG_CB_MEMBER(to_shiftreg);
 	TMS340X0_FROM_SHIFTREG_CB_MEMBER(from_shiftreg);
 	TMS340X0_SCANLINE_IND16_CB_MEMBER(scanline_update);

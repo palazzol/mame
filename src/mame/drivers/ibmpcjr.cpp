@@ -119,8 +119,6 @@ private:
 };
 
 static INPUT_PORTS_START( ibmpcjr )
-	PORT_INCLUDE(pc_keyboard)
-
 	PORT_START("IN0") /* IN0 */
 	PORT_BIT ( 0xf0, 0xf0,   IPT_UNUSED )
 	PORT_BIT ( 0x08, 0x08,   IPT_CUSTOM ) PORT_VBLANK("pcvideo_pcjr:screen")
@@ -226,6 +224,7 @@ WRITE_LINE_MEMBER(pcjr_state::out2_changed)
 {
 	m_pit_out2 = state ? 1 : 0;
 	m_speaker->level_w(m_pc_spkrdata & m_pit_out2);
+	m_cassette->output(state ? 1.0 : -1.0);
 }
 
 /*************************************************************
@@ -403,8 +402,7 @@ void pcjr_state::pcjr_fdc_dor_w(uint8_t data)
 	else
 		m_fdc->set_floppy(nullptr);
 
-	if((pdor^m_pcjr_dor) & 0x80)
-		m_fdc->soft_reset();
+	m_fdc->reset_w(!BIT(m_pcjr_dor, 7));
 
 	if(m_pcjr_dor & 0x20) {
 		if((pdor & 0x40) && !(m_pcjr_dor & 0x40))
@@ -656,6 +654,7 @@ void pcjr_state::ibmpcjr(machine_config &config)
 	/* cassette */
 	CASSETTE(config, m_cassette);
 	m_cassette->set_default_state(CASSETTE_PLAY | CASSETTE_MOTOR_DISABLED | CASSETTE_SPEAKER_ENABLED);
+	m_cassette->add_route(ALL_OUTPUTS, "mono", 0.05);
 
 	UPD765A(config, m_fdc, 8'000'000, false, false);
 

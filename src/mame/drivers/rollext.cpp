@@ -123,7 +123,7 @@ void rollext_renderer::render_texture_scan(int32_t scanline, const extent_t &ext
 	float du = extent.param[0].dpdx;
 	float dv = extent.param[1].dpdx;
 
-	uint32_t *fb = &m_fb->pix32(scanline);
+	uint32_t *fb = &m_fb->pix(scanline);
 
 	uint32_t texbot = extradata.tex_bottom;
 	uint32_t texleft = extradata.tex_left;
@@ -361,7 +361,7 @@ uint32_t rollext_state::screen_update(screen_device &screen, bitmap_rgb32 &bitma
 	int ii=0;
 	for (int j=0; j < 384; j++)
 	{
-		uint32_t *fb = &bitmap.pix32(j);
+		uint32_t *fb = &bitmap.pix(j);
 		for (int i=0; i < 512; i++)
 		{
 			uint8_t p = m_texture[ii++];
@@ -521,7 +521,7 @@ void rollext_state::memmap(address_map &map)
 	map(0xa0000000, 0xa00000ff).rw(FUNC(rollext_state::a0000000_r), FUNC(rollext_state::a0000000_w));
 	map(0xb0000000, 0xb0000007).r(FUNC(rollext_state::b0000000_r));
 	map(0xc0000000, 0xc03fffff).rom().region("rom1", 0);
-	map(0xff000000, 0xffffffff).ram().region("rom0", 0);
+	map(0xff000000, 0xffffffff).rom().region("rom0", 0);
 }
 
 

@@ -191,7 +191,7 @@ void rmnimbus_state::external_int(uint8_t vector, bool state)
 uint8_t rmnimbus_state::cascade_callback()
 {
 	m_maincpu->int0_w(0);
-	return m_vector;
+	return !m_vector ? m_z80sio->m1_r() : m_vector;
 }
 
 void rmnimbus_state::machine_reset()
@@ -945,7 +945,7 @@ void rmnimbus_state::nimbus_bank_memory()
 			map_base=(ramsel==0x07) ? map_blocks[map_blockno] : &map_blocks[map_blockno][block_ofs*1024];
 
 			membank(bank)->set_base(map_base);
-			space.install_readwrite_bank(memmap[blockno].start, memmap[blockno].end, bank);
+			space.install_readwrite_bank(memmap[blockno].start, memmap[blockno].end, membank(bank));
 			//if(LOG_RAM) logerror(", base=%X\n",(int)map_base);
 		}
 		else
@@ -987,7 +987,7 @@ WRITE_LINE_MEMBER(rmnimbus_state::sio_interrupt)
 	if(LOG_SIO)
 		logerror("SIO Interrupt state=%02X\n",state);
 
-	external_int(m_z80sio->m1_r(), state);
+	external_int(0, state);
 }
 
 /* Floppy disk */

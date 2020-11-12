@@ -13,11 +13,11 @@ Hold Pawn + Knight buttons at boot for test mode.
 #include "emu.h"
 
 #include "cpu/m6502/m65c02.h"
+#include "machine/clock.h"
 #include "machine/nvram.h"
 #include "machine/sensorboard.h"
 #include "machine/timer.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/pwm.h"
 
 #include "speaker.h"
@@ -60,9 +60,6 @@ private:
 	void io_w(u8 data);
 	void led_w(u8 data);
 	void update_display();
-
-	TIMER_DEVICE_CALLBACK_MEMBER(nmi_on)  { m_maincpu->set_input_line(M6502_NMI_LINE, ASSERT_LINE); }
-	TIMER_DEVICE_CALLBACK_MEMBER(nmi_off) { m_maincpu->set_input_line(M6502_NMI_LINE, CLEAR_LINE);  }
 
 	u8 m_board_mux = 0xff;
 	u8 m_digits_idx = 0;
@@ -175,11 +172,8 @@ void modena_state::modena(machine_config &config)
 	M65C02(config, m_maincpu, 4.194304_MHz_XTAL); // W65C02SP or RP65C02G
 	m_maincpu->set_addrmap(AS_PROGRAM, &modena_state::modena_mem);
 
-	timer_device &nmi_on(TIMER(config, "nmi_on"));
-	const attotime nmi_period = attotime::from_hz(4.194304_MHz_XTAL / (1 << 13));
-	nmi_on.configure_periodic(FUNC(modena_state::nmi_on), nmi_period);
-	nmi_on.set_start_delay(nmi_period - attotime::from_usec(975)); // active for 975us
-	TIMER(config, "nmi_off").configure_periodic(FUNC(modena_state::nmi_off), nmi_period);
+	clock_device &nmi_clock(CLOCK(config, "nmi_clock", 4.194304_MHz_XTAL / (1 << 13))); // active for 975us
+	nmi_clock.signal_handler().set_inputline(m_maincpu, INPUT_LINE_NMI);
 
 	NVRAM(config, "nvram", nvram_device::DEFAULT_ALL_0);
 
@@ -195,7 +189,6 @@ void modena_state::modena(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 }
 
 

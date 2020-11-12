@@ -37,7 +37,6 @@ ToDo:
 #include "machine/genpin.h"
 #include "sound/dac.h"
 #include "sound/hc55516.h"
-#include "sound/volt_reg.h"
 #include "speaker.h"
 
 #include "s9.lh"
@@ -259,7 +258,7 @@ void s9_state::dig1_w(uint8_t data)
 
 uint8_t s9_state::switch_r()
 {
-	char retval = 0xff;
+	uint8_t retval = 0xff;
 	// scan all 8 input columns, since multiple can be selected at once
 	for (int i = 0; i < 7; i++)
 	{
@@ -346,6 +345,7 @@ void s9_state::s9(machine_config &config)
 	/* Devices */
 	PIA6821(config, m_pia21, 0);
 	m_pia21->readpa_handler().set(FUNC(s9_state::sound_r));
+	m_pia21->set_port_a_input_overrides_output_mask(0xff);
 	m_pia21->readca1_handler().set(FUNC(s9_state::pia21_ca1_r));
 	m_pia21->writepa_handler().set(FUNC(s9_state::sound_w));
 	m_pia21->writepb_handler().set(FUNC(s9_state::sol2_w));
@@ -371,6 +371,7 @@ void s9_state::s9(machine_config &config)
 
 	PIA6821(config, m_pia30, 0);
 	m_pia30->readpa_handler().set(FUNC(s9_state::switch_r));
+	m_pia30->set_port_a_input_overrides_output_mask(0xff);
 	m_pia30->writepb_handler().set(FUNC(s9_state::switch_w));
 	m_pia30->irqa_handler().set(FUNC(s9_state::pia_irq));
 	m_pia30->irqb_handler().set(FUNC(s9_state::pia_irq));
@@ -383,20 +384,18 @@ void s9_state::s9(machine_config &config)
 
 	SPEAKER(config, "speaker").front_center();
 	MC1408(config, "dac", 0).add_route(ALL_OUTPUTS, "speaker", 0.5);
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 
 	SPEAKER(config, "speech").front_center();
 	HC55516(config, m_hc55516, 0).add_route(ALL_OUTPUTS, "speech", 1.00);
 
 	PIA6821(config, m_pias, 0);
 	m_pias->readpa_handler().set(FUNC(s9_state::sound_r));
+	m_pias->set_port_a_input_overrides_output_mask(0xff);
 	m_pias->writepb_handler().set("dac", FUNC(dac_byte_interface::data_w));
 	m_pias->ca2_handler().set("hc55516", FUNC(hc55516_device::clock_w));
 	m_pias->cb2_handler().set("hc55516", FUNC(hc55516_device::digit_w));
 	m_pias->irqa_handler().set_inputline("audiocpu", M6808_IRQ_LINE);
-	m_pias->irqa_handler().set_inputline("audiocpu", M6808_IRQ_LINE);
+	m_pias->irqb_handler().set_inputline("audiocpu", M6808_IRQ_LINE);
 }
 
 /*-----------------------------
