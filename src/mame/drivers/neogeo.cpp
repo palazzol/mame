@@ -1405,9 +1405,8 @@ void neogeo_base_state::set_slot_idx(int slot)
 			space.install_rom(0x000080, 0x0fffff, (uint16_t *)m_slots[m_curr_slot]->get_rom_base() + 0x80/2);
 
 
-		space.install_read_bank(0x200000, 0x2fffff, "cartridge");
+		space.install_read_bank(0x200000, 0x2fffff, m_bank_cartridge);
 		space.install_write_handler(0x2ffff0, 0x2fffff, write16smo_delegate(*this, FUNC(neogeo_base_state::write_banksel)));
-		m_bank_cartridge = membank("cartridge");
 
 		init_cpu();
 
@@ -1694,7 +1693,7 @@ uint16_t neogeo_base_state::banked_vectors_r(offs_t offset)
 	}
 	else
 	{
-		uint16_t* rom = (m_slots[m_curr_slot] && m_slots[m_curr_slot]->get_rom_size() > 0) ? m_slots[m_curr_slot]->get_rom_base() : (uint16_t*)m_region_maincpu->base();
+		uint16_t* rom = (m_slots[m_curr_slot] && m_slots[m_curr_slot]->get_rom_size() > 0) ? m_slots[m_curr_slot]->get_rom_base() : m_region_maincpu ? (uint16_t*)m_region_maincpu->base() : m_share_maincpu;
 		return rom[offset];
 	}
 }
@@ -1727,7 +1726,7 @@ void ngarcade_base_state::neogeo_main_map(address_map &map)
 	// some games have protection devices in the 0x200000 region, it appears to map to cart space, not surprising, the ROM is read here too
 	map(0x300001, 0x300001).mirror(0x01fffe).w("watchdog", FUNC(watchdog_timer_device::reset_w));
 	map(0x300080, 0x300081).mirror(0x01ff7e).portr("TEST");
-	map(0x320000, 0x320001).mirror(0x01fffe).portr("AUDIO/COIN");
+	map(0x320000, 0x320001).mirror(0x01fffe).portr("AUDIO_COIN");
 	map(0x380000, 0x380001).mirror(0x01fffe).portr("SYSTEM");
 	map(0x800000, 0x800fff).r(FUNC(ngarcade_base_state::unmapped_r)); // memory card mapped here if present
 	map(0xc00000, 0xc1ffff).mirror(0x0e0000).rom().region("mainbios", 0);
@@ -1841,7 +1840,7 @@ INPUT_PORTS_START( neogeo )
 	PORT_BIT( 0x7000, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_CUSTOM_MEMBER(neogeo_base_state, get_memcard_status)
 	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_CUSTOM ) // Hardware type (AES=0, MVS=1). Some games check this and show a piracy warning screen if the hardware and BIOS don't match
 
-	PORT_START("AUDIO/COIN")
+	PORT_START("AUDIO_COIN")
 	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_COIN1 ) // coin 1 (combined) or P1 coin 1 (separate) for BIOS that supports it
 	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_COIN2 ) // coin 2 (combined) or P2 coin 1 (separate) for BIOS that supports it
 	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_SERVICE1 )
@@ -1866,7 +1865,7 @@ static INPUT_PORTS_START( neogeo_mvs )
 	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("Next Game") PORT_CODE(KEYCODE_3)
 	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("Previous Game") PORT_CODE(KEYCODE_4)
 
-	PORT_MODIFY("AUDIO/COIN")
+	PORT_MODIFY("AUDIO_COIN")
 	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_COIN3 ) // P1 coin 2 (separate) for BIOS that supports it
 	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_COIN4 ) // P2 coin 2 (separate) for BIOS that supports it
 
@@ -1877,7 +1876,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START( neogeo_mvs6 )
 	PORT_INCLUDE( neogeo_mvs )
 
-	PORT_MODIFY("AUDIO/COIN")
+	PORT_MODIFY("AUDIO_COIN")
 	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_CUSTOM ) // sense: 6-slot
 INPUT_PORTS_END
 
@@ -3017,7 +3016,7 @@ static INPUT_PORTS_START( vliner )
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_UNKNOWN ) /* this bit is used.. */
 
-	PORT_MODIFY("AUDIO/COIN")
+	PORT_MODIFY("AUDIO_COIN")
 	PORT_BIT( 0x003f, IP_ACTIVE_LOW, IPT_UNUSED )
 
 	PORT_START("IN5")

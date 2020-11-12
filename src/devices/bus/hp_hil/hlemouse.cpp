@@ -35,12 +35,17 @@ INPUT_PORTS_END
 } // anonymous namespace
 
 hle_hp_46060b_device::hle_hp_46060b_device(machine_config const &mconfig, char const *tag, device_t *owner, uint32_t clock)
-	: hle_device_base(mconfig, HP_46060B_MOUSE, tag, owner, clock)
+	: hle_device_base(mconfig, HP_46060B_MOUSE, tag, owner, clock),
+	mouse_x_delta{0},
+	mouse_y_delta{0},
+	mouse_buttons{0}
 { }
 
 void hle_hp_46060b_device::device_reset()
 {
 	m_fifo.clear();
+
+	mouse_x_delta = mouse_y_delta = 0;
 }
 
 int hle_hp_46060b_device::hil_poll()

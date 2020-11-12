@@ -23,9 +23,9 @@
 #define LOG_GPIO        (1 << 6)
 #define LOG_LCD_DMA     (1 << 7)
 #define LOG_LCD         (1 << 8)
-#define LOG_POWER		(1 << 9)
-#define LOG_RTC			(1 << 10)
-#define LOG_CLOCKS		(1 << 11)
+#define LOG_POWER       (1 << 9)
+#define LOG_RTC         (1 << 10)
+#define LOG_CLOCKS      (1 << 11)
 #define LOG_ALL         (LOG_UNKNOWN | LOG_I2S | LOG_DMA | LOG_OSTIMER | LOG_INTC | LOG_GPIO | LOG_LCD_DMA | LOG_LCD | LOG_POWER | LOG_RTC | LOG_CLOCKS)
 
 #define VERBOSE         (LOG_ALL)
@@ -1583,7 +1583,7 @@ uint32_t pxa255_periphs_device::screen_update(screen_device &screen, bitmap_rgb3
 {
 	for (int y = 0; y <= (m_lcd_regs.lccr2 & PXA255_LCCR2_LPP); y++)
 	{
-		uint32_t *dst = &bitmap.pix32(y);
+		uint32_t *dst = &bitmap.pix(y);
 		for (int x = 0; x <= (m_lcd_regs.lccr1 & PXA255_LCCR1_PPL); x++)
 		{
 			*dst++ = m_lcd_palette[m_lcd_framebuffer[y * ((m_lcd_regs.lccr1 & PXA255_LCCR1_PPL) + 1) + x]];

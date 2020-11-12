@@ -960,10 +960,10 @@ uint32_t cat_state::screen_update_cat(screen_device &screen, bitmap_rgb32 &bitma
 			int horpos = 0;
 			for (int x = 0; x < 42; x++)
 			{
-				uint16_t code = m_p_cat_videoram[addr++];
+				const uint16_t code = m_p_cat_videoram[addr++];
 				for (int b = 15; b >= 0; b--)
 				{
-					bitmap.pix32(y, horpos++) = BIT(code, b) ? on_color : off_color;
+					bitmap.pix(y, horpos++) = BIT(code, b) ? on_color : off_color;
 				}
 			}
 		}
@@ -1077,7 +1077,7 @@ void cat_state::cat(machine_config &config)
 	m_duart->irq_cb().set(FUNC(cat_state::cat_duart_irq_handler));
 	m_duart->a_tx_cb().set(FUNC(cat_state::cat_duart_txa));
 	m_duart->b_tx_cb().set(FUNC(cat_state::cat_duart_txb));
-	m_duart->outport_cb().set(FUNC(cat_state::cat_duart_output));;
+	m_duart->outport_cb().set(FUNC(cat_state::cat_duart_output));
 
 	CENTRONICS(config, m_ctx, centronics_devices, "printer");
 	m_ctx->ack_handler().set(FUNC(cat_state::prn_ack_ff));

@@ -92,7 +92,13 @@ private:
 class jtces40_state : public jtc_state
 {
 public:
-	using jtc_state::jtc_state;
+	jtces40_state(const machine_config &mconfig, device_type type, const char *tag)
+		: jtc_state(mconfig, type, tag)
+		, m_video_ram_40(*this, "videoram40", JTC_ES40_VIDEORAM_SIZE, ENDIANNESS_BIG)
+		, m_color_ram_r(*this, "color_ram_r", JTC_ES40_VIDEORAM_SIZE, ENDIANNESS_BIG)
+		, m_color_ram_g(*this, "color_ram_g", JTC_ES40_VIDEORAM_SIZE, ENDIANNESS_BIG)
+		, m_color_ram_b(*this, "color_ram_b", JTC_ES40_VIDEORAM_SIZE, ENDIANNESS_BIG)
+	{ }
 	void jtces40(machine_config &config);
 private:
 	virtual void video_start() override;
@@ -101,9 +107,11 @@ private:
 	void videoram_w(offs_t offset, u8 data);
 	void banksel_w(u8 data);
 	u8 m_video_bank;
-	std::unique_ptr<u8[]> m_color_ram_r;
-	std::unique_ptr<u8[]> m_color_ram_g;
-	std::unique_ptr<u8[]> m_color_ram_b;
+
+	memory_share_creator<uint8_t> m_video_ram_40;
+	memory_share_creator<uint8_t> m_color_ram_r;
+	memory_share_creator<uint8_t> m_color_ram_g;
+	memory_share_creator<uint8_t> m_color_ram_b;
 	void jtc_es40_mem(address_map &map);
 	void es40_palette(palette_device &palette) const;
 };
@@ -195,7 +203,7 @@ void jtces40_state::videoram_w(offs_t offset, u8 data)
 	if (BIT(m_video_bank, 7)) m_color_ram_r[offset] = data;
 	if (BIT(m_video_bank, 6)) m_color_ram_g[offset] = data;
 	if (BIT(m_video_bank, 5)) m_color_ram_b[offset] = data;
-	if (BIT(m_video_bank, 4)) m_video_ram[offset] = data;
+	if (BIT(m_video_bank, 4)) m_video_ram_40[offset] = data;
 }
 
 void jtces40_state::banksel_w(u8 data)
@@ -669,16 +677,14 @@ QUICKLOAD_LOAD_MEMBER(jtc_state::quickload_cb)
 
 u32 jtc_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
 {
-	u8 i, y, sx;
-
-	for (y = 0; y < 64; y++)
+	for (u8 y = 0; y < 64; y++)
 	{
-		for (sx = 0; sx < 8; sx++)
+		for (u8 sx = 0; sx < 8; sx++)
 		{
-			u8 data = m_video_ram[(y * 8) + sx];
+			u8 const data = m_video_ram[(y * 8) + sx];
 
-			for (i = 0; i < 8; i++)
-				bitmap.pix16(y, (sx * 8) + i) = BIT(data, 7-i);
+			for (u8 i = 0; i < 8; i++)
+				bitmap.pix(y, (sx * 8) + i) = BIT(data, 7-i);
 		}
 	}
 
@@ -687,16 +693,14 @@ u32 jtc_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, const 
 
 u32 jtces23_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
 {
-	u8 i, y, sx;
-
-	for (y = 0; y < 128; y++)
+	for (u8 y = 0; y < 128; y++)
 	{
-		for (sx = 0; sx < 16; sx++)
+		for (u8 sx = 0; sx < 16; sx++)
 		{
-			u8 data = m_video_ram[(y * 16) + sx];
+			u8 const data = m_video_ram[(y * 16) + sx];
 
-			for (i = 0; i < 8; i++)
-				bitmap.pix16(y, (sx * 8) + i) = BIT(data, 7-i);
+			for (u8 i = 0; i < 8; i++)
+				bitmap.pix(y, (sx * 8) + i) = BIT(data, 7-i);
 		}
 	}
 
@@ -711,18 +715,8 @@ void jtces40_state::es40_palette(palette_device &palette) const
 
 void jtces40_state::video_start()
 {
-	/* allocate memory */
-	m_video_ram.allocate(JTC_ES40_VIDEORAM_SIZE);
-	m_color_ram_r = std::make_unique<u8[]>(JTC_ES40_VIDEORAM_SIZE);
-	m_color_ram_g = std::make_unique<u8[]>(JTC_ES40_VIDEORAM_SIZE);
-	m_color_ram_b = std::make_unique<u8[]>(JTC_ES40_VIDEORAM_SIZE);
-
 	/* register for state saving */
 	save_item(NAME(m_video_bank));
-	save_pointer(NAME(m_video_ram.target()), JTC_ES40_VIDEORAM_SIZE);
-	save_pointer(NAME(m_color_ram_r), JTC_ES40_VIDEORAM_SIZE);
-	save_pointer(NAME(m_color_ram_g), JTC_ES40_VIDEORAM_SIZE);
-	save_pointer(NAME(m_color_ram_b), JTC_ES40_VIDEORAM_SIZE);
 	save_item(NAME(m_centronics_busy));
 }
 
@@ -736,13 +730,13 @@ u32 jtces40_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, co
 		{
 			for (int x = 0; x < 40; x++)
 			{
-				u8 const data = m_video_ram[ma + x];
+				u8 const data = m_video_ram_40[ma + x];
 				u8 const r = ~m_color_ram_r[ma + x];
 				u8 const g = ~m_color_ram_g[ma + x];
 				u8 const b = ~m_color_ram_b[ma + x];
 
 				for (int i = 0; i < 8; i++)
-					bitmap.pix16(y*3+z, (x * 8) + 7 - i) = (BIT(r, i) << 0) | (BIT(g, i) << 1) | (BIT(b, i) << 2) | (BIT(data, i) << 3);
+					bitmap.pix(y*3+z, (x * 8) + 7 - i) = (BIT(r, i) << 0) | (BIT(g, i) << 1) | (BIT(b, i) << 2) | (BIT(data, i) << 3);
 			}
 			ma+=40;
 		}

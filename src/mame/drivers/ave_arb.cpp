@@ -45,7 +45,6 @@ TODO:
 #include "machine/6522via.h"
 #include "machine/nvram.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "bus/generic/slot.h"
 #include "bus/generic/carts.h"
 
@@ -73,9 +72,9 @@ public:
 	{ }
 
 	// halt button is tied to NMI, reset button to RESET(but only if halt button is held)
-	void update_reset() { m_maincpu->set_input_line(INPUT_LINE_RESET, (m_inputs[1]->read() == 3) ? ASSERT_LINE : CLEAR_LINE); }
 	DECLARE_INPUT_CHANGED_MEMBER(reset_button) { update_reset(); }
 	DECLARE_INPUT_CHANGED_MEMBER(halt_button) { m_maincpu->set_input_line(M6502_NMI_LINE, newval ? ASSERT_LINE : CLEAR_LINE); update_reset(); }
+	void update_reset();
 
 	// machine configs
 	void arb(machine_config &config);
@@ -109,28 +108,31 @@ private:
 	void control_w(u8 data);
 	u8 input_r();
 
-	u16 m_inp_mux;
-	u16 m_led_select;
-	u8 m_led_group;
-	u8 m_led_latch;
-	u16 m_led_data;
+	u16 m_inp_mux = 0;
+	u16 m_led_select = 0;
+	u8 m_led_group = 0;
+	u8 m_led_latch = 0;
+	u16 m_led_data = 0;
 };
 
 void arb_state::machine_start()
 {
-	// zerofill
-	m_inp_mux = 0;
-	m_led_select = 0;
-	m_led_group = 0;
-	m_led_latch = 0;
-	m_led_data = 0;
-
 	// register for savestates
 	save_item(NAME(m_inp_mux));
 	save_item(NAME(m_led_select));
 	save_item(NAME(m_led_group));
 	save_item(NAME(m_led_latch));
 	save_item(NAME(m_led_data));
+}
+
+void arb_state::update_reset()
+{
+	bool state = m_inputs[1]->read() == 3;
+
+	// RESET goes to 6502+6522
+	m_maincpu->set_input_line(INPUT_LINE_RESET, state ? ASSERT_LINE : CLEAR_LINE);
+	if (state)
+		m_via->reset();
 }
 
 
@@ -284,7 +286,6 @@ void arb_state::v2(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 }
 
 void arb_state::arb(machine_config &config)

@@ -19,18 +19,21 @@ project "expat"
 	kind "StaticLib"
 
 	-- fake out the enough of expat_config.h to get by
+	-- could possibly add more defines here for specific targets
 	defines {
 		"HAVE_MEMMOVE",
 		"HAVE_STDINT_H",
 		"HAVE_STDLIB_H",
 		"HAVE_STRING_H",
+		"PACKAGE=\"expat\"",
 		"PACKAGE_BUGREPORT=\"expat-bugs@libexpat.org\"",
 		"PACKAGE_NAME=\"expat\"",
-		"PACKAGE_STRING=\"expat 2.1.1\"",
+		"PACKAGE_STRING=\"expat 2.2.10\"",
 		"PACKAGE_TARNAME=\"expat\"",
 		"PACKAGE_URL=\"\"",
-		"PACKAGE_VERSION=\"2.1.1\"",
+		"PACKAGE_VERSION=\"2.2.10\"",
 		"STDC_HEADERS",
+		"VERSION=\"2.2.10\"",
 		"XML_CONTEXT_BYTES=1024",
 		"XML_DTD",
 		"XML_NS",
@@ -43,6 +46,22 @@ if _OPTIONS["BIGENDIAN"]=="1" then
 else
 	defines {
 		"BYTEORDER=1234",
+	}
+end
+if _OPTIONS["targetos"]=="macosx" or _OPTIONS["targetos"]=="freebsd" then
+	defines {
+		"HAVE_ARC4RANDOM",
+	}
+end
+if BASE_TARGETOS=="unix" then
+	defines {
+		"HAVE_DLFCN_H",
+		"HAVE_FCNTL_H",
+		"HAVE_MMAP",
+		"HAVE_SYS_STAT_H",
+		"HAVE_SYS_TYPES_H",
+		"HAVE_UNISTD_H",
+		"XML_DEV_URANDOM",
 	}
 end
 
@@ -723,6 +742,11 @@ if _OPTIONS["gcc"]~=nil and string.find(_OPTIONS["gcc"], "clang") and str_to_ver
 		}
 end
 
+	configuration { "asmjs" }
+		buildoptions {
+			"-Wno-misleading-indentation",
+		}
+
 	configuration { "mingw*" }
 		buildoptions_c {
 			"-Wno-strict-prototypes",
@@ -1385,11 +1409,18 @@ end
 		end
 	end
 
+	if _OPTIONS["targetos"]=="freebsd" then
+		buildoptions {
+			backtick(pkgconfigcmd() .. " --cflags gl")
+		}
+	end
+
 	defines {
 		"__STDC_LIMIT_MACROS",
 		"__STDC_FORMAT_MACROS",
 		"__STDC_CONSTANT_MACROS",
 		"BGFX_CONFIG_MAX_FRAME_BUFFERS=128",
+		"IMGUI_DISABLE_OBSOLETE_FUNCTIONS",
 	}
 
 	if _OPTIONS["targetos"]=="linux" or _OPTIONS["targetos"]=="netbsd" or _OPTIONS["targetos"]=="openbsd" then
@@ -1397,6 +1428,14 @@ end
 			defines {
 				"BGFX_CONFIG_RENDERER_OPENGLES=1",
 				"BGFX_CONFIG_RENDERER_OPENGL=0",
+			}
+		end
+	end
+
+	if _OPTIONS["targetos"]=="macosx" and _OPTIONS["gcc"]~=nil then
+		if string.find(_OPTIONS["gcc"], "clang") and (version < 80000) then
+			defines {
+				"TARGET_OS_OSX=1",
 			}
 		end
 	end
@@ -2224,6 +2263,7 @@ project "wdlfft"
 -- asmjit library
 --------------------------------------------------
 
+if not _OPTIONS["FORCE_DRC_C_BACKEND"] then
 project "asmjit"
 	uuid "4539757c-6e99-4bae-b3d0-b342a7c49539"
 	kind "StaticLib"
@@ -2353,3 +2393,4 @@ project "asmjit"
 		MAME_DIR .. "3rdparty/asmjit/src/asmjit/x86/x86rapass.cpp",
 		MAME_DIR .. "3rdparty/asmjit/src/asmjit/x86/x86rapass_p.h",
 	}
+end

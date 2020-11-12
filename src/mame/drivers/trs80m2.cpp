@@ -391,7 +391,7 @@ INPUT_PORTS_END
 
 MC6845_UPDATE_ROW( trs80m2_state::crtc_update_row )
 {
-	const pen_t *pen = m_palette->pens();
+	pen_t const *const pen = m_palette->pens();
 
 	int x = 0;
 
@@ -409,7 +409,7 @@ MC6845_UPDATE_ROW( trs80m2_state::crtc_update_row )
 			int dout = BIT(data, 7);
 			int color = (dcursor ^ drevid ^ dout) && de;
 
-			bitmap.pix32(vbp + y, hbp + x++) = pen[color];
+			bitmap.pix(vbp + y, hbp + x++) = pen[color];
 
 			data <<= 1;
 		}
@@ -437,8 +437,6 @@ WRITE_LINE_MEMBER( trs80m2_state::vsync_w )
 
 void trs80m2_state::video_start()
 {
-	// allocate memory
-	m_video_ram.allocate(0x800);
 }
 
 uint32_t trs80m2_state::screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)

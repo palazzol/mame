@@ -29,13 +29,10 @@ Note that T is also a tilt, but it may take 3 hits to activate it.
 A number of games are multiball therefore they either cannot start or the outhole
 is ineffective/unknown. All games can coin up.
 
-Note: fpwr2_l2 can be started by holding down D (left ball ramp) and F (ball shooter trough) when pressing start.
-
-
 Game              Outhole   Tilt        Notes
 ----------------------------------------------------------------------------------
 Black Knight      L Z C     U           To start, hold down LZC and press 1.
-Firepower II      S D                   To start, hold down SD and press 1.
+Firepower II      S D [D F]             To start, hold down SD or DF and press 1.
 Defender          rs I O                To start, hold down IO and Right-Shift, then press 1.
 Pharoah           Right Up              To start, hold down Right and Down, and press 1
 Starlight         S D                   To start, hold down SD and press 1.
@@ -65,7 +62,6 @@ ToDo:
 #include "machine/6821pia.h"
 #include "sound/dac.h"
 #include "sound/hc55516.h"
-#include "sound/volt_reg.h"
 #include "speaker.h"
 
 #include "s7.lh"
@@ -352,7 +348,7 @@ uint8_t s7_state::dips_r()
 
 uint8_t s7_state::switch_r()
 {
-	char retval = 0xff;
+	uint8_t retval = 0xff;
 	// scan all 8 input columns, since multiple can be selected at once
 	for (int i = 0; i < 7; i++)
 	{
@@ -485,6 +481,7 @@ void s7_state::s7(machine_config &config)
 
 	PIA6821(config, m_pia28, 0);
 	m_pia28->readpa_handler().set(FUNC(s7_state::dips_r));
+	m_pia28->set_port_a_input_overrides_output_mask(0xff);
 	m_pia28->writepa_handler().set(FUNC(s7_state::dig0_w));
 	m_pia28->writepb_handler().set(FUNC(s7_state::dig1_w));
 	m_pia28->ca2_handler().set(FUNC(s7_state::pia28_ca2_w));
@@ -494,6 +491,7 @@ void s7_state::s7(machine_config &config)
 
 	PIA6821(config, m_pia30, 0);
 	m_pia30->readpa_handler().set(FUNC(s7_state::switch_r));
+	m_pia30->set_port_a_input_overrides_output_mask(0xff);
 	m_pia30->writepb_handler().set(FUNC(s7_state::switch_w));
 	m_pia30->ca2_handler().set(FUNC(s7_state::pia30_ca2_w));
 	m_pia30->cb2_handler().set(FUNC(s7_state::pia30_cb2_w));
@@ -508,9 +506,6 @@ void s7_state::s7(machine_config &config)
 
 	SPEAKER(config, "speaker").front_center();
 	MC1408(config, "dac", 0).add_route(ALL_OUTPUTS, "speaker", 0.5);
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 
 	SPEAKER(config, "speech").front_center();
 	HC55516(config, m_hc55516, 0).add_route(ALL_OUTPUTS, "speech", 1.00);

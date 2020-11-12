@@ -320,7 +320,7 @@ public:
 		m_workram_h(*this, "workrah"),
 		m_sound_dma(*this, "sound_dma"),
 		m_soundram(*this, "soundram%u", 1U),
-		m_rom(*this, "share1"),
+		m_rom(*this, "maincpu"),
 		m_compressedgfx(*this, "compressedgfx"),
 		m_io_config(*this, "CONFIG"),
 		m_gfxdecode(*this, "gfxdecode"),
@@ -358,7 +358,7 @@ public:
 	required_shared_ptr<uint32_t> m_workram_h;
 	required_shared_ptr<uint32_t> m_sound_dma;
 	required_shared_ptr_array<uint16_t, 2> m_soundram;
-	required_shared_ptr<uint32_t> m_rom;
+	required_region_ptr<uint32_t> m_rom;
 	required_region_ptr<uint8_t> m_compressedgfx;
 	required_ioport m_io_config;
 	required_device<gfxdecode_device> m_gfxdecode;
@@ -663,17 +663,17 @@ do {                                                                            
 			/* iterate over pixels in Y */                                          \
 			for (cury = desty; cury <= destendy; cury++)                            \
 			{                                                                       \
-				PIXEL_TYPE *destptr = &dest.pixt<PIXEL_TYPE>(cury, destx);          \
-				const uint8_t *srcptr = srcdata;                                      \
+				PIXEL_TYPE *destptr = &dest.pix(cury, destx);                       \
+				const uint8_t *srcptr = srcdata;                                    \
 				srcdata += dy;                                                      \
 																					\
 				/* iterate over unrolled blocks of 4 */                             \
 				for (curx = 0; curx < numblocks; curx++)                            \
 				{                                                                   \
-					COOL_PIXEL_OP(destptr[0], srcptr[0]);                     \
-					COOL_PIXEL_OP(destptr[1], srcptr[1]);                     \
-					COOL_PIXEL_OP(destptr[2], srcptr[2]);                     \
-					COOL_PIXEL_OP(destptr[3], srcptr[3]);                     \
+					COOL_PIXEL_OP(destptr[0], srcptr[0]);                           \
+					COOL_PIXEL_OP(destptr[1], srcptr[1]);                           \
+					COOL_PIXEL_OP(destptr[2], srcptr[2]);                           \
+					COOL_PIXEL_OP(destptr[3], srcptr[3]);                           \
 																					\
 					srcptr += 4;                                                    \
 					destptr += 4;                                                   \
@@ -682,7 +682,7 @@ do {                                                                            
 				/* iterate over leftover pixels */                                  \
 				for (curx = 0; curx < leftovers; curx++)                            \
 				{                                                                   \
-					COOL_PIXEL_OP(destptr[0], srcptr[0]);                     \
+					COOL_PIXEL_OP(destptr[0], srcptr[0]);                           \
 					srcptr++;                                                       \
 					destptr++;                                                      \
 				}                                                                   \
@@ -695,8 +695,8 @@ do {                                                                            
 			/* iterate over pixels in Y */                                          \
 			for (cury = desty; cury <= destendy; cury++)                            \
 			{                                                                       \
-				PIXEL_TYPE *destptr = &dest.pixt<PIXEL_TYPE>(cury, destx);          \
-				const uint8_t *srcptr = srcdata;                                      \
+				PIXEL_TYPE *destptr = &dest.pix(cury, destx);                       \
+				const uint8_t *srcptr = srcdata;                                    \
 				srcdata += dy;                                                      \
 																					\
 				/* iterate over unrolled blocks of 4 */                             \
@@ -910,8 +910,8 @@ uint32_t coolridr_state::screen_update(screen_device &screen, bitmap_ind16 &bitm
 
 	for (int y = cliprect.top(); y <= cliprect.bottom(); y++)
 	{
-		uint16_t* linesrc = &m_screen_bitmap[Screen].pix16(y);
-		uint16_t* linedest = &bitmap.pix16(y);
+		uint16_t const *const linesrc = &m_screen_bitmap[Screen].pix(y);
+		uint16_t *const linedest = &bitmap.pix(y);
 
 		for (int x = cliprect.left(); x<= cliprect.right(); x++)
 		{
@@ -1129,8 +1129,8 @@ uint32_t coolridr_state::screen_update(screen_device &screen, bitmap_ind16 &bitm
 		const int pixelOffsetnextX = ((hPositionTable) + ((h+1)* 16 * hZoomHere)) / 0x40; \
 		if (drawy>clipmaxY) { break; }; \
 		if (drawy<clipminY) { drawy++; continue; }; \
-		line = &drawbitmap->pix16(drawy); \
-		/* zline = &object->zbitmap->pix16(drawy); */ \
+		uint16_t *const line = &drawbitmap->pix(drawy); \
+		/* uint16_t *const zline = &object->zbitmap->pix(drawy); */ \
 		int blockwide = pixelOffsetnextX-pixelOffsetX; \
 		if (pixelOffsetX+blockwide <clipminX) { drawy++; continue; } \
 		if (pixelOffsetX>clipmaxX)  { drawy++; continue; } \
@@ -1167,8 +1167,8 @@ uint32_t coolridr_state::screen_update(screen_device &screen, bitmap_ind16 &bitm
 		int realy = ((y*incy)>>21); \
 		const int drawy = pixelOffsetY+y; \
 		if ((drawy>clipmaxY) || (drawy<clipminY)) continue; \
-		line = &drawbitmap->pix16(drawy); \
-		/* zline = &object->zbitmap->pix16(drawy); */ \
+		uint16_t *const line = &drawbitmap->pix(drawy); \
+		/* uint16_t *const zline = &object->zbitmap->pix(drawy); */ \
 		int drawx = pixelOffsetX; \
 		for (int x = 0; x < blockwide; x++) \
 		{ \
@@ -1185,8 +1185,8 @@ uint32_t coolridr_state::screen_update(screen_device &screen, bitmap_ind16 &bitm
 	{ \
 		const int drawy = pixelOffsetY+realy; \
 		if ((drawy>clipmaxY) || (drawy<clipminY)) continue; \
-		line = &drawbitmap->pix16(drawy); \
-		/* zline = &object->zbitmap->pix16(drawy); */ \
+		uint16_t *const line = &drawbitmap->pix(drawy); \
+		/* uint16_t *const zline = &object->zbitmap->pix(drawy); */ \
 		int drawx = pixelOffsetX; \
 		for (int realx = 0; realx < 16; realx++) \
 		{ \
@@ -1937,9 +1937,6 @@ void *coolridr_state::draw_object_threaded(void *param, int threadid)
 			uint32_t incy = 0x8000000 / vZoom;
 
 			// DEBUG: Draw 16x16 block
-			uint16_t* line;
-			//uint16_t* zline;
-
 
 			if (indirect_zoom_enable)
 			{
@@ -2782,7 +2779,7 @@ void coolridr_state::dma_w(address_space &space, offs_t offset, uint32_t data, u
 
 void coolridr_state::system_h1_map(address_map &map)
 {
-	map(0x00000000, 0x001fffff).rom().share("share1").nopw();
+	map(0x00000000, 0x001fffff).rom().nopw();
 	map(0x01000000, 0x01ffffff).rom().region("gfx_data", 0x0000000);
 
 	map(0x03f40000, 0x03f4ffff).ram().share("txt_vram");//text tilemap + "lineram"
@@ -2793,7 +2790,7 @@ void coolridr_state::system_h1_map(address_map &map)
 	map(0x0400001c, 0x0400001f).w(FUNC(coolridr_state::fb_data_w));
 
 	map(0x06000000, 0x060fffff).ram().share("workrah");
-	map(0x20000000, 0x201fffff).rom().share("share1");
+	map(0x20000000, 0x201fffff).rom().region("maincpu", 0);
 
 	map(0x60000000, 0x600003ff).nopw();
 }

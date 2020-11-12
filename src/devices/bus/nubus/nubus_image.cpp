@@ -89,9 +89,8 @@ image_init_result nubus_image_device::messimg_disk_image_device::call_load()
 		return image_init_result::FAIL;
 	}
 
-	m_data = make_unique_clear<uint8_t[]>(m_size);
 	fseek(0, SEEK_SET);
-	fread(m_data.get(), m_size);
+	fread(m_data, m_size);
 	m_ejected = false;
 
 	return image_init_result::PASS;
@@ -315,7 +314,7 @@ void nubus_image_device::file_data_w(uint32_t data)
 	std::uint32_t count = 4;
 	std::uint32_t actualcount = 0;
 
-	data = ((data & 0xff) << 24) | ((data & 0xff00) << 8) | ((data & 0xff0000) >> 8) | ((data & 0xff000000) >> 24);
+	data = swapendian_int32(data);
 	if(filectx.fd) {
 		//data = big_endianize_int32(data);
 		if((filectx.bytecount + count) > filectx.filelen) count = filectx.filelen - filectx.bytecount;
@@ -345,7 +344,7 @@ uint32_t nubus_image_device::file_data_r()
 
 void nubus_image_device::file_len_w(uint32_t data)
 {
-	data = ((data & 0xff) << 24) | ((data & 0xff00) << 8) | ((data & 0xff0000) >> 8) | ((data & 0xff000000) >> 24);
+	data = swapendian_int32(data);
 	filectx.filelen = big_endianize_int32(data);
 }
 

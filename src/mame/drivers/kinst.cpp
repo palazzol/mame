@@ -196,7 +196,7 @@ public:
 		m_rambase(*this, "rambase"),
 		m_rambase2(*this, "rambase2"),
 		m_control(*this, "control"),
-		m_rombase(*this, "rombase"),
+		m_rombase(*this, "user1"),
 		m_maincpu(*this, "maincpu"),
 		m_ata(*this, "ata"),
 		m_dcs(*this, "dcs"),
@@ -218,7 +218,7 @@ private:
 	required_shared_ptr<uint32_t> m_rambase;
 	required_shared_ptr<uint32_t> m_rambase2;
 	required_shared_ptr<uint32_t> m_control;
-	required_shared_ptr<uint32_t> m_rombase;
+	required_region_ptr<uint32_t> m_rombase;
 	required_device<mips3_device> m_maincpu;
 	required_device<ata_interface_device> m_ata;
 	required_device<dcs_audio_2k_device> m_dcs;
@@ -317,18 +317,18 @@ void kinst_state::machine_reset()
 
 uint32_t kinst_state::screen_update(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
-	const pen_t *pen = m_palette->pens();
+	pen_t const *const pen = m_palette->pens();
 
 	/* loop over rows and copy to the destination */
 	for (int y = cliprect.min_y; y <= cliprect.max_y; y++)
 	{
-		uint32_t *src = &m_video_base[640/4 * y];
-		uint32_t *dest = &bitmap.pix32(y, cliprect.min_x);
+		uint32_t const *src = &m_video_base[640/4 * y];
+		uint32_t *dest = &bitmap.pix(y, cliprect.min_x);
 
 		/* loop over columns */
 		for (int x = cliprect.min_x; x < cliprect.max_x; x += 2)
 		{
-			uint32_t data = *src++;
+			uint32_t const data = *src++;
 
 			/* store two pixels */
 			*dest++ = pen[(data >>  0) & 0x7fff];
@@ -484,7 +484,7 @@ void kinst_state::main_map(address_map &map)
 	map(0x10000080, 0x100000ff).rw(FUNC(kinst_state::control_r), FUNC(kinst_state::control_w)).share("control");
 	map(0x10000100, 0x1000013f).rw(FUNC(kinst_state::ide_r), FUNC(kinst_state::ide_w));
 	map(0x10000170, 0x10000173).rw(FUNC(kinst_state::ide_extra_r), FUNC(kinst_state::ide_extra_w));
-	map(0x1fc00000, 0x1fc7ffff).rom().region("user1", 0).share("rombase");
+	map(0x1fc00000, 0x1fc7ffff).rom().region("user1", 0);
 }
 
 

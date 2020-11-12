@@ -21,8 +21,8 @@ class btoads_state : public driver_device
 public:
 	btoads_state(const machine_config &mconfig, device_type type, const char *tag)
 		: driver_device(mconfig, type, tag),
-		m_vram_fg0(*this, "vram_fg0", 16),
-		m_vram_fg1(*this, "vram_fg1", 16),
+		m_vram_fg0(*this, "vram_fg0"),
+		m_vram_fg1(*this, "vram_fg1"),
 		m_vram_fg_data(*this, "vram_fg_data"),
 		m_vram_bg0(*this, "vram_bg0"),
 		m_vram_bg1(*this, "vram_bg1"),
@@ -82,8 +82,11 @@ private:
 	uint16_t m_sprite_dest_offs;
 	uint16_t m_misc_control;
 	int m_xcount;
+	std::unique_ptr<uint8_t[]> m_nvram_data;
 
 	// in drivers/btoads
+	void nvram_w(offs_t offset, uint8_t data);
+	uint8_t nvram_r(offs_t offset);
 	void main_sound_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	uint16_t main_sound_r();
 	void sound_data_w(uint8_t data);
@@ -99,8 +102,6 @@ private:
 	void display_control_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void scroll0_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void scroll1_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
-	void paletteram_w(offs_t offset, uint16_t data);
-	uint16_t paletteram_r(offs_t offset);
 	void vram_bg0_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	void vram_bg1_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 	uint16_t vram_bg0_r(offs_t offset);

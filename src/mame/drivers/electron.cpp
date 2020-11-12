@@ -121,7 +121,7 @@ void electron_state::electron64_opcodes(address_map &map)
 INPUT_CHANGED_MEMBER(electron_state::trigger_reset)
 {
 	m_maincpu->set_input_line(INPUT_LINE_RESET, newval ? ASSERT_LINE : CLEAR_LINE);
-	if (!newval)
+	if (newval)
 	{
 		m_exp->reset();
 	}
@@ -129,20 +129,20 @@ INPUT_CHANGED_MEMBER(electron_state::trigger_reset)
 
 static INPUT_PORTS_START( electron )
 	PORT_START("LINE.0")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("\xE2\x86\x92 | \\") PORT_CODE(KEYCODE_BACKSLASH) PORT_CHAR(UCHAR_MAMEKEY(RIGHT)) PORT_CHAR('|') PORT_CHAR('\\') // on the real keyboard, this would be on the 1st row, the 3rd key after 0
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME(u8"\u2192 | \\") PORT_CODE(KEYCODE_BACKSLASH) PORT_CHAR(UCHAR_MAMEKEY(RIGHT)) PORT_CHAR('|') PORT_CHAR('\\') // on the real keyboard, this would be on the 1st row, the 3rd key after 0
 	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("COPY") PORT_CODE(KEYCODE_END)  PORT_CHAR(UCHAR_MAMEKEY(F1)) PORT_CHAR('[') PORT_CHAR(']')
 	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_UNUSED)
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_SPACE)      PORT_CHAR(' ')
 
 	PORT_START("LINE.1")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("\xE2\x86\x90 ^ ~") PORT_CODE(KEYCODE_EQUALS) PORT_CHAR(UCHAR_MAMEKEY(LEFT)) PORT_CHAR('^') PORT_CHAR('~')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("\xE2\x86\x93 _ }") PORT_CODE(KEYCODE_CLOSEBRACE) PORT_CHAR(UCHAR_MAMEKEY(DOWN)) PORT_CHAR('_') PORT_CHAR('}')
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME(u8"\u2190 ^ ~") PORT_CODE(KEYCODE_EQUALS) PORT_CHAR(UCHAR_MAMEKEY(LEFT)) PORT_CHAR('^') PORT_CHAR('~')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME(u8"\u2193 _ }") PORT_CODE(KEYCODE_CLOSEBRACE) PORT_CHAR(UCHAR_MAMEKEY(DOWN)) PORT_CHAR('_') PORT_CHAR('}')
 	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("RETURN") PORT_CODE(KEYCODE_ENTER)     PORT_CHAR(13)
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("DELETE") PORT_CODE(KEYCODE_BACKSPACE) PORT_CHAR(8)
 
 	PORT_START("LINE.2")
 	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_MINUS)      PORT_CHAR('-') PORT_CHAR('=')
-	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME("\xE2\x86\x91 \xC2\xA3 {") PORT_CODE(KEYCODE_OPENBRACE) PORT_CHAR(UCHAR_MAMEKEY(UP)) PORT_CHAR(0xA3) PORT_CHAR('{')
+	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_NAME(u8"\u2191 £ {") PORT_CODE(KEYCODE_OPENBRACE) PORT_CHAR(UCHAR_MAMEKEY(UP)) PORT_CHAR(0xA3) PORT_CHAR('{')
 	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_QUOTE)      PORT_CHAR(':') PORT_CHAR('*')
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_UNUSED)
 
@@ -251,6 +251,7 @@ void electron_state::electron(machine_config &config)
 {
 	M6502(config, m_maincpu, 16_MHz_XTAL / 8);
 	m_maincpu->set_addrmap(AS_PROGRAM, &electron_state::electron_mem);
+	config.set_perfect_quantum(m_maincpu);
 
 	INPUT_MERGER_ANY_HIGH(config, m_irqs).output_handler().set_inputline(m_maincpu, M6502_IRQ_LINE);
 
@@ -332,6 +333,8 @@ void electronsp_state::electronsp(machine_config &config)
 	VIA6522(config, m_via, 16_MHz_XTAL / 16);
 	m_via->readpb_handler().set(m_userport, FUNC(bbc_userport_slot_device::pb_r));
 	m_via->writepb_handler().set(m_userport, FUNC(bbc_userport_slot_device::pb_w));
+	m_via->cb1_handler().set(m_userport, FUNC(bbc_userport_slot_device::write_cb1));
+	m_via->cb2_handler().set(m_userport, FUNC(bbc_userport_slot_device::write_cb2));
 	m_via->irq_handler().set(m_irqs, FUNC(input_merger_device::in_w<2>));
 
 	/* user port */
@@ -342,32 +345,27 @@ void electronsp_state::electronsp(machine_config &config)
 
 
 ROM_START(electron)
-	ROM_REGION( 0x4000, "mos", 0 )
-	ROM_LOAD( "b02_acornos-1.rom", 0x0000, 0x4000, CRC(a0c2cf43) SHA1(a27ce645472cc5497690e4bfab43710efbb0792d) )
-	ROM_REGION( 0x4000, "basic", 0 )
-	ROM_LOAD( "basic.rom", 0x0000, 0x4000, CRC(79434781) SHA1(4a7393f3a45ea309f744441c16723e2ef447a281) )
+	ROM_REGION( 0x8000, "mos", 0 )
+	ROM_LOAD( "os_basic.ic2", 0x0000, 0x8000, CRC(b997f9cb) SHA1(4a66c83aba07d0a8e76ed8a5545af04e11c19fdc) )
 ROM_END
 
 ROM_START(electront)
-	ROM_REGION( 0x4000, "mos",  0 )
+	ROM_REGION( 0x8000, "mos",  0 )
 	/* Serial 06-ALA01-0000087 from Centre for Computing History */
-	ROM_LOAD( "elk_036.rom", 0x0000, 0x4000, CRC(dd1a99c3) SHA1(87ee1b14895e476909dd002d5ca2346a3a5f3f57) )
-	ROM_REGION( 0x4000, "basic", 0 )
 	ROM_LOAD( "basic.rom", 0x0000, 0x4000, CRC(79434781) SHA1(4a7393f3a45ea309f744441c16723e2ef447a281) )
+	ROM_LOAD( "elk_036.rom", 0x4000, 0x4000, CRC(dd1a99c3) SHA1(87ee1b14895e476909dd002d5ca2346a3a5f3f57) )
 ROM_END
 
 ROM_START(electron64)
-	ROM_REGION( 0x4000, "mos", 0 )
-	ROM_LOAD( "os_300.rom", 0x0000, 0x4000, CRC(f80a0cea) SHA1(165e42ff4164a842e56f08ebd420d5027af99fdd) )
-	ROM_REGION( 0x4000, "basic", 0 )
+	ROM_REGION( 0x8000, "mos", 0 )
 	ROM_LOAD( "basic.rom", 0x0000, 0x4000, CRC(79434781) SHA1(4a7393f3a45ea309f744441c16723e2ef447a281) )
+	ROM_LOAD( "os_300.rom", 0x4000, 0x4000, CRC(f80a0cea) SHA1(165e42ff4164a842e56f08ebd420d5027af99fdd) )
 ROM_END
 
 ROM_START(electronsp)
-	ROM_REGION( 0x4000, "mos", 0 )
-	ROM_LOAD( "os_310.rom", 0x0000, 0x4000, CRC(8b7a9003) SHA1(6d4e2f8ddc1d829b14206d2747749c4c24789568) )
-	ROM_REGION( 0x4000, "basic", 0 )
+	ROM_REGION( 0x8000, "mos", 0 )
 	ROM_LOAD( "basic.rom", 0x0000, 0x4000, CRC(79434781) SHA1(4a7393f3a45ea309f744441c16723e2ef447a281) )
+	ROM_LOAD( "os_310.rom", 0x4000, 0x4000, CRC(8b7a9003) SHA1(6d4e2f8ddc1d829b14206d2747749c4c24789568) )
 	ROM_REGION( 0x8000, "sp64", 0 )
 	ROM_SYSTEM_BIOS( 0, "101_2", "v1.01 (2x16K)" )
 	ROMX_LOAD( "sp64_101_1.rom", 0x0000, 0x4000, CRC(07e2c5d6) SHA1(837e3382c376e3cc1ae42f1ca51158657ef2fd73), ROM_BIOS(0) )

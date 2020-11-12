@@ -3,14 +3,6 @@
 
 /*
 
-Driver is marked as NOT WORKING because interaction between BIOS and 68k side is
-not fully understood.  The BIOS often doesn't register that a game has been started
-and leaves the 'PRESS P1 OR P2 START' message onscreen during gameplay as a result.
-If this happens, the games usually then crash when you run out of lives as they end
-up in an unknown state.
-
-
-
 About MegaPlay:
 
 Megaplay games are specially designed Genesis games, produced for arcade use.
@@ -67,6 +59,9 @@ public:
 	DECLARE_READ_LINE_MEMBER(start1_r);
 	DECLARE_READ_LINE_MEMBER(start2_r);
 
+protected:
+	virtual void machine_reset() override;
+
 private:
 
 	uint16_t extra_ram_r(offs_t offset);
@@ -89,7 +84,6 @@ private:
 	uint8_t vdp1_count_r(offs_t offset);
 
 	DECLARE_VIDEO_START(megplay);
-	DECLARE_MACHINE_RESET(megaplay);
 	uint32_t screen_update_megplay(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect);
 
 	void megaplay_bios_io_map(address_map &map);
@@ -182,7 +176,7 @@ static INPUT_PORTS_START ( megaplay )
 	PORT_DIPSETTING( 0x10, "1 coin/1 credit - 2 coins/3 credits" )
 	PORT_DIPSETTING( 0x00, " 1 coin/1 credit" )
 
-	PORT_START("DSW1")  /* DSW C  (per game settings) */
+	PORT_START("DSW1")  // DSW C  (per game settings)
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Unknown ) ) PORT_DIPLOCATION("SW3:1")
 	PORT_DIPSETTING( 0x01, DEF_STR( Off )  )
 	PORT_DIPSETTING( 0x00, DEF_STR( On ) )
@@ -200,7 +194,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_sonic )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x01, "Initial Players" ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "4" )
 	PORT_DIPSETTING( 0x01, "3" )
@@ -221,7 +215,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_gaxe2 )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Difficulty ) ) PORT_DIPLOCATION("SW3:1")
 	PORT_DIPSETTING( 0x01, DEF_STR( Normal ) )
 	PORT_DIPSETTING( 0x00, DEF_STR( Hard ) )
@@ -241,11 +235,10 @@ static INPUT_PORTS_START ( mp_gaxe2 )
 //  PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN ) PORT_NAME("0x6201 bit 7") PORT_CODE(KEYCODE_K)
 INPUT_PORTS_END
 
-#ifdef UNUSED_DEFINITION
 static INPUT_PORTS_START ( mp_col3 )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Language ) ) PORT_DIPLOCATION("SW3:1")
 	PORT_DIPSETTING( 0x01, DEF_STR( English ) )
 	PORT_DIPSETTING( 0x00, DEF_STR( Japanese ) )
@@ -263,12 +256,11 @@ static INPUT_PORTS_START ( mp_col3 )
 //  PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN ) PORT_NAME("0x6201 bit 6") PORT_CODE(KEYCODE_J)
 //  PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN ) PORT_NAME("0x6201 bit 7") PORT_CODE(KEYCODE_K)
 INPUT_PORTS_END
-#endif
 
 static INPUT_PORTS_START ( mp_twc )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x01, 0x01, "Time" ) PORT_DIPLOCATION("SW3:1")
 	PORT_DIPSETTING( 0x01, DEF_STR( Normal ) )
 	PORT_DIPSETTING( 0x00, "Short" )
@@ -286,7 +278,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_sor2 )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x01, DEF_STR( Lives ) ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "4" )
 	PORT_DIPSETTING( 0x01, "3" )
@@ -302,7 +294,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_bio )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x03, DEF_STR( Lives ) ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "5" )
 	PORT_DIPSETTING( 0x01, "4" )
@@ -318,7 +310,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_gslam )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x07, 0x04, DEF_STR ( Game_Time ) ) PORT_DIPLOCATION("SW3:1,2,3")
 	PORT_DIPSETTING( 0x00, "5:00" )
 	PORT_DIPSETTING( 0x01, "4:30" )
@@ -336,7 +328,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_mazin )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x02, "Initial Player" ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "2" )
 	PORT_DIPSETTING( 0x01, "1" )
@@ -353,7 +345,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_soni2 )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x01, "Initial Players (Normal mode)" ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "4" )
 	PORT_DIPSETTING( 0x01, "3" )
@@ -369,7 +361,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_shnb3 )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x01, DEF_STR( Lives ) ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "4" )
 	PORT_DIPSETTING( 0x01, "3" )
@@ -385,7 +377,7 @@ INPUT_PORTS_END
 static INPUT_PORTS_START ( mp_gunhe )
 	PORT_INCLUDE( megaplay )
 
-	PORT_MODIFY("DSW1") /* DSW C  (per game settings) */
+	PORT_MODIFY("DSW1") // DSW C  (per game settings)
 	PORT_DIPNAME( 0x03, 0x01, "Initial Players" ) PORT_DIPLOCATION("SW3:1,2")
 	PORT_DIPSETTING( 0x00, "4" )
 	PORT_DIPSETTING( 0x01, "3" )
@@ -398,7 +390,7 @@ static INPUT_PORTS_START ( mp_gunhe )
 	PORT_DIPSETTING( 0x0c, DEF_STR ( Normal ) )
 INPUT_PORTS_END
 
-/*MEGAPLAY specific*/
+// MEGAPLAY specific
 
 READ_LINE_MEMBER(mplay_state::start1_r)
 {
@@ -508,8 +500,8 @@ void mplay_state::bank_w(offs_t offset, uint8_t data)
 }
 
 
-/* Megaplay BIOS handles regs[2] at start in a different way compared to megadrive */
-/* other io data/ctrl regs are dealt with exactly like in the console              */
+/* Megaplay BIOS handles regs[2] at start in a different way compared to MegaDrive
+   other I/O data/ctrl regs are dealt with exactly like in the console */
 
 uint8_t mplay_state::bios_6402_r()
 {
@@ -635,9 +627,9 @@ uint32_t mplay_state::screen_update_megplay(screen_device &screen, bitmap_rgb32 
 	const u32 width = sega315_5124_device::WIDTH - (sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH);
 	for (int y = 0; y < 224; y++)
 	{
-		uint32_t* lineptr = &bitmap.pix32(y);
-		uint32_t* srcptr =  &m_vdp1->get_bitmap().pix32(y + sega315_5124_device::TBORDER_START + sega315_5124_device::NTSC_224_TBORDER_HEIGHT, sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH);
-		uint8_t* y1ptr = &m_vdp1->get_y1_bitmap().pix8(y + sega315_5124_device::TBORDER_START + sega315_5124_device::NTSC_224_TBORDER_HEIGHT, sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH);
+		uint32_t *const lineptr = &bitmap.pix(y);
+		uint32_t const *const srcptr =  &m_vdp1->get_bitmap().pix(y + sega315_5124_device::TBORDER_START + sega315_5124_device::NTSC_224_TBORDER_HEIGHT, sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH);
+		uint8_t const *const y1ptr = &m_vdp1->get_y1_bitmap().pix(y + sega315_5124_device::TBORDER_START + sega315_5124_device::NTSC_224_TBORDER_HEIGHT, sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH);
 
 		for (int srcx = 0, xx = 0, dstx = 0; srcx < width; dstx++)
 		{
@@ -658,22 +650,22 @@ uint32_t mplay_state::screen_update_megplay(screen_device &screen, bitmap_rgb32 
 	return 0;
 }
 
-MACHINE_RESET_MEMBER(mplay_state,megaplay)
+void mplay_state::machine_reset()
 {
 	m_bios_mode = MP_ROM;
 	m_bios_bank_addr = 0;
 	m_readpos = 1;
-	MACHINE_RESET_CALL_MEMBER(megadriv);
+	md_base_state::machine_reset();
 }
 
 void mplay_state::megaplay(machine_config &config)
 {
-	/* basic machine hardware */
+	// basic machine hardware
 	md_ntsc(config);
 
-	/* The Megaplay has an extra BIOS cpu which drives an SMS VDP
+	/* The Megaplay has an extra BIOS CPU which drives an SMS VDP
 	   which includes an SN76496 for sound */
-	Z80(config, m_bioscpu, MASTER_CLOCK / 15); /* ?? */
+	Z80(config, m_bioscpu, MASTER_CLOCK / 15); // ??
 	m_bioscpu->set_addrmap(AS_PROGRAM, &mplay_state::megaplay_bios_map);
 	m_bioscpu->set_addrmap(AS_IO, &mplay_state::megaplay_bios_io_map);
 
@@ -697,14 +689,14 @@ void mplay_state::megaplay(machine_config &config)
 
 	m_vdp->set_lcm_scaling(true);
 
-	/* New update functions to handle the extra layer */
+	// New update functions to handle the extra layer
 	subdevice<screen_device>("megadriv")->set_raw((XTAL(10'738'635) * 5)/2,
 			sega315_5124_device::WIDTH * 5, (sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH) * 5, (sega315_5124_device::LBORDER_START + sega315_5124_device::LBORDER_WIDTH + 256) * 5,
 			sega315_5124_device::HEIGHT_NTSC, sega315_5124_device::TBORDER_START + sega315_5124_device::NTSC_224_TBORDER_HEIGHT, sega315_5124_device::TBORDER_START + sega315_5124_device::NTSC_224_TBORDER_HEIGHT + 224);
 	subdevice<screen_device>("megadriv")->set_screen_update(FUNC(mplay_state::screen_update_megplay));
 
 	// Megaplay has an additional SMS VDP as an overlay
-	SEGA315_5246(config, m_vdp1, MASTER_CLOCK / 5); /* ?? */
+	SEGA315_5246(config, m_vdp1, MASTER_CLOCK / 5); // ??
 	m_vdp1->set_screen("megadriv");
 	m_vdp1->set_hcounter_divide(5);
 	m_vdp1->set_is_pal(false);
@@ -721,9 +713,9 @@ void mplay_state::megaplay(machine_config &config)
 	ROM_LOAD( "315-5661.ic7",   0x000, 0x117, BAD_DUMP CRC(d8289e31) SHA1(a0e9134d9e8043a3660a2ce122cfd5d7f76773b9) ) /* GAL16V8, bruteforced but verified */ \
 	ROM_LOAD( "315-5653.ic56",  0x117, 0x117, BAD_DUMP CRC(fd5c4fb3) SHA1(6b2ba657836f3031d77602526416200e31d41a6e) ) /* GAL16V8, bruteforced but verified */ \
 	ROM_LOAD( "315-5651.ic8",   0x22e, 0x117, BAD_DUMP CRC(55c6cddb) SHA1(e1a968305ca7ea17e9021b31506ca087b84a8ab1) ) /* GAL16V8, bruteforced but verified */ \
-	ROM_LOAD( "315-5349a.ic54", 0x345, 0x104, NO_DUMP ) /* PAL16L8BCN */ \
+	ROM_LOAD( "315-5349a.ic54", 0x345, 0x104, BAD_DUMP CRC(825ea316) SHA1(f49edb6a3f9349330f7ff525ef60517ed276a663) ) /* PAL16L8BCN, bruteforced but verified */ \
 	ROM_LOAD( "315-5654.ic33",  0x449, 0x104, NO_DUMP ) /* PAL16L8BCN */ \
-	ROM_LOAD( "315-5655.ic34",  0x54d, 0x104, NO_DUMP ) /* PAL16L8BCN */
+	ROM_LOAD( "315-5655.ic34",  0x54d, 0x104, BAD_DUMP CRC(4a2d27d1) SHA1(ba79183e4b522d1b57a46a56fc7d9b85de24df36) ) /* PAL16L8BCN, bruteforced but verified */
 
 #define ROM_LOAD_BIOS(bios,name,offset,length,hash) \
 		ROMX_LOAD(name, offset, length, hash, ROM_BIOS(bios))
@@ -767,7 +759,7 @@ ROM_START( mp_sonic ) // Sonic
 	MEGAPLAY_PLDS
 ROM_END
 
-/* this cart looks to be a conversion from something else.. sega rom numbers were missing
+/* this cart looks to be a conversion from something else... Sega rom numbers were missing
    but the code looks like it's probably real */
 // PCB  171-5834
 ROM_START( mp_col3 ) // Columns 3
@@ -1016,18 +1008,18 @@ didn't have original Sega part numbers it's probably a converted TWC cart
 ** Probably reused cart case
 */
 
-/* -- */ GAME( 1993, megaplay, 0,        megaplay, megaplay, mplay_state, init_megaplay, ROT0, "Sega", "Mega Play BIOS",                      MACHINE_IS_BIOS_ROOT | MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 01 */ GAME( 1993, mp_sonic, megaplay, megaplay, mp_sonic, mplay_state, init_megaplay, ROT0, "Sega", "Sonic The Hedgehog (Mega Play)",      MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 02 */ GAME( 1993, mp_gaxe2, megaplay, megaplay, mp_gaxe2, mplay_state, init_megaplay, ROT0, "Sega", "Golden Axe II (Mega Play) (Rev B)",   MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 02 */ GAME( 1993, mp_gaxe2a,mp_gaxe2, megaplay, mp_gaxe2, mplay_state, init_megaplay, ROT0, "Sega", "Golden Axe II (Mega Play)",           MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 03 */ GAME( 1993, mp_gslam, megaplay, megaplay, mp_gslam, mplay_state, init_megaplay, ROT0, "Sega", "Grand Slam (Mega Play)",              MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 04 */ GAME( 1993, mp_twcup, megaplay, megaplay, mp_twc,   mplay_state, init_megaplay, ROT0, "Sega", "Tecmo World Cup (Mega Play)",         MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 05 */ GAME( 1993, mp_sor2,  megaplay, megaplay, mp_sor2,  mplay_state, init_megaplay, ROT0, "Sega", "Streets of Rage II (Mega Play)",      MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 06 */ GAME( 1993, mp_bio,   megaplay, megaplay, mp_bio,   mplay_state, init_megaplay, ROT0, "Sega", "Bio-hazard Battle (Mega Play)",       MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 07 */ GAME( 1993, mp_soni2, megaplay, megaplay, mp_soni2, mplay_state, init_megaplay, ROT0, "Sega", "Sonic The Hedgehog 2 (Mega Play)",    MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
+/* -- */ GAME( 1993, megaplay, 0,        megaplay, megaplay, mplay_state, init_megaplay, ROT0, "Sega", "Mega Play BIOS",                      MACHINE_IS_BIOS_ROOT | MACHINE_IMPERFECT_GRAPHICS )
+/* 01 */ GAME( 1993, mp_sonic, megaplay, megaplay, mp_sonic, mplay_state, init_megaplay, ROT0, "Sega", "Sonic The Hedgehog (Mega Play)",      MACHINE_IMPERFECT_GRAPHICS )
+/* 02 */ GAME( 1993, mp_gaxe2, megaplay, megaplay, mp_gaxe2, mplay_state, init_megaplay, ROT0, "Sega", "Golden Axe II (Mega Play) (Rev B)",   MACHINE_IMPERFECT_GRAPHICS )
+/* 02 */ GAME( 1993, mp_gaxe2a,mp_gaxe2, megaplay, mp_gaxe2, mplay_state, init_megaplay, ROT0, "Sega", "Golden Axe II (Mega Play)",           MACHINE_IMPERFECT_GRAPHICS )
+/* 03 */ GAME( 1993, mp_gslam, megaplay, megaplay, mp_gslam, mplay_state, init_megaplay, ROT0, "Sega", "Grand Slam (Mega Play)",              MACHINE_IMPERFECT_GRAPHICS )
+/* 04 */ GAME( 1993, mp_twcup, megaplay, megaplay, mp_twc,   mplay_state, init_megaplay, ROT0, "Sega", "Tecmo World Cup (Mega Play)",         MACHINE_IMPERFECT_GRAPHICS )
+/* 05 */ GAME( 1993, mp_sor2,  megaplay, megaplay, mp_sor2,  mplay_state, init_megaplay, ROT0, "Sega", "Streets of Rage II (Mega Play)",      MACHINE_IMPERFECT_GRAPHICS )
+/* 06 */ GAME( 1993, mp_bio,   megaplay, megaplay, mp_bio,   mplay_state, init_megaplay, ROT0, "Sega", "Bio-hazard Battle (Mega Play)",       MACHINE_IMPERFECT_GRAPHICS )
+/* 07 */ GAME( 1993, mp_soni2, megaplay, megaplay, mp_soni2, mplay_state, init_megaplay, ROT0, "Sega", "Sonic The Hedgehog 2 (Mega Play)",    MACHINE_IMPERFECT_GRAPHICS )
 /* 08 - Columns 3? see below */
 /* 09 */ GAME( 1993, mp_shnb3, megaplay, megaplay, mp_shnb3, mplay_state, init_megaplay, ROT0, "Sega", "Shinobi III (Mega Play)",             MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 10 */ GAME( 1993, mp_gunhe, megaplay, megaplay, mp_gunhe, mplay_state, init_megaplay, ROT0, "Sega", "Gunstar Heroes (Mega Play)",          MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
-/* 11 */ GAME( 1993, mp_mazin, megaplay, megaplay, mp_mazin, mplay_state, init_megaplay, ROT0, "Sega", "Mazin Wars / Mazin Saga (Mega Play)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
+/* 10 */ GAME( 1993, mp_gunhe, megaplay, megaplay, mp_gunhe, mplay_state, init_megaplay, ROT0, "Sega", "Gunstar Heroes (Mega Play)",          MACHINE_IMPERFECT_GRAPHICS )
+/* 11 */ GAME( 1993, mp_mazin, megaplay, megaplay, mp_mazin, mplay_state, init_megaplay, ROT0, "Sega", "Mazin Wars / Mazin Saga (Mega Play)", MACHINE_IMPERFECT_GRAPHICS )
 
-/* ?? */ GAME( 1993, mp_col3,  megaplay, megaplay, megaplay, mplay_state, init_megaplay, ROT0, "Sega", "Columns III (Mega Play)",             MACHINE_NOT_WORKING | MACHINE_IMPERFECT_GRAPHICS )
+/* ?? */ GAME( 1993, mp_col3,  megaplay, megaplay, mp_col3,  mplay_state, init_megaplay, ROT0, "Sega", "Columns III (Mega Play)",             MACHINE_IMPERFECT_GRAPHICS )

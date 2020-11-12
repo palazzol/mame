@@ -359,7 +359,7 @@ void dgpix_state::mem_map(address_map &map)
 	map(0x40000000, 0x4003ffff).rw(FUNC(dgpix_state::vram_r), FUNC(dgpix_state::vram_w));
 	map(0xe0000000, 0xe1ffffff).rw(FUNC(dgpix_state::flash_r), FUNC(dgpix_state::flash_w));
 	map(0xe2000000, 0xe3ffffff).rw(FUNC(dgpix_state::flash_r), FUNC(dgpix_state::flash_w));
-	map(0xffc00000, 0xffffffff).rom().region("flash", 0x1c00000).share("nvram");
+	map(0xffc00000, 0xffffffff).rom().region("flash", 0x1c00000);
 }
 
 void dgpix_state::io_map(address_map &map)
@@ -419,8 +419,8 @@ u32 dgpix_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, cons
 	for (int y = cliprect.top(); y <= cliprect.bottom(); y++)
 	{
 		int x = cliprect.left();
-		u16 *src = &m_vram[(m_vbuffer ? 0 : 0x20000) | (y << 9) | x];
-		u16 *dest = &bitmap.pix16(y, x);
+		u16 const *src = &m_vram[(m_vbuffer ? 0 : 0x20000) | (y << 9) | x];
+		u16 *dest = &bitmap.pix(y, x);
 
 		for (; x <= cliprect.right(); x++)
 		{
