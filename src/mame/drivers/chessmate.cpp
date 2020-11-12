@@ -3,24 +3,28 @@
 /******************************************************************************
 
 Commodore Chessmate / Novag Chess Champion MK II
-Initial version by PeT mess@utanet.at September 2000.
+Initial driver version by PeT mess@utanet.at September 2000.
 Driver mostly rewritten later.
 
-The hardware is pretty similar to KIM-1. In fact, the chess engine is Peter R. Jennings's
-Microchess, originally made for the KIM-1. Jennings went on to co-found Personal Software
-(later named VisiCorp, known for VisiCalc).
+The hardware is pretty similar to KIM-1. In fact, the chess engine is Peter
+R. Jennings's Microchess, originally made for the KIM-1. Jennings went on to
+co-found Personal Software (later named VisiCorp, known for VisiCalc).
 
-Jennings also licensed Chessmate to Novag, and they released it as the MK II. The hardware
-is almost identical and the software is the same(identical ROM labels). Two designs were made,
-one jukebox shape, and one brick shape. The one in MAME came from the jukebox, but both
-models have the same ROMs. Note that like MK I, although it is a Winkler/Auge production,
-it doesn't involve SciSys company. SciSys was founded by Winkler after MK II.
+Jennings also licensed Chessmate to Novag, and they released it as the MK II.
+The hardware is almost identical and the software is the same(identical ROM labels).
+Two designs were made, one jukebox shape, and one brick shape. The one in MAME came
+from the jukebox, but both models have the same ROMs.
+
+Note that like MK I, although it is a Winkler/Auge production, it doesn't involve
+SciSys company. SciSys was founded by Winkler after MK II.
 
 TODO:
 - is there an older version of chmate? chips on pcb photos are dated 1979, but
   the game is known to be released in 1978
 
-*******************************************************************************
+===============================================================================
+
+Hardware notes:
 
 MOS MPS 6504 2179
 MOS MPS 6530 024 1879
@@ -43,7 +47,6 @@ MOS MPS 6332 005 2179
 #include "cpu/m6502/m6504.h"
 #include "machine/mos6530.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/pwm.h"
 #include "speaker.h"
 
@@ -283,7 +286,6 @@ void chmate_state::chmate(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 }
 
 void chmate_state::mk2(machine_config &config)

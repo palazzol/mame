@@ -158,11 +158,8 @@ Notes:
     U2C     - PROTO?
     U6A     - PROTO?
 
-*/
 
-/*
-
-    TODO:
+TODO:
 
     - floppy PIA is actually a 6820
     - break key
@@ -177,9 +174,7 @@ Notes:
     - wemon?
     - rs232
 
-*/
-
-/* Notes added 2012-05-11 [Robbbert]
+Notes added 2012-05-11 [Robbbert]
     General
     - Added F1 key to toggle the sound on 'sb2m600b', to silence the awful screech.
     - Added F3 key to simulate the RESET / BREAK key on the real keyboard.
@@ -202,9 +197,7 @@ Notes:
       not normally fitted. It appears that it would work the same as in the other
       systems in this driver.
 
-*/
-
-/* Notes added 2013-01-20
+Notes added 2013-01-20
       Added a modified basic rom, which fixes the garbage collection problem.
       Try the following program with -bios 0 and -bios 1. It will work only
       with bios 1. You can copy/paste this code, but make sure you include the
@@ -214,8 +207,24 @@ Notes:
 RUN
 PRINT FRE(0)
 
-*/
 
+Keyboard notes and BTANBs:
+
+- Keyboards on all models are identical, except on UK101 where ^ replaces LINE FEED.
+
+- When run for the first time, the keyboard is in lowercase. Shift will correctly
+  select uppercase. Special keys do weird things, but come good when Shift pressed.
+  Since all input MUST be uppercase, the first thing to do is press Capslock (which
+  is SHIFT LOCK on the real machine). This is saved in your cfg file on exit.
+
+- After that, uppercase works correctly, as do the other keys. Pressing Shift will now
+  do odd things to the letters, and they become random symbols.
+
+- Natural keyboard is set up to take advantage of these oddities and get the maximum
+  symbols available, however lowercase is not available. Natural keyboard will only
+  work correctly when the SHIFT LOCK is engaged.
+
+*/
 
 #include "emu.h"
 #include "includes/osi.h"
@@ -511,17 +520,17 @@ void c1pmf_state::c1pmf_mem(address_map &map)
 static INPUT_PORTS_START( osi600 )
 	PORT_START("ROW0")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("SHIFT LOCK") PORT_CODE(KEYCODE_CAPSLOCK) PORT_CHAR(UCHAR_MAMEKEY(CAPSLOCK)) PORT_TOGGLE
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("RIGHT SHIFT") PORT_CODE(KEYCODE_RSHIFT) PORT_CHAR(UCHAR_SHIFT_1)
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("RIGHT SHIFT") PORT_CODE(KEYCODE_RSHIFT)
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("LEFT SHIFT") PORT_CODE(KEYCODE_LSHIFT) PORT_CHAR(UCHAR_SHIFT_1)
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("ESC") PORT_CODE(KEYCODE_TAB) PORT_CHAR(27)
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("CTRL") PORT_CODE(KEYCODE_LCONTROL) PORT_CODE(KEYCODE_RCONTROL) PORT_CHAR(UCHAR_SHIFT_2)
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("REPEAT") PORT_CODE(KEYCODE_BACKSLASH) PORT_CHAR('\\')
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("REPEAT") PORT_CODE(KEYCODE_BACKSLASH)
 
 	PORT_START("ROW1")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_P) PORT_CHAR('P')
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_P) PORT_CHAR('P') PORT_CHAR('@')
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_COLON) PORT_CHAR(';') PORT_CHAR('+')
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_SLASH) PORT_CHAR('/') PORT_CHAR('?')
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("SPACE") PORT_CODE(KEYCODE_SPACE) PORT_CHAR(' ')
@@ -532,8 +541,8 @@ static INPUT_PORTS_START( osi600 )
 	PORT_START("ROW2")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_COMMA) PORT_CHAR(',') PORT_CHAR('<')
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_M) PORT_CHAR('M')
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_N) PORT_CHAR('N')
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_M) PORT_CHAR('M') PORT_CHAR(']')
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_N) PORT_CHAR('N') PORT_CHAR('^')
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_B) PORT_CHAR('B')
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_V) PORT_CHAR('V')
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_C) PORT_CHAR('C')
@@ -541,7 +550,7 @@ static INPUT_PORTS_START( osi600 )
 
 	PORT_START("ROW3")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_K) PORT_CHAR('K')
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_K) PORT_CHAR('K') PORT_CHAR('[')
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_J) PORT_CHAR('J')
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_H) PORT_CHAR('H')
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_G) PORT_CHAR('G')
@@ -565,8 +574,8 @@ static INPUT_PORTS_START( osi600 )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("ENTER") PORT_CODE(KEYCODE_ENTER) PORT_CHAR(13)
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("LINE FEED") PORT_CODE(KEYCODE_OPENBRACE) PORT_CHAR(10)
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_O) PORT_CHAR('O')
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_L) PORT_CHAR('L')
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_O) PORT_CHAR('O') PORT_CHAR('_')
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_L) PORT_CHAR('L') PORT_CHAR('\\')
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_STOP) PORT_CHAR('.') PORT_CHAR('>')
 
 	PORT_START("ROW6")
@@ -598,14 +607,8 @@ INPUT_PORTS_END
 
 static INPUT_PORTS_START( uk101 )
 	PORT_INCLUDE(osi600)
-
-	PORT_MODIFY("ROW0")
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("ESC") PORT_CODE(KEYCODE_ESC) PORT_CHAR(27)
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_LCONTROL) PORT_CODE(KEYCODE_RCONTROL) PORT_CHAR(UCHAR_SHIFT_2)
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_TILDE) PORT_CHAR('~')
-
 	PORT_MODIFY("ROW5")
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_BACKSLASH) PORT_CHAR('\\')
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("^") PORT_CODE(KEYCODE_BACKSLASH)
 INPUT_PORTS_END
 
 /* Machine Start */
@@ -651,12 +654,12 @@ void sb2m600_state::machine_start()
 	switch (m_ram->size())
 	{
 	case 4*1024:
-		program.install_readwrite_bank(0x0000, 0x0fff, "bank1");
+		program.install_readwrite_bank(0x0000, 0x0fff, membank("bank1"));
 		program.unmap_readwrite(0x1000, 0x1fff);
 		break;
 
 	case 8*1024:
-		program.install_readwrite_bank(0x0000, 0x1fff, "bank1");
+		program.install_readwrite_bank(0x0000, 0x1fff, membank("bank1"));
 		break;
 	}
 
@@ -682,12 +685,12 @@ void c1p_state::machine_start()
 	switch (m_ram->size())
 	{
 	case 8*1024:
-		program.install_readwrite_bank(0x0000, 0x1fff, "bank1");
+		program.install_readwrite_bank(0x0000, 0x1fff, membank("bank1"));
 		program.unmap_readwrite(0x2000, 0x4fff);
 		break;
 
 	case 20*1024:
-		program.install_readwrite_bank(0x0000, 0x4fff, "bank1");
+		program.install_readwrite_bank(0x0000, 0x4fff, membank("bank1"));
 		break;
 	}
 
@@ -824,6 +827,7 @@ void c1p_state::c1p(machine_config &config)
 	m_discrete->set_intf(osi600c_discrete_interface);
 	m_discrete->add_route(ALL_OUTPUTS, "mono", 0.50);
 	BEEP(config, "beeper", 300).add_route(ALL_OUTPUTS, "mono", 0.50);
+	TIMER(config, m_beep_timer).configure_generic(FUNC(c1p_state::beep_timer));
 
 	PIA6821(config, "pia_1", 0);
 	PIA6821(config, "pia_2", 0);
@@ -919,22 +923,15 @@ ROM_END
 
 /* Driver Initialization */
 
-void c1p_state::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
+TIMER_DEVICE_CALLBACK_MEMBER(c1p_state::beep_timer)
 {
-	switch (id)
-	{
-	case TIMER_SETUP_BEEP:
-		m_beeper->set_state(0);
-		m_beeper->set_clock(300);
-		break;
-	default:
-		throw emu_fatalerror("Unknown id in c1p_state::device_timer");
-	}
+	m_beeper->set_state(0);
+	m_beeper->set_clock(300);
 }
 
 void c1p_state::init_c1p()
 {
-	timer_set(attotime::zero, TIMER_SETUP_BEEP);
+	m_beep_timer->adjust(attotime::zero);
 }
 
 

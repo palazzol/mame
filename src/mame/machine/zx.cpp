@@ -29,6 +29,7 @@ void zx_state::machine_reset()
 	m_prev_refresh = 0xff;
 
 	m_vsync_active = false;
+	m_hsync_active = false;
 	m_base_vsync_clock = 0;
 	m_ypos = 0;
 
@@ -70,19 +71,19 @@ void zx_state::drop_sync()
 				xe = 0;
 			}
 			if(ys == ye) {
-				uint16_t *dest = &m_bitmap_render->pix16(ys, xs);
+				uint16_t *dest = &m_bitmap_render->pix(ys, xs);
 				for(int x = xs; x < xe; x++)
 					*dest++ = 1;
 			} else {
-				uint16_t *dest = &m_bitmap_render->pix16(ys, xs);
+				uint16_t *dest = &m_bitmap_render->pix(ys, xs);
 				for(int x = xs; x < 384; x++)
 					*dest++ = 1;
 				for(int y = ys+1; y < ye; y++) {
-					dest = &m_bitmap_render->pix16(y, 0);
+					dest = &m_bitmap_render->pix(y, 0);
 					for(int x = 0; x<384; x++)
 						*dest++ = 1;
 				}
-				dest = &m_bitmap_render->pix16(ye, 0);
+				dest = &m_bitmap_render->pix(ye, 0);
 				for(int x = 0; x < xe; x++)
 					*dest++ = 1;
 			}

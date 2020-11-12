@@ -173,7 +173,6 @@ void dgn_beta_state::dgnbeta_map(address_map &map)
 	map(0xFE00, 0xFE0F).rw(FUNC(dgn_beta_state::dgn_beta_page_r), FUNC(dgn_beta_state::dgn_beta_page_w));
 	map(0xfe10, 0xfEff).noprw();
 	map(0xFF00, 0xFFFF).bankrw("bank17");
-
 }
 
 
@@ -414,4 +413,4 @@ ROM_START(dgnbeta)
 ROM_END
 
 //    YEAR  NAME     PARENT  COMPAT  MACHINE  INPUT    CLASS           INIT        COMPANY            FULLNAME             FLAGS
-COMP( 1984, dgnbeta, 0,      0,      dgnbeta, dgnbeta, dgn_beta_state, empty_init, "Dragon Data Ltd", "Dragon 128 (Beta)", MACHINE_NO_SOUND )
+COMP( 1984, dgnbeta, 0,      0,      dgnbeta, dgnbeta, dgn_beta_state, empty_init, "Dragon Data Ltd", "Dragon 128 (Beta)", MACHINE_NO_SOUND | MACHINE_NOT_WORKING )

@@ -87,6 +87,11 @@ private:
 	u64 execute_min(int params, const u64 *param);
 	u64 execute_max(int params, const u64 *param);
 	u64 execute_if(int params, const u64 *param);
+	u64 execute_abs(int params, const u64 *param);
+	u64 execute_bit(int params, const u64 *param);
+	u64 execute_s8(int params, const u64 *param);
+	u64 execute_s16(int params, const u64 *param);
+	u64 execute_s32(int params, const u64 *param);
 	u64 get_cpunum();
 
 	u64 global_get(global_entry *global);
@@ -152,6 +157,7 @@ private:
 	void execute_cheatundo(int ref, const std::vector<std::string> &params);
 	void execute_dasm(int ref, const std::vector<std::string> &params);
 	void execute_find(int ref, const std::vector<std::string> &params);
+	void execute_fill(int ref, const std::vector<std::string> &params);
 	void execute_trace(int ref, const std::vector<std::string> &params);
 	void execute_traceover(int ref, const std::vector<std::string> &params);
 	void execute_traceflush(int ref, const std::vector<std::string> &params);

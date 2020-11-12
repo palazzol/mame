@@ -83,7 +83,8 @@ public:
 		m_gfxdecode(*this, "gfxdecode"),
 		m_palette(*this, "palette"),
 		m_cryptdevice(*this, "315_5881"),
-		m_billboard(*this, "billboard")
+		m_billboard(*this, "billboard"),
+		m_bank2(*this, "bank2")
 	{
 		m_step15_with_mpc106 = false;
 		m_step20_with_old_real3d = false;
@@ -104,6 +105,7 @@ public:
 	void model3_20(machine_config &config);
 	void model3_21(machine_config &config);
 
+	void getbass(machine_config &config);
 	void scud(machine_config &config);
 	void lostwsga(machine_config &config);
 
@@ -162,6 +164,7 @@ private:
 	optional_device<sega_315_5881_crypt_device> m_cryptdevice;
 
 	required_device<sega_billboard_device> m_billboard;
+	memory_bank_creator m_bank2;
 
 	tilemap_t *m_layer4[4];
 	tilemap_t *m_layer8[4];
@@ -382,6 +385,8 @@ private:
 	void model3_snd(address_map &map);
 	void scsp1_map(address_map &map);
 	void scsp2_map(address_map &map);
+	void getbass_iocpu_mem(address_map &map);
+	void getbass_iocpu_io(address_map &map);
 };
 
 #endif // MAME_INCLUDES_MODEL3_H

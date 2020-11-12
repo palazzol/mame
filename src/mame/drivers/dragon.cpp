@@ -2,9 +2,11 @@
 // copyright-holders:Nathan Woods
 /***************************************************************************
 
-    dragon.c
+    dragon.cpp
 
     Dragon
+
+    Bug? dragon200e hangs when single-quote is typed.
 
 ***************************************************************************/
 
@@ -21,17 +23,18 @@
 #include "imagedev/floppy.h"
 #include "bus/rs232/rs232.h"
 
+#include "bus/coco/coco_gmc.h"
+#include "bus/coco/coco_orch90.h"
+#include "bus/coco/coco_pak.h"
+#include "bus/coco/coco_psg.h"
+#include "bus/coco/coco_ram.h"
+#include "bus/coco/coco_ssc.h"
+#include "bus/coco/coco_stecomp.h"
 #include "bus/coco/dragon_amtor.h"
 #include "bus/coco/dragon_fdc.h"
 #include "bus/coco/dragon_jcbsnd.h"
 #include "bus/coco/dragon_jcbspch.h"
 #include "bus/coco/dragon_sprites.h"
-#include "bus/coco/coco_pak.h"
-#include "bus/coco/coco_ssc.h"
-#include "bus/coco/coco_ram.h"
-#include "bus/coco/coco_orch90.h"
-#include "bus/coco/coco_gmc.h"
-#include "bus/coco/coco_psg.h"
 
 
 //**************************************************************************
@@ -148,9 +151,9 @@ static INPUT_PORTS_START( dragon_keyboard )
 	PORT_BIT(0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_CODE(KEYCODE_Y) PORT_CHAR('Y')
 	PORT_BIT(0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_CODE(KEYCODE_Z) PORT_CHAR('Z')
 	PORT_BIT(0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("UP") PORT_CODE(KEYCODE_UP) PORT_CHAR(UCHAR_MAMEKEY(UP), '^')
-	PORT_BIT(0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("DOWN") PORT_CODE(KEYCODE_DOWN) PORT_CHAR(UCHAR_MAMEKEY(DOWN), 10)
+	PORT_BIT(0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("DOWN") PORT_CODE(KEYCODE_DOWN) PORT_CHAR(UCHAR_MAMEKEY(DOWN), 10) PORT_CHAR('[')
 	PORT_BIT(0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("LEFT") PORT_CODE(KEYCODE_LEFT) PORT_CODE(KEYCODE_BACKSPACE) PORT_CHAR(UCHAR_MAMEKEY(LEFT), 8)
-	PORT_BIT(0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("RIGHT") PORT_CODE(KEYCODE_RIGHT) PORT_CHAR(UCHAR_MAMEKEY(RIGHT), 9)
+	PORT_BIT(0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("RIGHT") PORT_CODE(KEYCODE_RIGHT) PORT_CHAR(UCHAR_MAMEKEY(RIGHT), 9) PORT_CHAR(']')
 	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("SPACE") PORT_CODE(KEYCODE_SPACE) PORT_CHAR(' ')
 
 	PORT_START("row6")
@@ -174,6 +177,7 @@ static INPUT_PORTS_START( dragon200e_keyboard )
 	PORT_BIT(0x01, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_CODE(KEYCODE_OPENBRACE) PORT_CHAR(';') PORT_CHAR('+')
 
 	PORT_MODIFY("row5")
+	PORT_BIT(0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("UP") PORT_CODE(KEYCODE_UP) PORT_CHAR(UCHAR_MAMEKEY(UP), '^') PORT_CHAR('_')
 	PORT_BIT(0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("DOWN \xC2\xA1") PORT_CODE(KEYCODE_DOWN) PORT_CHAR(10) PORT_CHAR(0xA1)
 	PORT_BIT(0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("RIGHT \xC2\xBF") PORT_CODE(KEYCODE_RIGHT) PORT_CHAR(9) PORT_CHAR(0xBF)
 	PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CHANGED_MEMBER(DEVICE_SELF, dragon_state, keyboard_changed, 0) PORT_NAME("SPACE") PORT_CODE(KEYCODE_SPACE) PORT_CHAR(' ') PORT_CHAR(0xA7)
@@ -193,28 +197,29 @@ static INPUT_PORTS_START( dragon200e )
 	PORT_INCLUDE(dragon200e_keyboard)
 	PORT_INCLUDE(coco_joystick)
 	PORT_INCLUDE(coco_analog_control)
-INPUT_PORTS_END
 
-MC6847_GET_CHARROM_MEMBER( dragon200e_state::char_rom_r )
-{
-	return m_char_rom->base()[(ch * 12 + line) & 0xfff];
-}
+	PORT_START("LK1")
+	PORT_CONFNAME(0x01, 0x01, "Inverse Video")
+	PORT_CONFSETTING(0x00, "Inverse")
+	PORT_CONFSETTING(0x01, "Normal")
+INPUT_PORTS_END
 
 void dragon_cart(device_slot_interface &device)
 {
+	device.option_add_internal("amtor", DRAGON_AMTOR);
+	device.option_add("ccpsg", COCO_PSG);
 	device.option_add("dragon_fdc", DRAGON_FDC);
-	device.option_add("premier_fdc", PREMIER_FDC);
-	device.option_add("sdtandy_fdc", SDTANDY_FDC);
+	device.option_add("gmc", COCO_PAK_GMC);
 	device.option_add("jcbsnd", DRAGON_JCBSND);
 	device.option_add("jcbspch", DRAGON_JCBSPCH);
+	device.option_add("orch90", COCO_ORCH90);
+	device.option_add("pak", COCO_PAK);
+	device.option_add("premier_fdc", PREMIER_FDC);
+	device.option_add("ram", COCO_PAK_RAM);
+	device.option_add("sdtandy_fdc", SDTANDY_FDC);
 	device.option_add("sprites", DRAGON_SPRITES);
 	device.option_add("ssc", COCO_SSC);
-	device.option_add("ram", COCO_PAK_RAM);
-	device.option_add("orch90", COCO_ORCH90);
-	device.option_add("gmc", COCO_PAK_GMC);
-	device.option_add("pak", COCO_PAK);
-	device.option_add("ccpsg", COCO_PSG);
-	device.option_add_internal("amtor", DRAGON_AMTOR);
+	device.option_add("stecomp", COCO_STEREO_COMPOSER);
 }
 
 FLOPPY_FORMATS_MEMBER( dragon_alpha_state::dragon_formats )
@@ -379,6 +384,7 @@ void dragon200e_state::dragon200e(machine_config &config)
 	dragon64(config);
 	// video hardware
 	m_vdg->set_get_char_rom(FUNC(dragon200e_state::char_rom_r));
+	m_vdg->input_callback().set(FUNC(dragon200e_state::sam_read));
 }
 
 void d64plus_state::d64plus(machine_config &config)
@@ -542,7 +548,7 @@ COMP( 1982, dragon32,   0,        0,      dragon32,   dragon,     dragon_state, 
 COMP( 1983, dragon64,   dragon32, 0,      dragon64,   dragon,     dragon64_state,     empty_init, "Dragon Data Ltd",              "Dragon 64",                      0 )
 COMP( 19??, dragon64h,  dragon32, 0,      dragon64h,  dragon,     dragon64_state,     empty_init, "Dragon Data Ltd",              "Dragon 64 (HD6309E CPU)",        MACHINE_UNOFFICIAL )
 COMP( 1985, dragon200,  dragon32, 0,      dragon64,   dragon,     dragon64_state,     empty_init, "Eurohard S.A.",                "Dragon 200",                     0 )
-COMP( 1985, dragon200e, dragon32, 0,      dragon200e, dragon200e, dragon200e_state,   empty_init, "Eurohard S.A.",                "Dragon 200-E",                   MACHINE_NOT_WORKING )
+COMP( 1985, dragon200e, dragon32, 0,      dragon200e, dragon200e, dragon200e_state,   empty_init, "Eurohard S.A.",                "Dragon 200-E",                   0 )
 COMP( 1985, d64plus,    dragon32, 0,      d64plus,    dragon,     d64plus_state,      empty_init, "Dragon Data Ltd / Compusense", "Dragon 64 Plus",                 0 )
 COMP( 1983, tanodr64,   dragon32, 0,      tanodr64,   dragon,     dragon64_state,     empty_init, "Dragon Data Ltd / Tano Ltd",   "Tano Dragon 64 (NTSC)",          0 )
 COMP( 19??, tanodr64h,  dragon32, 0,      tanodr64h,  dragon,     dragon64_state,     empty_init, "Dragon Data Ltd / Tano Ltd",   "Tano Dragon 64 (NTSC; HD6309E)", MACHINE_UNOFFICIAL )

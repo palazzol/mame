@@ -4,6 +4,9 @@
 #include "emu.h"
 #include "spg110_video.h"
 
+#include <algorithm>
+
+
 DEFINE_DEVICE_TYPE(SPG110_VIDEO, spg110_video_device, "spg110_video", "SPG110 System-on-a-Chip (Video)")
 
 spg110_video_device::spg110_video_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, uint32_t clock) :
@@ -564,6 +567,9 @@ void spg110_video_device::device_reset()
 	m_bg_scrolly = 0;
 	m_2036_scroll = 0;
 
+	std::fill(std::begin(tmap0_regs), std::end(tmap0_regs), 0);
+	std::fill(std::begin(tmap1_regs), std::end(tmap1_regs), 0);
+
 	// is there actually an enable register here?
 	m_video_irq_enable = 0xffff;
 	m_video_irq_status = 0x0000;
@@ -646,9 +652,9 @@ uint32_t spg110_video_device::screen_update(screen_device &screen, bitmap_rgb32 
 
 	for (int y = cliprect.min_y; y <= cliprect.max_y; y++)
 	{
-		uint32_t *dest = &bitmap.pix32(y, cliprect.min_x);
-		uint32_t *src = &m_screenbuf[cliprect.min_x + 320 * y];
-		memcpy(dest, src, sizeof(uint32_t) * ((cliprect.max_x - cliprect.min_x) + 1));
+		uint32_t *dest = &bitmap.pix(y, cliprect.min_x);
+		const uint32_t *src = &m_screenbuf[cliprect.min_x + 320 * y];
+		std::copy_n(src, cliprect.width(), dest);
 	}
 
 	return 0;

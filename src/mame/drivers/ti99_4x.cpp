@@ -256,7 +256,6 @@ void ti99_4x_state::memmap_setaddress(address_map &map)
 void ti99_4x_state::crumap(address_map &map)
 {
 	map(0x0000, 0x1fff).rw(FUNC(ti99_4x_state::cruread), FUNC(ti99_4x_state::cruwrite));
-	map(0x0000, 0x003f).mirror(0x03c0).rw(m_tms9901, FUNC(tms9901_device::read), FUNC(tms9901_device::write));
 }
 
 
@@ -284,7 +283,7 @@ static INPUT_PORTS_START(ti99_4)
 		PORT_BIT(0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("9 (") PORT_CODE(KEYCODE_9) PORT_CHAR('9') PORT_CHAR('(')
 		PORT_BIT(0x04, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("O +") PORT_CODE(KEYCODE_O) PORT_CHAR('O') PORT_CHAR('+')
 		PORT_BIT(0x02, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("K /") PORT_CODE(KEYCODE_K) PORT_CHAR('K') PORT_CHAR('/')
-		PORT_BIT(0x01, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME(", .") PORT_CODE(KEYCODE_STOP) PORT_CHAR(',') PORT_CHAR('.')
+		PORT_BIT(0x01, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME(", .") PORT_CODE(KEYCODE_STOP) PORT_CHAR('.') PORT_CHAR(',')
 
 	PORT_START("COL2")  // col 2
 		PORT_BIT(0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_NAME("3 #") PORT_CODE(KEYCODE_3) PORT_CHAR('3') PORT_CHAR('#')
@@ -408,12 +407,17 @@ INPUT_PORTS_END
 
 uint8_t ti99_4x_state::cruread(offs_t offset)
 {
-	LOGMASKED(LOG_CRUREAD, "read access to CRU address %04x\n", offset << 1);
 	uint8_t value = 0;
+	LOGMASKED(LOG_CRUREAD, "read access to CRU address %04x\n", offset << 1);
+
+	// Internal 9901
+	// We cannot use the map because devices in the Peribox may want to see the
+	// CRU address on the bus (see sidmaster)
+	if ((offset & 0xfc00)==0)
+		value = m_tms9901->read(offset & 0x3f);
 
 	// Let the gromport (not in the QI version) and the p-box behind the I/O port
 	// decide whether they want to change the value at the CRU address
-
 	if (m_model != MODEL_4QI) m_gromport->crureadz(offset<<1, &value);
 	m_ioport->crureadz(offset<<1, &value);
 
@@ -423,6 +427,13 @@ uint8_t ti99_4x_state::cruread(offs_t offset)
 void ti99_4x_state::cruwrite(offs_t offset, uint8_t data)
 {
 	LOGMASKED(LOG_CRU, "Write access to CRU address %04x\n", offset << 1);
+
+	// Internal 9901
+	// We cannot use the map because device in the Peribox may want to see the
+	// CRU address on the bus (see sidmaster)
+	if ((offset & 0xfc00)==0)
+		m_tms9901->write(offset & 0x3f, data);
+
 	// The QI version does not propagate the CRU signals to the cartridge slot
 	if (m_model != MODEL_4QI) m_gromport->cruwrite(offset<<1, data);
 	m_ioport->cruwrite(offset<<1, data);

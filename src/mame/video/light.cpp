@@ -132,10 +132,10 @@ void light_video_device::device_reset()
 
 uint32_t light_video_device::screen_update(screen_device &device, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
-	const rgb_t *pens = m_palette->palette()->entry_list_raw();
-	const uint8_t *src = &m_framebuffer[0];
+	rgb_t const *const pens = m_palette->palette()->entry_list_raw();
+	uint8_t const *src = &m_framebuffer[0];
 	for (uint32_t y = 0; y < y_res; y++) {
-		uint32_t *dst = &bitmap.pix32(y);
+		uint32_t *dst = &bitmap.pix(y);
 		for (uint32_t x = 0; x < x_res; x++) {
 			*dst++ = pens[*src++];
 		}
@@ -314,7 +314,7 @@ void light_video_device::do_rex_command()
 		const uint32_t end_x = m_lg1.m_x_end_i;
 		const uint32_t end_y = m_lg1.m_y_end_i;
 		const uint32_t src_start_x = start_x + (m_lg1.m_xy_move >> 16);
-		const uint32_t src_start_y = start_y + (uint16_t)m_lg1.m_xy_move;;
+		const uint32_t src_start_y = start_y + (uint16_t)m_lg1.m_xy_move;
 
 		LOGMASKED(LOG_REX, "LG1: Command %08x: Block copy from %d,%d-%d,%d inclusive.\n", m_lg1.m_command, start_x, start_y, end_x, end_y);
 		if (copy)

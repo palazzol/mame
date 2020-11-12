@@ -246,18 +246,15 @@ uint8_t gridcomp_state::grid_dma_r(offs_t offset)
 
 uint32_t gridcomp_state::screen_update_generic(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect, int px)
 {
-	int x, y, offset;
-	uint16_t gfx, *p;
-
-	for (y = 0; y < 240; y++)
+	for (int y = 0; y < 240; y++)
 	{
-		p = &bitmap.pix16(y);
+		uint16_t *p = &bitmap.pix(y);
 
-		offset = y * (px / 16);
+		int const offset = y * (px / 16);
 
-		for (x = offset; x < offset + px / 16; x++)
+		for (int x = offset; x < offset + px / 16; x++)
 		{
-			gfx = m_videoram[x];
+			uint16_t const gfx = m_videoram[x];
 
 			for (int i = 15; i >= 0; i--)
 			{
@@ -288,8 +285,7 @@ MACHINE_START_MEMBER(gridcomp_state, gridcomp)
 {
 	address_space &program = m_maincpu->space(AS_PROGRAM);
 
-	program.install_readwrite_bank(0, m_ram->size() - 1, "bank10");
-	membank("bank10")->set_base(m_ram->pointer());
+	program.install_ram(0, m_ram->size() - 1, m_ram->pointer());
 
 	m_videoram = (uint16_t *)m_maincpu->space(AS_PROGRAM).get_write_ptr(0x400);
 }

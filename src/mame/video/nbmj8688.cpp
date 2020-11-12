@@ -244,7 +244,7 @@ void nbmj8688_state::vramflip()
 void nbmj8688_state::update_pixel(int x, int y)
 {
 	int color = m_videoram[(y * 512) + x];
-	m_tmpbitmap->pix16(y, x) = color;
+	m_tmpbitmap->pix(y, x) = color;
 }
 
 void nbmj8688_state::writeram_low(int x, int y, int color)
@@ -549,6 +549,7 @@ void nbmj8688_state::common_video_start()
 
 	m_scrolly = 0;  // reset because crystalg/crystal2 don't write to this register
 	m_screen_refresh = 1;
+	m_blitter_src_addr = 0;
 
 	save_pointer(NAME(m_videoram), 512 * 256);
 	save_pointer(NAME(m_clut), 0x20);

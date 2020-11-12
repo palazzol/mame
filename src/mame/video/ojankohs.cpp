@@ -208,18 +208,14 @@ void ojankohs_state::ojankoc_flipscreen(int data)
 
 void ojankohs_state::ojankoc_videoram_w(offs_t offset, uint8_t data)
 {
-	int i;
-	uint8_t x, y, xx, px, py ;
-	uint8_t color, color1, color2;
-
 	m_videoram[offset] = data;
 
-	color1 = m_videoram[offset & 0x3fff];
-	color2 = m_videoram[offset | 0x4000];
+	uint8_t color1 = m_videoram[offset & 0x3fff];
+	uint8_t color2 = m_videoram[offset | 0x4000];
 
-	y = offset >> 6;
-	x = (offset & 0x3f) << 2;
-	xx = 0;
+	uint8_t y = offset >> 6;
+	uint8_t x = (offset & 0x3f) << 2;
+	uint8_t xx = 0;
 
 	if (m_flipscreen)
 	{
@@ -228,14 +224,14 @@ void ojankohs_state::ojankoc_videoram_w(offs_t offset, uint8_t data)
 		xx = 3;
 	}
 
-	for (i = 0; i < 4; i++)
+	for (int i = 0; i < 4; i++)
 	{
-		color = ((color1 & 0x01) >> 0) | ((color1 & 0x10) >> 3) | ((color2 & 0x01) << 2) | ((color2 & 0x10) >> 1);
+		uint8_t color = ((color1 & 0x01) >> 0) | ((color1 & 0x10) >> 3) | ((color2 & 0x01) << 2) | ((color2 & 0x10) >> 1);
 
-		px = x + (i ^ xx);
-		py = y;
+		uint8_t px = x + (i ^ xx);
+		uint8_t py = y;
 
-		m_tmpbitmap.pix16(py, px) = color;
+		m_tmpbitmap.pix(py, px) = color;
 
 		color1 >>= 1;
 		color2 >>= 1;
@@ -252,29 +248,21 @@ void ojankohs_state::ojankoc_videoram_w(offs_t offset, uint8_t data)
 VIDEO_START_MEMBER(ojankohs_state,ojankohs)
 {
 	m_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(ojankohs_state::ojankohs_get_tile_info)), TILEMAP_SCAN_ROWS,  8, 4, 64, 64);
-//  m_videoram = std::make_unique<uint8_t[]>(0x1000);
-//  m_colorram = std::make_unique<uint8_t[]>(0x1000);
-//  m_paletteram = std::make_unique<uint8_t[]>(0x800);
 }
 
 VIDEO_START_MEMBER(ojankohs_state,ojankoy)
 {
 	m_tilemap = &machine().tilemap().create(*m_gfxdecode, tilemap_get_info_delegate(*this, FUNC(ojankohs_state::ojankoy_get_tile_info)), TILEMAP_SCAN_ROWS,  8, 4, 64, 64);
-//  m_videoram = std::make_unique<uint8_t[]>(0x2000);
-//  m_colorram = std::make_unique<uint8_t[]>(0x1000);
 }
 
 VIDEO_START_MEMBER(ojankohs_state,ccasino)
 {
 	VIDEO_START_CALL_MEMBER(ojankoy);
-	m_paletteram.allocate(0x800);
 }
 
 VIDEO_START_MEMBER(ojankohs_state,ojankoc)
 {
 	m_screen->register_screen_bitmap(m_tmpbitmap);
-	m_videoram.allocate(0x8000);
-	m_paletteram.allocate(0x20);
 
 	save_item(NAME(m_tmpbitmap));
 }

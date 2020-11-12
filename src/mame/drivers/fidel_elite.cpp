@@ -68,7 +68,6 @@ uninteresting to emulate as separate drivers.
 #include "machine/timer.h"
 #include "sound/s14001a.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/pwm.h"
 #include "bus/generic/slot.h"
 #include "bus/generic/carts.h"
@@ -180,7 +179,7 @@ void elite_state::machine_reset()
 
 void elite_state::set_cpu_freq()
 {
-	// known official CPU speeds: 3MHz(EAS/EAS-B?), 3.57MHz(PC/Privat), 4MHz(PC/EAS-C)
+	// known official CPU speeds: 3MHz(EAS/EWC?), 3.57MHz(PC/Privat), 4MHz(PC/EAS-C)
 	u8 inp = ioport("FAKE")->read();
 	m_maincpu->set_unscaled_clock((inp & 2) ? 4_MHz_XTAL : ((inp & 1) ? 3.579545_MHz_XTAL : 3_MHz_XTAL));
 	div_refresh();
@@ -414,9 +413,9 @@ static INPUT_PORTS_START( eas )
 
 	PORT_START("FAKE")
 	PORT_CONFNAME( 0x03, 0x00, "CPU Frequency" ) PORT_CHANGED_MEMBER(DEVICE_SELF, elite_state, switch_cpu_freq, 0) // factory set
-	PORT_CONFSETTING(    0x00, "3MHz" )
-	PORT_CONFSETTING(    0x01, "3.57MHz" )
-	PORT_CONFSETTING(    0x02, "4MHz" )
+	PORT_CONFSETTING(    0x00, "3MHz (original)" )
+	PORT_CONFSETTING(    0x01, "3.57MHz (Privat)" )
+	PORT_CONFSETTING(    0x02, "4MHz (Glasgow)" )
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( easc )
@@ -424,9 +423,9 @@ static INPUT_PORTS_START( easc )
 
 	PORT_MODIFY("FAKE") // default to 4MHz
 	PORT_CONFNAME( 0x03, 0x02, "CPU Frequency" ) PORT_CHANGED_MEMBER(DEVICE_SELF, elite_state, switch_cpu_freq, 0) // factory set
-	PORT_CONFSETTING(    0x00, "3MHz" )
-	PORT_CONFSETTING(    0x01, "3.57MHz" )
-	PORT_CONFSETTING(    0x02, "4MHz" )
+	PORT_CONFSETTING(    0x00, "3MHz (original)" )
+	PORT_CONFSETTING(    0x01, "3.57MHz (Privat)" )
+	PORT_CONFSETTING(    0x02, "4MHz (Glasgow)" )
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( pc )
@@ -489,7 +488,6 @@ void elite_state::pc(machine_config &config)
 	m_speech->add_route(ALL_OUTPUTS, "speaker", 0.75);
 
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 
 	/* cartridge */
 	GENERIC_CARTSLOT(config, "cartslot", generic_plain_slot, "fidel_scc");

@@ -122,7 +122,7 @@ public:
 	bmcbowl_state(const machine_config &mconfig, device_type type, const char *tag) :
 		driver_device(mconfig, type, tag),
 		m_maincpu(*this, "maincpu"),
-		m_stats_ram(*this, "nvram", 16),
+		m_stats_ram(*this, "nvram"),
 		m_vid1(*this, "vid1"),
 		m_vid2(*this, "vid2"),
 		m_palette(*this, "palette"),
@@ -167,41 +167,42 @@ uint32_t bmcbowl_state::screen_update(screen_device &screen, bitmap_rgb32 &bitma
         missing scroll and priorities   (maybe fixed ones)
 */
 
-	int x,y,z,pixdat;
 	bitmap.fill(rgb_t::black(), cliprect);
 
-	z=0;
-	for (y=0;y<230;y++)
+	int z=0;
+	for (int y=0; y<230; y++)
 	{
-		for (x=0;x<280;x+=2)
+		for (int x=0; x<280; x+=2)
 		{
+			int pixdat;
+
 			pixdat = m_vid2[0x8000+z];
 
 			if(pixdat&0xff)
-				bitmap.pix32(y, x+1) = m_palette->pen(pixdat&0xff);
+				bitmap.pix(y, x+1) = m_palette->pen(pixdat&0xff);
 			if(pixdat>>8)
-				bitmap.pix32(y, x) = m_palette->pen(pixdat>>8);
+				bitmap.pix(y, x) = m_palette->pen(pixdat>>8);
 
 			pixdat = m_vid2[z];
 
 			if(pixdat&0xff)
-				bitmap.pix32(y, x+1) = m_palette->pen(pixdat&0xff);
+				bitmap.pix(y, x+1) = m_palette->pen(pixdat&0xff);
 			if(pixdat>>8)
-				bitmap.pix32(y, x) = m_palette->pen(pixdat>>8);
+				bitmap.pix(y, x) = m_palette->pen(pixdat>>8);
 
 			pixdat = m_vid1[0x8000+z];
 
 			if(pixdat&0xff)
-				bitmap.pix32(y, x+1) = m_palette->pen(pixdat&0xff);
+				bitmap.pix(y, x+1) = m_palette->pen(pixdat&0xff);
 			if(pixdat>>8)
-				bitmap.pix32(y, x) = m_palette->pen(pixdat>>8);
+				bitmap.pix(y, x) = m_palette->pen(pixdat>>8);
 
 			pixdat = m_vid1[z];
 
 			if(pixdat&0xff)
-				bitmap.pix32(y, x+1) = m_palette->pen(pixdat&0xff);
+				bitmap.pix(y, x+1) = m_palette->pen(pixdat&0xff);
 			if(pixdat>>8)
-				bitmap.pix32(y, x) = m_palette->pen(pixdat>>8);
+				bitmap.pix(y, x) = m_palette->pen(pixdat>>8);
 
 			z++;
 		}

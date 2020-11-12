@@ -23,19 +23,45 @@
 #endif
 
 // noexcept on move operator -> issue with macosx clang
-#define PCOPYASSIGNMOVE(name, def)  \
-		name(const name &) = def; \
-		name(name &&) noexcept = def; \
-		name &operator=(const name &) = def; \
-		name &operator=(name &&) noexcept = def;
+#define PCOPYASSIGNMOVE(name, def) \
+	PCOPYASSIGN(name, def) \
+	PMOVEASSIGN(name, def)
 
 #define PCOPYASSIGN(name, def)  \
-		name(const name &) = def; \
-		name &operator=(const name &) = def; \
+	name(const name &) = def; \
+	name &operator=(const name &) = def;
 
 #define PMOVEASSIGN(name, def)  \
-		name(name &&) noexcept = def; \
-		name &operator=(name &&) noexcept = def;
+	name(name &&) /*noexcept*/ = def; \
+	name &operator=(name &&) /*noexcept*/ = def;
+
+#if defined(EMSCRIPTEN)
+#undef EMSCRIPTEN
+#endif
+
+// -----------------------------------------------------------------------------
+// forward definitions
+// -----------------------------------------------------------------------------
+
+namespace plib
+{
+	template <typename BASEARENA, std::size_t MINALIGN>
+	class mempool_arena;
+
+	struct aligned_arena;
+	class dynlib_base;
+
+	template<bool debug_enabled>
+	class plog_base;
+
+	struct plog_level;
+
+	namespace detail
+	{
+		class token_store;
+	} // namespace detail
+
+} // namespace plib
 
 namespace plib
 {
@@ -261,11 +287,33 @@ namespace plib
 		using type = typename fast_type_for_size<size_for_bits<bits>::value>::type;
 	};
 
-	//============================================================
-	// Avoid unused variable warnings
-	//============================================================
+	/// \brief mark arguments as not used for compiler
+	///
+	/// @tparam Ts unsused parameters
+	///
 	template<typename... Ts>
 	inline void unused_var(Ts&&...) noexcept {} // NOLINT(readability-named-parameter)
+
+	/// \brief copy type S to type D byte by byte
+	///
+	/// The purpose of this copy function is to suppress compiler warnings.
+	/// Use at your own risk. This is dangerous.
+	///
+	/// \param s Source object
+	/// \param d Destination object
+	/// \tparam S Type of source object
+	/// \tparam D Type of destination object
+	template <typename S, typename D>
+	void reinterpret_copy(S &s, D &d)
+	{
+		static_assert(sizeof(D) >= sizeof(S), "size mismatch");
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+		auto *dp = reinterpret_cast<std::uint8_t *>(&d);
+		// NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+		const auto *sp = reinterpret_cast<std::uint8_t *>(&s);
+		std::copy(sp, sp + sizeof(S), dp);
+	}
+
 
 } // namespace plib
 

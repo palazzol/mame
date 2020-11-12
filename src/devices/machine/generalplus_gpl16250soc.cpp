@@ -188,6 +188,7 @@ void sunplus_gcm394_base_device::trigger_systemm_dma(int channel)
 		if (mode & 0x2000)
 		{
 			write_space(dest, val & 0xFF);
+			dest += destdelta;
 			write_space(dest, val >> 8);
 		}
 		else
@@ -202,7 +203,7 @@ void sunplus_gcm394_base_device::trigger_systemm_dma(int channel)
 
 	// note, these patch the code copied to SRAM so the 'PROGRAM ROM' check fails (it passes otherwise)
 
-	//address_space& mem = this->space(AS_PROGRAM);
+	address_space& mem = this->space(AS_PROGRAM);
 
 	//if (mem.read_word(0x4368c) == 0x4846)
 	//  mem.write_word(0x4368c, 0x4840);    // cars 2 force service mode
@@ -216,6 +217,13 @@ void sunplus_gcm394_base_device::trigger_systemm_dma(int channel)
 
 	//if (mem.read_word(0x4d8d4) == 0x4840)
 	//  mem.write_word(0x4d8d4, 0x4841);    // golden tee IRQ? wait hack
+
+	//if (mem.read_word(0x3510f) == 0x4845)
+	//  mem.write_word(0x3510f, 0x4840);    // camp rock force service mode
+
+	if (mem.read_word(0x4abe7) == 0x4840)
+		mem.write_word(0x4abe7, 0x4841);    // camp rock IRQ? wait hack
+
 
 
 	// clear params after operation
@@ -659,6 +667,12 @@ void sunplus_gcm394_base_device::unkarea_78b2_w(uint16_t data) { LOGMASKED(LOG_G
 void sunplus_gcm394_base_device::unkarea_78b8_w(uint16_t data) { LOGMASKED(LOG_GCM394, "%s:sunplus_gcm394_base_device::unkarea_78b8_w %04x\n", machine().describe_context(), data); m_78b8 = data; }
 void sunplus_gcm394_base_device::unkarea_78f0_w(uint16_t data) { LOGMASKED(LOG_GCM394, "%s:sunplus_gcm394_base_device::unkarea_78f0_w %04x\n", machine().describe_context(), data); m_78f0 = data; }
 
+uint16_t sunplus_gcm394_base_device::unkarea_78c0_r()
+{
+	LOGMASKED(LOG_GCM394, "%s:sunplus_gcm394_base_device::unkarea_78c0_r\n", machine().describe_context());
+	return machine().rand();
+}
+
 uint16_t sunplus_gcm394_base_device::unkarea_78d0_r()
 {
 	LOGMASKED(LOG_GCM394, "%s:sunplus_gcm394_base_device::unkarea_78d0_r\n", machine().describe_context());
@@ -956,6 +970,8 @@ void sunplus_gcm394_base_device::base_internal_map(address_map &map)
 	map(0x0078b2, 0x0078b2).rw(FUNC(sunplus_gcm394_base_device::unkarea_78b2_r), FUNC(sunplus_gcm394_base_device::unkarea_78b2_w));  // 78b2 TimeBase C Control Register (P_TimeBaseC_Ctrl)
 
 	map(0x0078b8, 0x0078b8).w(FUNC(sunplus_gcm394_base_device::unkarea_78b8_w));  // 78b8 TimeBase Counter Reset Register  (P_TimeBase_Reset)
+
+	map(0x0078c0, 0x0078c0).r(FUNC(sunplus_gcm394_base_device::unkarea_78c0_r)); // beijuehh
 
 	map(0x0078d0, 0x0078d0).r(FUNC(sunplus_gcm394_base_device::unkarea_78d0_r)); // jak_s500
 	map(0x0078d8, 0x0078d8).r(FUNC(sunplus_gcm394_base_device::unkarea_78d8_r)); // jak_tsh

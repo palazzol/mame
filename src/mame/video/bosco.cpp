@@ -91,7 +91,6 @@ TILEMAP_MAPPER_MEMBER(bosco_state::fg_tilemap_scan )
 inline void bosco_state::get_tile_info_bosco(tile_data &tileinfo,int tile_index,int ram_offs)
 {
 	uint8_t attr = m_videoram[ram_offs + tile_index + 0x800];
-	tileinfo.category = (attr & 0x20) >> 5;
 	tileinfo.group = attr & 0x3f;
 	tileinfo.set(0,
 			m_videoram[ram_offs + tile_index],
@@ -250,18 +249,14 @@ uint32_t bosco_state::screen_update_bosco(screen_device &screen, bitmap_ind16 &b
 	fg_clip &= cliprect;
 
 	bitmap.fill(m_palette->black_pen(), cliprect);
-	m_starfield->draw_starfield(bitmap,bg_clip,flip);
+	m_starfield->draw_starfield(bitmap, bg_clip, flip);
 
-	m_bg_tilemap->draw(screen, bitmap, bg_clip, 0,0);
-	m_fg_tilemap->draw(screen, bitmap, fg_clip, 0,0);
+	draw_sprites(bitmap, bg_clip, flip);
 
-	draw_sprites(bitmap,bg_clip,flip);
+	m_bg_tilemap->draw(screen, bitmap, bg_clip);
+	m_fg_tilemap->draw(screen, bitmap, fg_clip);
 
-	/* draw the high priority characters */
-	m_bg_tilemap->draw(screen, bitmap, bg_clip, 1,0);
-	m_fg_tilemap->draw(screen, bitmap, fg_clip, 1,0);
-
-	draw_bullets(bitmap,cliprect,flip);
+	draw_bullets(bitmap, cliprect, flip);
 
 	/* It looks like H offsets 221-223 are skipped over, moving the radar tilemap
 	   (including the 'bullets' on it) 3 pixels to the left */
@@ -271,16 +266,16 @@ uint32_t bosco_state::screen_update_bosco(screen_device &screen, bitmap_ind16 &b
 		{
 			for (int x = 63; x >= 0; x--)
 			{
-				bitmap.pix16(y, x + 3) = bitmap.pix16(y, x);
-				bitmap.pix16(y, x) = m_palette->black_pen();
+				bitmap.pix(y, x + 3) = bitmap.pix(y, x);
+				bitmap.pix(y, x) = m_palette->black_pen();
 			}
 		}
 		else
 		{
 			for (int x = 224; x < 288; x++)
 			{
-				bitmap.pix16(y, x - 3) = bitmap.pix16(y, x);
-				bitmap.pix16(y, x) = m_palette->black_pen();
+				bitmap.pix(y, x - 3) = bitmap.pix(y, x);
+				bitmap.pix(y, x) = m_palette->black_pen();
 			}
 		}
 	}

@@ -428,7 +428,7 @@ void mario_state::sound_start()
 	{
 
 		m_eabank = "bank1";
-		m_audiocpu->space(AS_PROGRAM).install_read_bank(0x000, 0x7ff, "bank1");
+		m_audiocpu->space(AS_PROGRAM).install_read_bank(0x000, 0x7ff, membank("bank1"));
 		membank("bank1")->configure_entry(0, &SND[0]);
 		membank("bank1")->configure_entry(1, &SND[0x1000]);
 
@@ -609,7 +609,7 @@ void mario_state::mario_sh3_w(offs_t offset, uint8_t data)
 
 void mario_state::mario_sound_map(address_map &map)
 {
-	map(0x0000, 0x07ff).bankr("bank1").region("audiocpu", 0);
+	map(0x0000, 0x07ff).bankr("bank1");
 	map(0x0800, 0x0fff).rom();
 }
 
@@ -670,7 +670,7 @@ void mario_state::mario_audio(machine_config &config)
 	NETLIST_LOGIC_INPUT(config, m_audio_snd7, "SOUND7.IN", 0);
 	NETLIST_INT_INPUT(config, m_audio_dac, "DAC.VAL", 0, 255);
 
-	NETLIST_STREAM_OUTPUT(config, "snd_nl:cout0", 0, "ROUT.1").set_mult_offset(150000.0, 0.0);
+	NETLIST_STREAM_OUTPUT(config, "snd_nl:cout0", 0, "ROUT.1").set_mult_offset(150000.0 / 32768.0, 0.0);
 #endif
 }
 

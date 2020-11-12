@@ -16,7 +16,6 @@
 #include "machine/pic8259.h"
 #include "sound/262intf.h"
 #include "sound/spkrdev.h"
-#include "sound/volt_reg.h"
 
 #include "speaker.h"
 
@@ -1151,11 +1150,6 @@ void sb_device::common(machine_config &config)
 
 	DAC_16BIT_R2R(config, m_ldac, 0).add_route(ALL_OUTPUTS, "lspeaker", 0.5); // unknown DAC
 	DAC_16BIT_R2R(config, m_rdac, 0).add_route(ALL_OUTPUTS, "rspeaker", 0.5); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref", 0));
-	vref.add_route(0, "ldac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "ldac", -1.0, DAC_VREF_NEG_INPUT);
-	vref.add_route(0, "rdac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "rdac", -1.0, DAC_VREF_NEG_INPUT);
 
 	PC_JOY(config, m_joy);
 
@@ -1171,13 +1165,13 @@ void isa8_sblaster1_0_device::device_add_mconfig(machine_config &config)
 	m_ym3812->add_route(ALL_OUTPUTS, "lspeaker", 3.0);
 	m_ym3812->add_route(ALL_OUTPUTS, "rspeaker", 3.0);
 
-	SAA1099(config, m_saa1099_1, 7159090);
-	m_saa1099_1->add_route(ALL_OUTPUTS, "lspeaker", 0.5);
-	m_saa1099_1->add_route(ALL_OUTPUTS, "rspeaker", 0.5);
+	SAA1099(config, m_saa1099_1, XTAL(14'318'181) / 2); // or CMS-301, from OSC pin in ISA bus
+	m_saa1099_1->add_route(0, "lspeaker", 0.5);
+	m_saa1099_1->add_route(1, "rspeaker", 0.5);
 
-	SAA1099(config, m_saa1099_2, 7159090);
-	m_saa1099_2->add_route(ALL_OUTPUTS, "lspeaker", 0.5);
-	m_saa1099_2->add_route(ALL_OUTPUTS, "rspeaker", 0.5);
+	SAA1099(config, m_saa1099_2, XTAL(14'318'181) / 2); // or CMS-301, from OSC pin in ISA bus
+	m_saa1099_2->add_route(0, "lspeaker", 0.5);
+	m_saa1099_2->add_route(1, "rspeaker", 0.5);
 }
 
 void isa8_sblaster1_5_device::device_add_mconfig(machine_config &config)

@@ -38,11 +38,12 @@ ToDo:
 #include "machine/6821pia.h"
 #include "machine/timer.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "speaker.h"
 
 #include "s4.lh"
 
+
+namespace {
 
 class s4_state : public genpin_class
 {
@@ -65,6 +66,9 @@ public:
 
 	DECLARE_INPUT_CHANGED_MEMBER(main_nmi);
 	DECLARE_INPUT_CHANGED_MEMBER(audio_nmi);
+
+protected:
+	virtual void machine_start() override { m_digits.resolve(); m_strobe = 0; }
 
 private:
 	uint8_t sound_r();
@@ -99,7 +103,6 @@ private:
 	uint8_t m_switch_col;
 	bool m_data_ok;
 	bool m_chimes;
-	virtual void machine_start() override { m_digits.resolve(); }
 	required_device<cpu_device> m_maincpu;
 	optional_device<cpu_device> m_audiocpu;
 	required_device<pia6821_device> m_pia22;
@@ -406,7 +409,7 @@ void s4_state::dig1_w(uint8_t data)
 
 uint8_t s4_state::switch_r()
 {
-	char retval = 0xff;
+	uint8_t retval = 0xff;
 	// scan all 8 input columns, since multiple can be selected at once
 	for (int i = 0; i < 7; i++)
 	{
@@ -469,6 +472,7 @@ void s4_state::s4(machine_config &config)
 
 	PIA6821(config, m_pia28, 0);
 	m_pia28->readpa_handler().set(FUNC(s4_state::dips_r));
+	m_pia28->set_port_a_input_overrides_output_mask(0xff);
 	m_pia28->readca1_handler().set(FUNC(s4_state::pia28_ca1_r));
 	m_pia28->readcb1_handler().set(FUNC(s4_state::pia28_cb1_r));
 	m_pia28->writepa_handler().set(FUNC(s4_state::dig0_w));
@@ -480,6 +484,7 @@ void s4_state::s4(machine_config &config)
 
 	PIA6821(config, m_pia30, 0);
 	m_pia30->readpa_handler().set(FUNC(s4_state::switch_r));
+	m_pia30->set_port_a_input_overrides_output_mask(0xff);
 	m_pia30->writepb_handler().set(FUNC(s4_state::switch_w));
 	m_pia30->ca2_handler().set(FUNC(s4_state::pia30_ca2_w));
 	m_pia30->cb2_handler().set(FUNC(s4_state::pia30_cb2_w));
@@ -499,9 +504,6 @@ void s4_state::s4a(machine_config &config)
 
 	SPEAKER(config, "speaker").front_center();
 	MC1408(config, "dac", 0).add_route(ALL_OUTPUTS, "speaker", 0.5);
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 
 	PIA6821(config, m_pias, 0);
 	m_pias->readpb_handler().set(FUNC(s4_state::sound_r));
@@ -714,6 +716,8 @@ ROM_START(tstrk_l1)
 	ROM_LOAD("ic20.716",     0x1000, 0x0800, CRC(f163fc88) SHA1(988b60626f3d4dc8f4a1dbd0c99282418bc53aae))
 	ROM_LOAD("b_ic17.716",   0x1800, 0x0800, CRC(cfc2518a) SHA1(5e99e40dcb7e178137db8d7d7d6da82ba87130fa))
 ROM_END
+
+} // Anonymous namespace
 
 
 GAME( 1979, flash_l2, 0,        s4a, s4, s4_state, empty_init, ROT0, "Williams", "Flash (Williams, L-2)",         MACHINE_MECHANICAL | MACHINE_NOT_WORKING )
