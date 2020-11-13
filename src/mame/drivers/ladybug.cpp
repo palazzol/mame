@@ -71,6 +71,10 @@ TODO:
 
 #include <algorithm>
 
+uint8_t sraider_state::sraider_rnd_r()
+{
+	return rand() % 4;
+}
 
 // Protection?
 uint8_t sraider_state::sraider_8005_r()
@@ -81,35 +85,28 @@ uint8_t sraider_state::sraider_8005_r()
 }
 
 // Unknown IO
-void sraider_state::sraider_misc_w(offs_t offset, uint8_t data)
+void sraider_state::sraider_weird_w(offs_t offset, uint8_t data)
 {
-	switch(offset)
-	{
-	// These 8 bits are stored in the LS259 latch at A7
-	case 0x00:
-	case 0x01:
-	case 0x02:
-	case 0x03:
-	case 0x04:
-	case 0x05:
-	case 0x06:
-	case 0x07:
-		m_weird_value[offset & 7] = data & 1;
-		break;
-	// These 6 bits are stored in the LS174 latch at N7
-	case 0x08:
-		m_sraider_0x30 = data & 0x3f;
-		break;
-	// These 6 bits are stored in the LS174 latch at N8
-	case 0x10:
-		m_sraider_0x38 = data & 0x3f;
-		break;
-	default:
-		logerror("(%s) write to %02X\n", machine().describe_context(), offset);
-		break;
-	}
+	// These 8 bits are stored in the LS259 latch at A7,
+	// and connected to all the select lines on 2 4066s at B7/C7
+	m_weird_value[offset & 7] = data & 1;
 }
 
+void sraider_state::sraider_0x30_w(offs_t offset, uint8_t data)
+{
+	// These 6 bits are stored in the LS174 latch at N7
+	// bits 0-2 select 4051s at M7 and M8
+	// bits 3-5 select 4051s at K7 and K8
+	m_sraider_0x30 = data & 0x3f;
+}
+
+void sraider_state::sraider_0x38_w(offs_t offset, uint8_t data)
+{
+	// These 6 bits are stored in the LS174 latch at N8
+	// bits 0-2 select 4051s at H7 and H8
+	// bits 3-5 select 4051s at E7 and E8
+	m_sraider_0x38 = data & 0x3f;
+}
 
 void ladybug_state::ladybug_map(address_map &map)
 {
@@ -137,42 +134,64 @@ void dorodon_state::decrypted_opcodes_map(address_map &map)
 
 void sraider_state::sraider_cpu1_map(address_map &map)
 {
-	map(0x0000, 0x5fff).rom();	// 2764s at M4,N4 & R4
+	// LS138 @ J4
+	map(0x0000, 0x1fff).rom();	// 2764 at R4
+	map(0x2000, 0x3fff).rom();	// 2764 at N4
+	map(0x4000, 0x5fff).rom();	// 2764 at M4
+
+	// LS138 @ J4 and LS139 @ H4
 	map(0x6000, 0x67ff).ram();  // 6116 @ K3, also clk on PAL K2 (16R6, U001)
 	map(0x6800, 0x6fff).ram();  // 6116 @ M3
-	map(0x7000, 0x73ff).w("video", FUNC(ladybug_video_device::spr_w));
-	map(0x8005, 0x8005).r(FUNC(sraider_state::sraider_8005_r));  // OE on PAL @ K2 (16R6, U001) (100x xxxx xxxx x101)
-	map(0x8006, 0x8006).writeonly().share("sound_low");  // LS374 @ P6
-	map(0x8007, 0x8007).writeonly().share("sound_high"); // LS374 @ R6
-	map(0x9000, 0x9000).portr("IN0");
-	map(0x9001, 0x9001).portr("IN1");
-	map(0x9002, 0x9002).portr("DSW0");
-	map(0x9003, 0x9003).portr("DSW1");
-	//map(0x9004, 0x9004).portr("IN2"); // extra JAMMA pins
-	map(0xd000, 0xd7ff).w("video", FUNC(ladybug_video_device::bg_w));
-	map(0xe000, 0xe000).nopw();  //unknown 0x10 when in attract, 0x20 when coined/playing - watchdog??
+	map(0x7000, 0x73ff).w("video", FUNC(ladybug_video_device::spr_w)); // pin 29 on ribbon 
+	//map(0x77ff, 0x7fff);	// LS139 @ H4 pin7 is NC
+
+	// LS138 @ J4, Pin11 (0x8000-0x9fff) and
+	// LS138 @ N3 (bottom 3 bits)
+	// (all of these are read/write)
+	map(0x8005, 0x8005).mirror(0x1ff8).r(FUNC(sraider_state::sraider_8005_r));  // OE on PAL @ K2 (16R6, U001) (100x xxxx xxxx x101)
+	map(0x8006, 0x8006).mirror(0x1ff8).writeonly().share("sound_low");  // LS374 @ P6
+	map(0x8007, 0x8007).mirror(0x1ff8).writeonly().share("sound_high"); // LS374 @ R6
+	map(0x8000, 0x8000).mirror(0x1ff8).portr("IN0");
+	map(0x8001, 0x8001).mirror(0x1ff8).portr("IN1");
+	map(0x8002, 0x8002).mirror(0x1ff8).portr("DSW0");
+	map(0x8003, 0x8003).mirror(0x1ff8).portr("DSW1");
+	//map(0x8004, 0x8004).mirror(0x1ff8).portr("IN2"); // extra JAMMA pins
+	// LS138 @ J4, Pin10 (0xa000-0xbfff) // NC
+	// LS138 @ J4, Pin9 (0xc000-0xdfff)
+	map(0xd000, 0xd7ff).w("video", FUNC(ladybug_video_device::bg_w)); // pin 27 on ribbon
+	// LS138 @ J4, Pin7 (0xe000-0xffff)
+	map(0xe000, 0xe000).nopw();  //unknown 0x10 when in attract, 0x20 when coined/playing - disabled watchdog based on LS123 @ F4
 }
 
-void sraider_state::sraider_cpu2_map(address_map &map)
+void sraider_state::sraider_cpu2_map(address_map& map)
 {
-	map(0x0000, 0x5fff).rom(); // 2764's at H6, J6, and L6
-	map(0x6000, 0x63ff).ram(); // 2x2114 @ M6/N6
-	map(0x8000, 0x8000).readonly().share("sound_low");
-	map(0xa000, 0xa000).readonly().share("sound_high");
-	map(0xc000, 0xc000).nopr(); //some kind of sync
-	map(0xe000, 0xe0ff).writeonly().share("grid_data"); // HD6148P @ D6
-	map(0xe800, 0xe800).w(FUNC(sraider_state::sraider_io_w)); // LS273 @ D4
+	// LS138 @ P7
+	map(0x0000, 0x1fff).rom(); // 2764 at H6
+	map(0x2000, 0x3fff).rom(); // 2764 at J6
+	map(0x4000, 0x5fff).rom(); // 2764 at L6
+	map(0x6000, 0x63ff).mirror(0x0400).ram(); // 2x2114 @ M6/N6
+	map(0x8000, 0x9fff).readonly().share("sound_low"); // LS374 @ P6
+	map(0xa000, 0xbfff).readonly().share("sound_high"); // LS374 @ R6
+	map(0xc000, 0xdfff).r(FUNC(sraider_state::sraider_rnd_r)); // LS125 @ P8 - reads 556 outputs to D1 and D0?
+	// LS138 @ P7 (nY7) and LS139 @ H4
+	map(0xe000, 0xe0ff).mirror(0x0300).writeonly().share("grid_data"); // HD6148P @ D6
+	map(0xe800, 0xefff).w(FUNC(sraider_state::sraider_io_w)); // LS273 @ D4
+	//map(0xf000, 0xf7ff)  // NC
+	//map(0xf800, 0xffff)  // NC}
 }
 
 void sraider_state::sraider_cpu2_io_map(address_map &map)
 {
 	map.global_mask(0xff);
-	map(0x00, 0x00).w("sn1", FUNC(sn76489_device::write));   // J214X2 @ N9
-	map(0x08, 0x08).w("sn2", FUNC(sn76489_device::write));   // J214X2 @ M9
-	map(0x10, 0x10).w("sn3", FUNC(sn76489_device::write));   // J214X2 @ L9
-	map(0x18, 0x18).w("sn4", FUNC(sn76489_device::write));   // J214X2 @ K9
-	map(0x20, 0x20).w("sn5", FUNC(sn76489_device::write));   // J214X2 @ J9
-	map(0x28, 0x3f).w(FUNC(sraider_state::sraider_misc_w));  // lots unknown
+	// LS138 @ A8
+	map(0x00, 0x07).w("sn1", FUNC(sn76489_device::write));   // J214X2 @ N9
+	map(0x08, 0x0f).w("sn2", FUNC(sn76489_device::write));   // J214X2 @ M9
+	map(0x10, 0x17).w("sn3", FUNC(sn76489_device::write));   // J214X2 @ L9
+	map(0x18, 0x1f).w("sn4", FUNC(sn76489_device::write));   // J214X2 @ K9
+	map(0x20, 0x27).w("sn5", FUNC(sn76489_device::write));   // J214X2 @ J9
+	map(0x28, 0x2f).w(FUNC(sraider_state::sraider_weird_w)); // LS259 @ A7   ************
+	map(0x30, 0x37).w(FUNC(sraider_state::sraider_0x30_w));  // LS174 @ N7   ************
+	map(0x38, 0x3f).w(FUNC(sraider_state::sraider_0x38_w));  // LS174 @ N8   ************
 }
 
 
@@ -563,7 +582,7 @@ static INPUT_PORTS_START( sraider )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_4WAY PORT_COCKTAIL
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_JOYSTICK_UP ) PORT_4WAY PORT_COCKTAIL
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_COCKTAIL
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT(0x20, IP_ACTIVE_LOW, IPT_UNKNOWN) // VBLANK????   *******************************
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_COIN2 )
 

@@ -102,7 +102,10 @@ public:
 
 protected:
 	uint8_t sraider_8005_r();
-	void sraider_misc_w(offs_t offset, uint8_t data);
+	void sraider_weird_w(offs_t offset, uint8_t data);
+	void sraider_0x30_w(offs_t offset, uint8_t data);
+	void sraider_0x38_w(offs_t offset, uint8_t data);
+	uint8_t sraider_rnd_r();
 	void sraider_io_w(uint8_t data);
 	void sraider_palette(palette_device &palette) const;
 	DECLARE_WRITE_LINE_MEMBER(screen_vblank_sraider);
