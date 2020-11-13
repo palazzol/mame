@@ -192,15 +192,15 @@ void intvkbd_tapedrive_device::update()
 				int num_samples;
 				if (m_speed > 0) {
 					num_samples = (new_position-m_position)*48000;
-					cassette_get_samples(m_cassette, m_channel, m_position, new_position-m_position,
-										 num_samples, 2, sample_buf, CASSETTE_WAVEFORM_16BIT);
+					m_cassette->get_samples(m_channel, m_position, new_position-m_position,
+										 num_samples, 2, sample_buf, cassette_image::WAVEFORM_16BIT);
 					for(int i=0; i<num_samples; i++) {
 						update_energy(sample_buf[i]);
 					}
 				} else {
 					num_samples = (m_position-new_position)*48000;
-					cassette_get_samples(m_cassette, m_channel, new_position, m_position-new_position,
-									 num_samples, 2, sample_buf, CASSETTE_WAVEFORM_16BIT);
+					m_cassette->get_samples(m_channel, new_position, m_position-new_position,
+									 num_samples, 2, sample_buf, cassette_image::WAVEFORM_16BIT);
 					for(int i=num_samples-1; i>=0; i--) {
 						update_energy(sample_buf[i]);
 					}
@@ -264,8 +264,7 @@ double intvkbd_tapedrive_device::get_length()
 {
 	if (!m_cassette) return 0.0;
 
-	struct CassetteInfo info;
-	cassette_get_info(m_cassette, &info);
+	cassette_image::Info info = m_cassette->get_info();
 	return ((double) info.sample_count) / info.sample_frequency;
 }
 
@@ -466,7 +465,7 @@ image_init_result intvkbd_tapedrive_device::internal_load(bool is_create)
 	if (is_create)
 	{
 		// creating an image
-		err = cassette_create((void *)image, &image_ioprocs, &wavfile_format, m_create_opts, CASSETTE_FLAG_READWRITE|CASSETTE_FLAG_SAVEONEXIT, &m_cassette);
+		err = cassette_image::create((void *)image, &image_ioprocs, &cassette_image::wavfile_format, m_create_opts, cassette_image::FLAG_READWRITE | cassette_image::FLAG_SAVEONEXIT, m_cassette);
 		if (err != cassette_image::error::SUCCESS)
 			goto error;
 	}
@@ -481,9 +480,9 @@ image_init_result intvkbd_tapedrive_device::internal_load(bool is_create)
 
 			// try opening the cassette
 			int cassette_flags = is_readonly()
-				? CASSETTE_FLAG_READONLY
-				: (CASSETTE_FLAG_READWRITE | CASSETTE_FLAG_SAVEONEXIT);
-			err = cassette_open_choices((void *)image, &image_ioprocs, filetype(), m_formats, cassette_flags, &m_cassette);
+				? cassette_image::FLAG_READONLY
+				: (cassette_image::FLAG_READWRITE | cassette_image::FLAG_SAVEONEXIT);
+			err = cassette_image::open_choices((void *)image, &image_ioprocs, filetype(), m_formats, cassette_flags, m_cassette);
 
 			// special case - if we failed due to readwrite not being supported, make the image be read only and retry
 			if (err == cassette_image::error::READ_WRITE_UNSUPPORTED)
@@ -545,7 +544,7 @@ void intvkbd_tapedrive_device::call_unload()
 		update();
 
 	/* close out the cassette */
-	cassette_close(m_cassette);
+	m_cassette->save();
 	m_cassette = nullptr;
 
 	/* set to default state, but only change the UI state */

@@ -61,7 +61,7 @@ public:
 	virtual image_init_result call_create(int format_type, util::option_resolution *format_options) override;
 	virtual void call_unload() override;
 	virtual std::string call_display() override;
-	virtual const software_list_loader &get_software_list_loader() const override { return image_software_list_loader::instance(); }
+	//virtual const software_list_loader &get_software_list_loader() const override { return image_software_list_loader::instance(); }
 
 	virtual iodevice_t image_type() const noexcept override { return IO_CASSETTE; }
 
@@ -78,7 +78,7 @@ public:
 	double input();
 	void output(double value);
 
-	cassette_image *get_image() { return m_cassette; }
+	cassette_image* get_image() { return m_cassette.get(); }
 	double get_position();
 	double get_length();
 	
@@ -120,7 +120,7 @@ protected:
 	virtual const bool use_software_list_file_extension_for_filetype() const override { return true; }
 
 private:
-	cassette_image  *m_cassette;
+	cassette_image::ptr m_cassette;
 	double          m_position;
 	double          m_position_time;
 	int32_t         m_value;
@@ -128,8 +128,8 @@ private:
 	double          m_speed; // speed multiplier for tape speeds other than standard 1.875ips (used in adam driver)
 	int             m_direction; // direction select
 	char            m_extension_list[256];
-	const struct CassetteFormat*    const *m_formats;
-	const struct CassetteOptions    *m_create_opts;
+	const struct cassette_image::Format*    const *m_formats;
+	const struct cassette_image::Options    *m_create_opts;
 	const char *                    m_interface;
 
 	/* write state */
