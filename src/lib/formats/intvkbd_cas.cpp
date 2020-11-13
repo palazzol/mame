@@ -205,10 +205,10 @@ static cassette_image::error coladam_ddp_load( cassette_image *cass )
 
 #endif
 
-static cassette_image::error intvkbd_ikc_identify ( cassette_image *cass, struct CassetteOptions *opts )
+static cassette_image::error intvkbd_ikc_identify ( cassette_image *cass, cassette_image::Options* opts)
 {
 	osd_printf_info("intvkbd_ikc_identify\n");
-	wavfile_format.identify(cass, opts);
+	cassette_image::wavfile_format.identify(cass, opts);
 	osd_printf_info("opts->bits_per_sample=%d\n",opts->bits_per_sample);
 	osd_printf_info("opts->channels=%d\n",opts->channels);
 	osd_printf_info("opts->sample_frequency=%d\n",opts->sample_frequency);
@@ -224,18 +224,18 @@ static cassette_image::error intvkbd_ikc_identify ( cassette_image *cass, struct
 static cassette_image::error intvkbd_ikc_load( cassette_image *cass )
 {
 	osd_printf_info("intvkbd_ikc_load\n");
-	wavfile_format.load(cass);
+	cassette_image::wavfile_format.load(cass);
 	return cassette_image::error::SUCCESS;
 }
 
-static cassette_image::error intvkbd_ikc_save(cassette_image *cassette, const struct CassetteInfo *info)
+static cassette_image::error intvkbd_ikc_save(cassette_image *cassette, const cassette_image::Info* info)
 {
 	osd_printf_info("intvkbd_ikc_save\n");
-	wavfile_format.save(cassette, info);
+	cassette_image::wavfile_format.save(cassette, info);
 	return cassette_image::error::SUCCESS;
 }
 
-static const struct CassetteFormat intvkbd_cassette_format =
+static const cassette_image::Format intvkbd_cassette_format =
 { "ikc", intvkbd_ikc_identify, intvkbd_ikc_load, intvkbd_ikc_save };
 
 CASSETTE_FORMATLIST_START(intvkbd_cassette_formats)
