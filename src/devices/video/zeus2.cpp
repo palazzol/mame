@@ -8,6 +8,9 @@
 #include "emu.h"
 #include "zeus2.h"
 
+#include <algorithm>
+
+
 #define LOG_REGS         1
 // Setting ALWAYS_LOG_FIFO will always log the fifo versus having to hold 'L'
 #define ALWAYS_LOG_FIFO  0
@@ -236,10 +239,7 @@ uint32_t zeus2_device::screen_update(screen_device &screen, bitmap_rgb32 &bitmap
 		for (y = cliprect.min_y; y <= cliprect.max_y; y++)
 		{
 			uint32_t *colorptr = &m_frameColor[frame_addr_from_xy(0, y, false)];
-			uint32_t *dest = &bitmap.pix32(y);
-			for (x = cliprect.min_x; x <= cliprect.max_x; x++) {
-				dest[x] = colorptr[x];
-			}
+			std::copy(colorptr + cliprect.min_x, colorptr + cliprect.max_x + 1, &bitmap.pix(y, cliprect.min_x));
 		}
 	}
 
@@ -265,7 +265,7 @@ uint32_t zeus2_device::screen_update(screen_device &screen, bitmap_rgb32 &bitmap
 		int xoffs = screen.visible_area().min_x;
 		for (y = cliprect.min_y; y <= cliprect.max_y; y++)
 		{
-			uint32_t *dest = &bitmap.pix32(y);
+			uint32_t *const dest = &bitmap.pix(y);
 			for (x = cliprect.min_x; x <= cliprect.max_x; x++)
 			{
 				if (1) {
@@ -291,7 +291,7 @@ uint32_t zeus2_device::screen_update(screen_device &screen, bitmap_rgb32 &bitmap
  *
  *************************************/
 
-READ32_MEMBER( zeus2_device::zeus2_r )
+uint32_t zeus2_device::zeus2_r(offs_t offset)
 {
 	int logit = (offset != 0x00 && offset != 0x01 &&
 		offset != 0x18 && offset != 0x19 && offset != 0x48 && offset != 0x49
@@ -364,7 +364,7 @@ READ32_MEMBER( zeus2_device::zeus2_r )
  *
  *************************************/
 
-WRITE32_MEMBER( zeus2_device::zeus2_w )
+void zeus2_device::zeus2_w(offs_t offset, uint32_t data)
 {
 	int logit = (offset != 0x08 &&
 					 offset != 0x18 && offset != 0x19 && (offset != 0x20 || data != 0) &&

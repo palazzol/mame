@@ -38,14 +38,14 @@ private:
 	required_device<isa8_device> m_isabus;
 	required_ioport_array<4> m_inp;
 
-	DECLARE_READ8_MEMBER(fruit_inp_r);
-	DECLARE_WRITE8_MEMBER(dma8237_1_dack_w);
+	uint8_t fruit_inp_r(offs_t offset);
+	void dma8237_1_dack_w(uint8_t data);
 	static void fruitpc_sb_conf(device_t *device);
 	void fruitpc_io(address_map &map);
 	void fruitpc_map(address_map &map);
 };
 
-READ8_MEMBER(fruitpc_state::fruit_inp_r)
+uint8_t fruitpc_state::fruit_inp_r(offs_t offset)
 {
 	return m_inp[offset & 0x03]->read();
 }
@@ -55,7 +55,7 @@ void fruitpc_state::fruitpc_map(address_map &map)
 	map(0x00000000, 0x0009ffff).ram();
 	map(0x000a0000, 0x000bffff).rw("vga", FUNC(vga_device::mem_r), FUNC(vga_device::mem_w)); // VGA VRAM
 	map(0x000c0000, 0x000dffff).rom().region("bios", 0);
-	map(0x000e0000, 0x000fffff).ram().region("bios", 0);
+	map(0x000e0000, 0x000fffff).rom().region("bios", 0);
 	map(0x00100000, 0x008fffff).ram();  // 8MB RAM
 	map(0x02000000, 0x28ffffff).noprw();
 	map(0xfffe0000, 0xffffffff).rom().region("bios", 0);    /* System BIOS */
@@ -98,7 +98,7 @@ static INPUT_PORTS_START( fruitpc )
 INPUT_PORTS_END
 
 //TODO: use atmb device
-WRITE8_MEMBER( fruitpc_state::dma8237_1_dack_w ){ m_isabus->dack_w(1, data); }
+void fruitpc_state::dma8237_1_dack_w(uint8_t data) { m_isabus->dack_w(1, data); }
 
 static void fruitpc_isa8_cards(device_slot_interface &device)
 {

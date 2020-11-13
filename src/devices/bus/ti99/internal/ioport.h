@@ -9,7 +9,7 @@
 
 #pragma once
 
-#include "bus/ti99/ti99defs.h"
+#define TI99_IOPORT_TAG      "ioport"
 
 namespace bus { namespace ti99 { namespace internal {
 
@@ -29,14 +29,15 @@ public:
 	{ }
 
 	// Methods called from the console / ioport
-	virtual DECLARE_READ8Z_MEMBER( readz ) { }
+	virtual void readz(offs_t offset, uint8_t *value) { }
 	virtual void write(offs_t offset, uint8_t data) { }
-	virtual DECLARE_SETADDRESS_DBIN_MEMBER( setaddress_dbin ) { }
-	virtual DECLARE_READ8Z_MEMBER( crureadz ) { }
+	virtual void setaddress_dbin(offs_t offset, int state) { }
+	virtual void crureadz(offs_t offset, uint8_t *value) { }
 	virtual void cruwrite(offs_t offset, uint8_t data) { }
 	virtual DECLARE_WRITE_LINE_MEMBER( memen_in ) { }
 	virtual DECLARE_WRITE_LINE_MEMBER( msast_in ) { }
 	virtual DECLARE_WRITE_LINE_MEMBER( clock_in ) { }
+	virtual DECLARE_WRITE_LINE_MEMBER( reset_in ) { }
 
 	void set_ioport(ioport_device* ioport) { m_ioport = ioport; }
 
@@ -70,14 +71,15 @@ public:
 	ioport_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
 	// Methods called from the console
-	DECLARE_READ8Z_MEMBER( readz );
+	void readz(offs_t offset, uint8_t *value);
 	void write(offs_t offset, uint8_t data);
-	DECLARE_SETADDRESS_DBIN_MEMBER( setaddress_dbin );
-	DECLARE_READ8Z_MEMBER( crureadz );
+	void setaddress_dbin(offs_t offset, int state);
+	void crureadz(offs_t offset, uint8_t *value);
 	void cruwrite(offs_t offset, uint8_t data);
 	DECLARE_WRITE_LINE_MEMBER( memen_in );
 	DECLARE_WRITE_LINE_MEMBER( msast_in );
 	DECLARE_WRITE_LINE_MEMBER( clock_in );
+	DECLARE_WRITE_LINE_MEMBER( reset_in );
 
 	// Callbacks
 	auto extint_cb() { return m_console_extint.bind(); }

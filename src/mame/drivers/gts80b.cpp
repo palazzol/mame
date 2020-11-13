@@ -23,6 +23,8 @@
 #include "gts80b.lh"
 
 
+namespace {
+
 class gts80b_state : public genpin_class
 {
 public:
@@ -48,13 +50,13 @@ protected:
 	virtual void machine_start() override { m_digits.resolve(); }
 
 private:
-	DECLARE_READ8_MEMBER(port1a_r);
-	DECLARE_READ8_MEMBER(port2a_r);
-	DECLARE_WRITE8_MEMBER(port1b_w);
-	DECLARE_WRITE8_MEMBER(port2a_w);
-	DECLARE_WRITE8_MEMBER(port2b_w);
-	DECLARE_WRITE8_MEMBER(port3a_w);
-	DECLARE_WRITE8_MEMBER(port3b_w);
+	uint8_t port1a_r();
+	uint8_t port2a_r();
+	void port1b_w(uint8_t data);
+	void port2a_w(uint8_t data);
+	void port2b_w(uint8_t data);
+	void port3a_w(uint8_t data);
+	void port3b_w(offs_t offset, uint8_t data);
 	void gts80b_map(address_map &map);
 
 	uint8_t m_dispcmd;
@@ -293,7 +295,7 @@ static const uint16_t patterns[] = {
 	/* 0x78-0x7f */ 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff, 0xffff,
 };
 
-READ8_MEMBER( gts80b_state::port1a_r )
+uint8_t gts80b_state::port1a_r()
 {
 	char kbdrow[8];
 	uint8_t data = 0;
@@ -311,18 +313,18 @@ READ8_MEMBER( gts80b_state::port1a_r )
 	return data;
 }
 
-READ8_MEMBER( gts80b_state::port2a_r )
+uint8_t gts80b_state::port2a_r()
 {
 	return m_port2a | 0x80; // slam tilt off
 }
 
 // sw strobes
-WRITE8_MEMBER( gts80b_state::port1b_w )
+void gts80b_state::port1b_w(uint8_t data)
 {
 	m_swrow = data;
 }
 
-WRITE8_MEMBER( gts80b_state::port2a_w )
+void gts80b_state::port2a_w(uint8_t data)
 {
 	m_port2a = data;
 	if (BIT(data, 4))
@@ -332,7 +334,7 @@ WRITE8_MEMBER( gts80b_state::port2a_w )
 }
 
 //d0-3 data; d4-5 = which display enabled; d6 = display reset; d7 = dipsw enable
-WRITE8_MEMBER( gts80b_state::port2b_w )
+void gts80b_state::port2b_w(uint8_t data)
 {
 	m_port2b = data & 15;
 	uint16_t segment;
@@ -366,17 +368,17 @@ WRITE8_MEMBER( gts80b_state::port2b_w )
 }
 
 // solenoids
-WRITE8_MEMBER( gts80b_state::port3a_w )
+void gts80b_state::port3a_w(uint8_t data)
 {
 }
 
 //pb0-3 = sound; pb4-7 = lamprow
-WRITE8_MEMBER( gts80b_state::port3b_w )
+void gts80b_state::port3b_w(offs_t offset, uint8_t data)
 {
 	uint8_t sndcmd = data & 15;
 	m_lamprow = data >> 4;
 	if (m_r0_sound)
-		m_r0_sound->write(space, offset, sndcmd);
+		m_r0_sound->write(offset, sndcmd);
 	if (m_r1_sound)
 		m_r1_sound->write(sndcmd);
 }
@@ -385,6 +387,9 @@ void gts80b_state::machine_reset()
 {
 	m_in_cmd_mode[0] = false;
 	m_in_cmd_mode[1] = false;
+	m_dispcmd = 0;
+	m_digit[0] = 0;
+	m_digit[1] = 0;
 }
 
 void gts80b_state::init_gts80b()
@@ -1804,6 +1809,9 @@ ROM_START(topsound)
 	ROM_LOAD("yrom1a.snd",0xe000,0x2000, CRC(a62e3b94) SHA1(59636c2ac7ebbd116a0eb39479c97299ba391906))
 	ROM_LOAD("yrom2a.snd",0xc000,0x2000, CRC(66645a3f) SHA1(f06261af81e6b1829d639933297d2461a8c993fc))
 ROM_END
+
+} // Anonymous namespace
+
 
 GAME(1985, bountyh,   0,        gts80b_s,  gts80b, gts80b_state, init_gts80b, ROT0, "Gottlieb",               "Bounty Hunter",                             MACHINE_IS_SKELETON_MECHANICAL)
 GAME(1985, bountyhg,  bountyh,  gts80b_s,  gts80b, gts80b_state, init_gts80b, ROT0, "Gottlieb",               "Bounty Hunter (German)",                    MACHINE_IS_SKELETON_MECHANICAL)

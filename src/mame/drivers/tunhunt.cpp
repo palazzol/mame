@@ -49,6 +49,7 @@
 #include "includes/tunhunt.h"
 
 #include "cpu/m6502/m6502.h"
+#include "machine/rescap.h"
 #include "sound/pokey.h"
 #include "speaker.h"
 
@@ -59,7 +60,7 @@
  *
  *************************************/
 
-WRITE8_MEMBER(tunhunt_state::control_w)
+void tunhunt_state::control_w(uint8_t data)
 {
 	/*
 	    0x01    coin counter#2  "right counter"
@@ -85,38 +86,38 @@ WRITE8_MEMBER(tunhunt_state::control_w)
  *
  *************************************/
 
-READ8_MEMBER(tunhunt_state::button_r)
+uint8_t tunhunt_state::button_r(offs_t offset)
 {
 	int data = ioport("IN0")->read();
 	return ((data>>offset)&1)?0x00:0x80;
 }
 
 
-READ8_MEMBER(tunhunt_state::dsw2_0r)
+uint8_t tunhunt_state::dsw2_0r()
 {
 	return (ioport("DSW")->read()&0x0100)?0x80:0x00;
 }
 
 
-READ8_MEMBER(tunhunt_state::dsw2_1r)
+uint8_t tunhunt_state::dsw2_1r()
 {
 	return (ioport("DSW")->read()&0x0200)?0x80:0x00;
 }
 
 
-READ8_MEMBER(tunhunt_state::dsw2_2r)
+uint8_t tunhunt_state::dsw2_2r()
 {
 	return (ioport("DSW")->read()&0x0400)?0x80:0x00;
 }
 
 
-READ8_MEMBER(tunhunt_state::dsw2_3r)
+uint8_t tunhunt_state::dsw2_3r()
 {
 	return (ioport("DSW")->read()&0x0800)?0x80:0x00;
 }
 
 
-READ8_MEMBER(tunhunt_state::dsw2_4r)
+uint8_t tunhunt_state::dsw2_4r()
 {
 	return (ioport("DSW")->read()&0x1000)?0x80:0x00;
 }
@@ -133,13 +134,13 @@ void tunhunt_state::main_map(address_map &map)
 {
 	map.global_mask(0x7fff);
 	map(0x0000, 0x03ff).ram().share("workram"); /* Work RAM */
-	map(0x1080, 0x10ff).writeonly();
-	map(0x1200, 0x12ff).writeonly();
-	map(0x1400, 0x14ff).writeonly();
+	map(0x1080, 0x10ff).nopw();
+	map(0x1200, 0x12ff).nopw();
+	map(0x1400, 0x14ff).nopw();
 	map(0x1600, 0x160f).writeonly().share("paletteram");    /* COLRAM (D7-D4 SHADE; D3-D0 COLOR) */
-	map(0x1800, 0x1800).writeonly();   /* SHEL0H */
-	map(0x1a00, 0x1a00).writeonly();   /* SHEL1H */
-	map(0x1c00, 0x1c00).writeonly();   /* MOBJV */
+	map(0x1800, 0x1800).nopw();   /* SHEL0H */
+	map(0x1a00, 0x1a00).nopw();   /* SHEL1H */
+	map(0x1c00, 0x1c00).nopw();   /* MOBJV */
 	map(0x1e00, 0x1eff).w(FUNC(tunhunt_state::videoram_w)).share("videoram");  /* ALPHA */
 	map(0x2000, 0x2000).nopw();    /* watchdog */
 	map(0x2000, 0x2007).r(FUNC(tunhunt_state::button_r));

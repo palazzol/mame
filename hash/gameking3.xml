@@ -1,7 +1,10 @@
 <?xml version="1.0"?>
 <!DOCTYPE softwarelist SYSTEM "softwarelist.dtd">
+<!--
+license:CC0
 
-<!-- see gameking.xml for information about cartridge types -->
+see gameking.xml for information about cartridge types
+-->
 
 <softwarelist name="gameking3" description="TimeTop GameKing 3 cartridges">
 
@@ -73,7 +76,7 @@
 			</dataarea>
 		</part>
 	</software>
-	
+
 	<software name="vagrant" supported="partial">
 		<description>Vagrant</description>
 		<year>200?</year>
@@ -83,6 +86,6 @@
 				<rom name="vagrant.gk3" size="524288" crc="db50e1c9" sha1="80f27ec7973d336e12ee506f090440db35ecf183"/>
 			</dataarea>
 		</part>
-	</software>	
+	</software>
 
 </softwarelist>

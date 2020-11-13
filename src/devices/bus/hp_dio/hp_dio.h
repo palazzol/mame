@@ -77,14 +77,14 @@ public:
 	auto irq6_out_cb() { return m_irq6_out_cb.bind(); }
 	auto irq7_out_cb() { return m_irq7_out_cb.bind(); }
 
-	void install_memory(offs_t start, offs_t end, read16_delegate rhandler, write16_delegate whandler);
+	template<typename R, typename W> void install_memory(offs_t start, offs_t end, R rhandler, W whandler);
 
 	// DANGER: these will currently produce different results for a DIO-I card on DIO-I and DIO-II systems
 	//         due to the varying bus widths.  Using all install_memory() shields you from this problem.
 	//         Either know what you're doing (m_prgwidth is available to cards for this purpose) or
 	//         only use these for 32-bit DIO-II cards.
-	void install_bank(offs_t start, offs_t end, const char *tag, uint8_t *data);
-	void install_rom(offs_t start, offs_t end, const char *tag, uint8_t *data);
+	void install_bank(offs_t start, offs_t end, uint8_t *data);
+	void install_rom(offs_t start, offs_t end, uint8_t *data);
 
 	void unmap_bank(offs_t start, offs_t end);
 	void unmap_rom(offs_t start, offs_t end);

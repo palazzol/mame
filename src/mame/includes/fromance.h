@@ -28,7 +28,8 @@ public:
 		driver_device(mconfig, type, tag),
 		m_maincpu(*this, "maincpu"),
 		m_subcpu(*this, "sub"),
-		m_spriteram(*this, "spriteram"),
+		m_spriteram(nullptr),
+		m_spriteram_size(0),
 		m_gfxdecode(*this, "gfxdecode"),
 		m_screen(*this, "screen"),
 		m_palette(*this, "palette"),
@@ -45,22 +46,23 @@ public:
 
 	void init_common();
 
-	DECLARE_WRITE8_MEMBER(fromance_gga_data_w);
+	void fromance_gga_data_w(offs_t offset, uint8_t data);
 
 protected:
 	required_device<cpu_device> m_maincpu;
 	required_device<cpu_device> m_subcpu;
-	optional_shared_ptr<uint8_t> m_spriteram;
+	uint8_t *m_spriteram;
+	u32 m_spriteram_size;
 	required_device<gfxdecode_device> m_gfxdecode;
 	required_device<screen_device> m_screen;
 	required_device<palette_device> m_palette;
 	required_device<vsystem_gga_device> m_gga;
 	optional_device<vsystem_spr2_device> m_spr_old; // only used by pipe dream, split this state up and clean things...
 
-	DECLARE_WRITE8_MEMBER(fromance_gfxreg_w);
-	DECLARE_READ8_MEMBER(fromance_videoram_r);
-	DECLARE_WRITE8_MEMBER(fromance_videoram_w);
-	DECLARE_WRITE8_MEMBER(fromance_scroll_w);
+	void fromance_gfxreg_w(uint8_t data);
+	uint8_t fromance_videoram_r(offs_t offset);
+	void fromance_videoram_w(offs_t offset, uint8_t data);
+	void fromance_scroll_w(offs_t offset, uint8_t data);
 
 	uint32_t   m_scrolly_ofs;
 	uint32_t   m_scrollx_ofs;
@@ -100,16 +102,16 @@ private:
 	uint8_t    m_vclk_left;
 
 	/* devices */
-	DECLARE_READ8_MEMBER(fromance_busycheck_main_r);
-	DECLARE_READ8_MEMBER(fromance_busycheck_sub_r);
-	DECLARE_WRITE8_MEMBER(fromance_rombank_w);
-	DECLARE_WRITE8_MEMBER(fromance_adpcm_w);
-	DECLARE_WRITE8_MEMBER(fromance_portselect_w);
-	DECLARE_READ8_MEMBER(fromance_keymatrix_r);
-	DECLARE_WRITE8_MEMBER(fromance_coinctr_w);
-	DECLARE_READ8_MEMBER(fromance_paletteram_r);
-	DECLARE_WRITE8_MEMBER(fromance_paletteram_w);
-	DECLARE_WRITE8_MEMBER(fromance_adpcm_reset_w);
+	uint8_t fromance_busycheck_main_r();
+	uint8_t fromance_busycheck_sub_r();
+	void fromance_rombank_w(uint8_t data);
+	void fromance_adpcm_w(uint8_t data);
+	void fromance_portselect_w(uint8_t data);
+	uint8_t fromance_keymatrix_r();
+	void fromance_coinctr_w(uint8_t data);
+	uint8_t fromance_paletteram_r(offs_t offset);
+	void fromance_paletteram_w(offs_t offset, uint8_t data);
+	void fromance_adpcm_reset_w(uint8_t data);
 	TILE_GET_INFO_MEMBER(get_fromance_bg_tile_info);
 	TILE_GET_INFO_MEMBER(get_fromance_fg_tile_info);
 	TILE_GET_INFO_MEMBER(get_nekkyoku_bg_tile_info);

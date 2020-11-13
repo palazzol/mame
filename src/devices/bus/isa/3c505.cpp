@@ -280,7 +280,7 @@ void isa16_3c505_device::device_reset()
 			offs_t const rom_base = (m_romopts->read() & 0xfe) << 12;
 
 			if (m_isa->is_option_rom_space_available(rom_base, 0x2000))
-				m_isa->install_rom(this, rom_base, rom_base | 0x01fff, "host", "host");
+				m_isa->install_rom(this, rom_base, rom_base | 0x01fff, "host");
 		}
 
 		m_isa->set_dma_channel(m_isa_drq, this, true);
@@ -486,6 +486,26 @@ void isa16_3c505_device::hcmd_w(u8 data)
 void isa16_3c505_device::hcr_w(u8 data)
 {
 	LOGMASKED(LOG_REG, "hcr_w 0x%02x (%s)\n", data, machine().describe_context());
+
+	// attention condition
+	if (!(m_hcr & HCR_ATTN) && (data & HCR_ATTN))
+	{
+		if (!(data & HCR_FLSH))
+		{
+			LOGMASKED(LOG_REG, "### soft reset\n");
+
+			// soft reset
+			m_cpu->set_input_line(INPUT_LINE_NMI, 1);
+			m_cpu->set_input_line(INPUT_LINE_NMI, 0);
+		}
+		else
+		{
+			LOGMASKED(LOG_REG, "### hard reset\n");
+
+			// hard reset
+			reset();
+		}
+	}
 
 	// update host status flags
 	if ((data ^ m_hcr) & HCR_HSF)

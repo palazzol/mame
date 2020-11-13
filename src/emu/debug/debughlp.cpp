@@ -2,7 +2,7 @@
 // copyright-holders:Aaron Giles
 /*********************************************************************
 
-    debughlp.c
+    debughlp.cpp
 
     Debugger help engine.
 
@@ -10,7 +10,7 @@
 
 #include "emu.h"
 #include "debughlp.h"
-#include <ctype.h>
+#include <cctype>
 
 
 
@@ -112,10 +112,10 @@ static const help_item static_help_list[] =
 		"  f[ind] <address>,<length>[,<data>[,...]] -- search program memory for data\n"
 		"  f[ind]d <address>,<length>[,<data>[,...]] -- search data memory for data\n"
 		"  f[ind]i <address>,<length>[,<data>[,...]] -- search I/O memory for data\n"
-		"  dump <filename>,<address>,<length>[,<size>[,<ascii>[,<CPU>]]] -- dump program memory as text\n"
-		"  dumpd <filename>,<address>,<length>[,<size>[,<ascii>[,<CPU>]]] -- dump data memory as text\n"
-		"  dumpi <filename>,<address>,<length>[,<size>[,<ascii>[,<CPU>]]] -- dump I/O memory as text\n"
-		"  dumpo <filename>,<address>,<length>[,<size>[,<ascii>[,<CPU>]]] -- dump opcodes memory as text\n"
+		"  dump <filename>,<address>,<length>[,<size>[,<ascii>[,<rowsize>[,<CPU>]]]] -- dump program memory as text\n"
+		"  dumpd <filename>,<address>,<length>[,<size>[,<ascii>[,<rowsize>[,<CPU>]]]] -- dump data memory as text\n"
+		"  dumpi <filename>,<address>,<length>[,<size>[,<ascii>[,<rowsize>[,<CPU>]]]] -- dump I/O memory as text\n"
+		"  dumpo <filename>,<address>,<length>[,<size>[,<ascii>[,<rowsize>[,<CPU>]]]] -- dump opcodes memory as text\n"
 		"  save <filename>,<address>,<length>[,<CPU>] -- save binary program memory to the given file\n"
 		"  saved <filename>,<address>,<length>[,<CPU>] -- save binary data memory to the given file\n"
 		"  savei <filename>,<address>,<length>[,<CPU>] -- save binary I/O memory to the given file\n"
@@ -137,7 +137,7 @@ static const help_item static_help_list[] =
 		"  o[ver] [<count>=1] -- single steps over <count> instructions (F10)\n"
 		"  out -- single steps until the current subroutine/exception handler is exited (Shift-F11)\n"
 		"  g[o] [<address>] -- resumes execution, sets temp breakpoint at <address> (F5)\n"
-		"  ge[x] [<exception>] -- resumes execution, setting temp breakpoint if <exception> is raised\n"
+		"  ge[x] [<exception>[,<condition>]] -- resumes execution, setting temp breakpoint if <exception> is raised\n"
 		"  gi[nt] [<irqline>] -- resumes execution, setting temp breakpoint if <irqline> is taken (F7)\n"
 		"  gt[ime] <milliseconds> -- resumes execution until the given delay has elapsed\n"
 		"  gv[blank] -- resumes execution, setting temp breakpoint on the next VBLANK (F8)\n"
@@ -601,6 +601,23 @@ static const help_item static_help_list[] =
 		"find 0,8000,\"AAR\",d.0,\"BEN\",w.0\n"
 		"  Searches the address range 0000-7fff for the string \"AAR\" followed by a dword-sized 0 "
 		"followed by the string \"BEN\", followed by a word-sized 0.\n"
+	},
+	{
+		"fill",
+		"\n"
+		"  fill[{d|i}] <address>,<length>[,<data>[,...]]\n"
+		"\n"
+		"The fill/filld/filli commands overwrite a block of memory with copies of the specified "
+		"sequence of data. 'fill' will fill program space memory, while 'filld' will fill data space "
+		"memory and 'filli' will fill I/O space memory. <address> indicates the address to begin "
+		"writing, and <length> indicates how much memory to fill. <data> can either be a quoted "
+		"string or a numeric value or expression. Non-string data is written by default in the "
+		"native word size of the CPU. To override the data size for non-strings, you can prefix "
+		"the value with b. to force byte-sized fill, w. for word-sized fill, d. for dword-sized, "
+		"and q. for qword-sized. Overrides are remembered, so if you want to fill with a series of "
+		"words, you need only to prefix the first value with a w. Note also that you can intermix "
+		"sizes in order to perform more complex fills. The fill operation may be truncated if a page "
+		"fault occurs or if part of the sequence or string would fall beyond <address>+<length>-1.\n"
 	},
 	{
 		"dump",
@@ -1561,16 +1578,11 @@ const char *debug_get_help(const char *tag)
 	static char ambig_message[1024];
 	const help_item *found = nullptr;
 	int i, msglen, foundcount = 0;
-	int taglen = (int)strlen(tag);
-	char tagcopy[256];
-
-	/* make a lowercase copy of the tag */
-	for (i = 0; i <= taglen; i++)
-		tagcopy[i] = tolower(u8(tag[i]));
+	size_t taglen = strlen(tag);
 
 	/* find a match */
 	for (i = 0; i < ARRAY_LENGTH(static_help_list); i++)
-		if (!strncmp(static_help_list[i].tag, tagcopy, taglen))
+		if (!core_strnicmp(static_help_list[i].tag, tag, taglen))
 		{
 			foundcount++;
 			found = &static_help_list[i];
@@ -1592,7 +1604,7 @@ const char *debug_get_help(const char *tag)
 	/* otherwise, indicate ambiguous help */
 	msglen = sprintf(ambig_message, "Ambiguous help request, did you mean:\n");
 	for (i = 0; i < ARRAY_LENGTH(static_help_list); i++)
-		if (!strncmp(static_help_list[i].tag, tagcopy, taglen))
+		if (!core_strnicmp(static_help_list[i].tag, tag, taglen))
 			msglen += sprintf(&ambig_message[msglen], "  help %s?\n", static_help_list[i].tag);
 	return ambig_message;
 }

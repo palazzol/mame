@@ -29,8 +29,8 @@ public:
 	virtual int init(const osd_options &options)override;
 	virtual void exit()override;
 
-	virtual osd_midi_device *create_midi_device() override;
-	virtual void list_midi_devices(void) override;
+	virtual std::unique_ptr<osd_midi_device> create_midi_device() override;
+	virtual void list_midi_devices() override;
 };
 
 
@@ -60,9 +60,9 @@ private:
 	bool rx_sysex;
 };
 
-osd_midi_device *pm_module::create_midi_device()
+std::unique_ptr<osd_midi_device> pm_module::create_midi_device()
 {
-	return global_alloc(osd_midi_device_pm());
+	return std::make_unique<osd_midi_device_pm>();
 }
 
 
@@ -77,7 +77,7 @@ void pm_module::exit()
 	Pm_Terminate();
 }
 
-void pm_module::list_midi_devices(void)
+void pm_module::list_midi_devices()
 {
 	int num_devs = Pm_CountDevices();
 	const PmDeviceInfo *pmInfo;

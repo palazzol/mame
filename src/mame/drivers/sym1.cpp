@@ -78,11 +78,11 @@ private:
 	DECLARE_WRITE_LINE_MEMBER(sym1_74145_output_3_w);
 	DECLARE_WRITE_LINE_MEMBER(sym1_74145_output_4_w);
 	DECLARE_WRITE_LINE_MEMBER(sym1_74145_output_5_w);
-	DECLARE_READ8_MEMBER(riot_a_r);
-	DECLARE_READ8_MEMBER(riot_b_r);
-	DECLARE_WRITE8_MEMBER(riot_a_w);
-	DECLARE_WRITE8_MEMBER(riot_b_w);
-	DECLARE_WRITE8_MEMBER(via3_a_w);
+	uint8_t riot_a_r();
+	uint8_t riot_b_r();
+	void riot_a_w(uint8_t data);
+	void riot_b_w(uint8_t data);
+	void via3_a_w(uint8_t data);
 
 	void sym1_map(address_map &map);
 
@@ -113,7 +113,7 @@ TIMER_CALLBACK_MEMBER(sym1_state::led_refresh)
 	m_digits[param] = m_riot_port_a;
 }
 
-READ8_MEMBER(sym1_state::riot_a_r)
+uint8_t sym1_state::riot_a_r()
 {
 	int data = 0x7f;
 
@@ -130,7 +130,7 @@ READ8_MEMBER(sym1_state::riot_a_r)
 	return data;
 }
 
-READ8_MEMBER(sym1_state::riot_b_r)
+uint8_t sym1_state::riot_b_r()
 {
 	int data = 0x3f;
 
@@ -155,7 +155,7 @@ READ8_MEMBER(sym1_state::riot_b_r)
 	return data;
 }
 
-WRITE8_MEMBER(sym1_state::riot_a_w)
+void sym1_state::riot_a_w(uint8_t data)
 {
 	logerror("%x: riot_a_w 0x%02x\n", m_maincpu->pc(), data);
 
@@ -163,7 +163,7 @@ WRITE8_MEMBER(sym1_state::riot_a_w)
 	m_riot_port_a = data;
 }
 
-WRITE8_MEMBER(sym1_state::riot_b_w)
+void sym1_state::riot_b_w(uint8_t data)
 {
 	logerror("%x: riot_b_w 0x%02x\n", m_maincpu->pc(), data);
 
@@ -252,7 +252,7 @@ INPUT_PORTS_END
     PA2: Write protect RAM 0x800-0xbff
     PA3: Write protect RAM 0xc00-0xfff
  */
-WRITE8_MEMBER( sym1_state::via3_a_w )
+void sym1_state::via3_a_w(uint8_t data)
 {
 	address_space &cpu0space = m_maincpu->space( AS_PROGRAM );
 
@@ -261,22 +261,22 @@ WRITE8_MEMBER( sym1_state::via3_a_w )
 	if ((m_wp->read() & 0x01) && !(data & 0x01)) {
 		cpu0space.nop_write(0xa600, 0xa67f);
 	} else {
-		cpu0space.install_write_bank(0xa600, 0xa67f, "bank5");
+		cpu0space.install_write_bank(0xa600, 0xa67f, membank("bank5"));
 	}
 	if ((m_wp->read() & 0x02) && !(data & 0x02)) {
 		cpu0space.nop_write(0x0400, 0x07ff);
 	} else {
-		cpu0space.install_write_bank(0x0400, 0x07ff, "bank2");
+		cpu0space.install_write_bank(0x0400, 0x07ff, membank("bank2"));
 	}
 	if ((m_wp->read() & 0x04) && !(data & 0x04)) {
 		cpu0space.nop_write(0x0800, 0x0bff);
 	} else {
-		cpu0space.install_write_bank(0x0800, 0x0bff, "bank3");
+		cpu0space.install_write_bank(0x0800, 0x0bff, membank("bank3"));
 	}
 	if ((m_wp->read() & 0x08) && !(data & 0x08)) {
 		cpu0space.nop_write(0x0c00, 0x0fff);
 	} else {
-		cpu0space.install_write_bank(0x0c00, 0x0fff, "bank4");
+		cpu0space.install_write_bank(0x0c00, 0x0fff, membank("bank4"));
 	}
 }
 
@@ -296,9 +296,8 @@ void sym1_state::machine_reset()
 {
 	// make 0xf800 to 0xffff point to the last half of the monitor ROM
 	// so that the CPU can find its reset vectors
-	m_maincpu->space(AS_PROGRAM).install_read_bank(0xf800, 0xffff, "bank1");
+	m_maincpu->space(AS_PROGRAM).install_rom(0xf800, 0xffff, m_monitor + 0x800);
 	m_maincpu->space(AS_PROGRAM).nop_write(0xf800, 0xffff);
-	membank("bank1")->set_base(m_monitor + 0x800);
 	m_maincpu->reset();
 }
 

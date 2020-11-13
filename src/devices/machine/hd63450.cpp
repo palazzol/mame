@@ -15,12 +15,12 @@
 DEFINE_DEVICE_TYPE(HD63450, hd63450_device, "hd63450", "Hitachi HD63450 DMAC")
 
 hd63450_device::hd63450_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: device_t(mconfig, HD63450, tag, owner, clock),
-		m_irq_callback(*this),
-		m_dma_end(*this),
-		m_dma_read{{*this}, {*this}, {*this}, {*this}},
-		m_dma_write{{*this}, {*this}, {*this}, {*this}},
-		m_cpu(*this, finder_base::DUMMY_TAG)
+	: device_t(mconfig, HD63450, tag, owner, clock)
+	, m_irq_callback(*this)
+	, m_dma_end(*this)
+	, m_dma_read(*this)
+	, m_dma_write(*this)
+	, m_cpu(*this, finder_base::DUMMY_TAG)
 {
 	for (int i = 0; i < 4; i++)
 	{
@@ -45,10 +45,8 @@ void hd63450_device::device_start()
 	// resolve callbacks
 	m_irq_callback.resolve_safe();
 	m_dma_end.resolve_safe();
-	for (auto &cb : m_dma_read)
-		cb.resolve();
-	for (auto &cb : m_dma_write)
-		cb.resolve();
+	m_dma_read.resolve_all();
+	m_dma_write.resolve_all();
 
 	// Initialise timers and registers
 	for (int x = 0; x < 4; x++)
@@ -103,7 +101,7 @@ void hd63450_device::device_reset()
 	m_irq_callback(CLEAR_LINE);
 }
 
-READ16_MEMBER(hd63450_device::read)
+uint16_t hd63450_device::read(offs_t offset)
 {
 	int channel,reg;
 
@@ -152,7 +150,7 @@ READ16_MEMBER(hd63450_device::read)
 	return 0xff;
 }
 
-WRITE16_MEMBER(hd63450_device::write)
+void hd63450_device::write(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	int channel,reg;
 

@@ -8,8 +8,8 @@
 
 *********************************************************************/
 
-#include <string.h>
-#include <assert.h>
+#include <cstring>
+#include <cassert>
 
 #include "formats/pc_dsk.h"
 #include "formats/basicdsk.h"
@@ -166,6 +166,11 @@ int pc_format::identify(io_generic *io, uint32_t form_factor)
 	/* some 360K images have a 512-byte header */
 	if (size == 368640 + 0x200) {
 		file_header_skip_bytes = 0x200;
+	}
+
+	/* Disk Copy 4.2 images have an 84-byte header */
+	if (size == 1474560 + 84) {
+		file_header_skip_bytes = 84;
 	}
 
 	/* some 1.44MB images have a 1024-byte footer */

@@ -10,12 +10,13 @@
         JAKKS Classic Arcade Pinball
         JAKKS Spiderman 5-in-1 (original release)
         Conny TV Virtual Tennis
+        Conny Ping Pong
+        Conny TV Virtual Fighter
 
         assumed:
         JAKKS EA Sports (NHL 95 + Madden 95) (US)
         JAKKS EA Sports (NHL 95 + Fifa 96) (US)
         JAKKS Bob the Builder
-        Conny Ping Pong
         JAKKS Disney (original release)
 
 *******************************************************************************/
@@ -30,13 +31,14 @@
 class spg110_game_state : public driver_device
 {
 public:
-	spg110_game_state(const machine_config &mconfig, device_type type, const char *tag)
-		: driver_device(mconfig, type, tag)
-		, m_maincpu(*this, "maincpu")
-		, m_screen(*this, "screen")
+	spg110_game_state(const machine_config &mconfig, device_type type, const char *tag) :
+		driver_device(mconfig, type, tag),
+		m_maincpu(*this, "maincpu"),
+		m_screen(*this, "screen")
 	{ }
 
 	void spg110_base(machine_config &config);
+	void spg110_spdmo(machine_config& config);
 
 	DECLARE_CUSTOM_INPUT_MEMBER(plunger_r);
 
@@ -507,6 +509,12 @@ void spg110_game_state::spg110_base(machine_config &config)
 	m_maincpu->add_route(ALL_OUTPUTS, "rspeaker", 0.5);
 }
 
+void spg110_game_state::spg110_spdmo(machine_config& config)
+{
+	spg110_base(config);
+	m_maincpu->set_video_irq_spidman(true);
+}
+
 ROM_START( jak_capb )
 	ROM_REGION( 0x800000, "maincpu", ROMREGION_ERASE00 )
 	ROM_LOAD16_WORD_SWAP( "classicarcadepinball.bin", 0x000000, 0x200000, CRC(b643dab0) SHA1(f57d546758ba442e28b5f0f48b3819b2fc2eb7f7) )
@@ -516,6 +524,11 @@ ROM_END
 ROM_START( jak_spdmo )
 	ROM_REGION( 0x800000, "maincpu", ROMREGION_ERASE00 )
 	ROM_LOAD16_WORD_SWAP( "spidermaneyes.bin", 0x000000, 0x200000, CRC(d5eaa6ae) SHA1(df226d378b41cf6ef90b9f72e48ff5e66385dcba) )
+ROM_END
+
+ROM_START( jak_spdmoa )
+	ROM_REGION( 0x800000, "maincpu", ROMREGION_ERASE00 )
+	ROM_LOAD16_WORD_SWAP( "spiderman.bin", 0x000000, 0x200000, CRC(b2a5a55a) SHA1(93c87ac0387997b753d4f0fb894a0dd02138b460) )
 ROM_END
 
 ROM_START( conyteni )
@@ -532,13 +545,25 @@ ROM_START( conyping )
 	// MCU (I/O?) read protected TODO: add NO_DUMP
 ROM_END
 
+ROM_START( conyfght )
+	ROM_REGION( 0x800000, "maincpu", ROMREGION_ERASE00 )
+	ROM_LOAD16_WORD_SWAP( "mx29lw320.u2", 0x000000, 0x400000, CRC(515cce2c) SHA1(647cee206d23ff815d01f49cec391701b9a87de9) )
+
+	// MCU (I/O?) read protected TODO: add NO_DUMP
+ROM_END
+
+// TODO: move this to a Softlist once Vol 1 is dumped
+ROM_START( karaokd2 )
+	ROM_REGION( 0x800000, "maincpu", ROMREGION_ERASE00 )
+	ROM_LOAD16_WORD_SWAP( "karaokidssongs2.bin", 0x000000, 0x200000, CRC(7a1f455c) SHA1(13bb5949629df64f5940923b224d930a4adf23ff) )
+ROM_END
 
 
 // JAKKS Pacific Inc TV games
 CONS( 2004, jak_capb,  0,        0, spg110_base, jak_capb,  spg110_game_state, empty_init, "JAKKS Pacific Inc / HotGen Ltd",      "Classic Arcade Pinball (JAKKS Pacific TV Game)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS )
-CONS( 2004, jak_spdmo, jak_spdm, 0, spg110_base, jak_spdmo, spg110_game_state, empty_init, "JAKKS Pacific Inc / Digital Eclipse", "Spider-Man (JAKKS Pacific TV Game) (older hardware)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS ) // this is the smaller more 'square' style joystick that was originally released before the GameKey slot was added.
 
-// Conny PDC (Pocket Dream Console) is probably SunPlus too
+CONS( 2004, jak_spdmo, jak_spdm, 0, spg110_spdmo, jak_spdmo, spg110_game_state, empty_init, "JAKKS Pacific Inc / Digital Eclipse", "Spider-Man (JAKKS Pacific TV Game) (older hardware, set 1)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS ) // this is the smaller more 'square' style joystick that was originally released before the GameKey slot was added.
+CONS( 2004, jak_spdmoa,jak_spdm, 0, spg110_spdmo, jak_spdmo, spg110_game_state, empty_init, "JAKKS Pacific Inc / Digital Eclipse", "Spider-Man (JAKKS Pacific TV Game) (older hardware, set 2)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS ) // this is the resdesigned stick, but before the GameKey release
 
 // this was sold by SDW Games for the US market, ROM not yet verified to be the same, also appears in some mutligames?
 CONS( 2003, conyteni,  0,        0, spg110_base, conyteni,  spg110_game_state, empty_init, "Conny",      "TV Virtual Tennis", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS ) // needs motion inputs, and video fixes, setting to PAL
@@ -546,3 +571,8 @@ CONS( 2003, conyteni,  0,        0, spg110_base, conyteni,  spg110_game_state, e
 // from a US SDW Games unit, has SDW Games banners in background so ROM might differ to other regsions
 CONS( 2003, conyping,  0,        0, spg110_base, conyteni,  spg110_game_state, empty_init, "Conny / SDW Games",      "Virtual Ping Pong (Conny / SDW Games)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS )
 
+// from a Big Ben 'TV Virtual Fighter' unit, although shows Free Fight Kung Fu on title screen
+// Also sold by SDW Games as both TV Virtual Fighter and TV Kickboxing (unit still has TV Virtual Fighter stickers even when box is TV Kickboxing - possibly just box changed due to Sega?)
+CONS( 200?, conyfght,  0,        0, spg110_base, conyteni,  spg110_game_state, empty_init, "Conny / Big Ben",      "TV Virtual Fighter / Free Fight Kung Fu (Conny / Big Ben)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS )
+
+CONS( 200?, karaokd2,  0,        0, spg110_base, conyteni,  spg110_game_state, empty_init, "Imaginarium / ItsMagical",      "Karao Kids Songs 2 (Spain)", MACHINE_NOT_WORKING | MACHINE_IMPERFECT_SOUND | MACHINE_IMPERFECT_GRAPHICS ) // "ItsMagical" brand from Imaginarium

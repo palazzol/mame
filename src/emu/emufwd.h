@@ -96,6 +96,11 @@ class debug_view_manager;
 class parsed_expression;
 class symbol_table;
 
+// declared in debug/points.h
+class debug_breakpoint;
+class debug_watchpoint;
+class debug_registerpoint;
+
 // declared in debugger.h
 class debugger_manager;
 
@@ -140,9 +145,7 @@ class driver_device;
 
 // declared in emumem.h
 class address_space;
-template<int Width, int AddrShift, int Endian> class memory_access_cache;
 class memory_bank;
-class memory_block;
 class memory_manager;
 class memory_region;
 class memory_share;

@@ -13,11 +13,11 @@
 #include "modules.h"
 #include "strformat.h"
 
-#include <stdio.h>
-#include <string.h>
-#include <ctype.h>
-#include <stdlib.h>
-#include <time.h>
+#include <cstdio>
+#include <cstring>
+#include <cctype>
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
 
 #ifdef _WIN32
@@ -266,10 +266,10 @@ static int cmd_dir(const struct command *c, int argc, char *argv[])
 			columnwidth_attributes, wstring_from_utf8(ent.attr),
 			columnwidth_lastmodified, wstring_from_utf8(last_modified));
 
-		if (ent.softlink && ent.softlink[0] != '\0')
+		if (ent.softlink[0] != '\0')
 			util::stream_format(std::wcout, L"-> %s\n", wstring_from_utf8(ent.softlink));
 
-		if (ent.comment && ent.comment[0] != '\0')
+		if (ent.comment[0] != '\0')
 			util::stream_format(std::wcout, L": %s\n", wstring_from_utf8(ent.comment));
 
 		total_count++;

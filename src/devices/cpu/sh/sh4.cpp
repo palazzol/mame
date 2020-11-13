@@ -1569,7 +1569,21 @@ void sh34_base_device::device_reset()
 	m_nmi_line_state = 0;
 	m_sh2_state->m_frt_input = 0;
 	m_internal_irq_vector = 0;
+	for (int i = 0; i < 3; i++)
+	{
+		if (m_timer[i])
+			m_timer[i]->adjust(attotime::never, i);
+	}
+	for (int i = 0; i < 4; i++)
+	{
+		if (m_dma_timer[i])
+			m_dma_timer[i]->adjust(attotime::never, i);
+	}
+	if (m_refresh_timer)
+		m_refresh_timer->adjust(attotime::never);
 	m_refresh_timer_base = 0;
+	if (m_rtc_timer)
+		m_rtc_timer->adjust(attotime::never);
 	memset(m_dma_timer_active, 0, sizeof(m_dma_timer_active));
 	memset(m_dma_source, 0, sizeof(m_dma_source));
 	memset(m_dma_destination, 0, sizeof(m_dma_destination));
@@ -2048,34 +2062,34 @@ void sh34_base_device::device_start()
 	m_io = &space(AS_IO);
 	if (m_program->endianness() == ENDIANNESS_LITTLE)
 	{
-		auto cache = m_program->cache<3, 0, ENDIANNESS_LITTLE>();
-		m_pr16 = [cache](offs_t address) -> u16 { return cache->read_word(address); };
+		m_program->cache(m_cache64le);
+		m_pr16 = [this](offs_t address) -> u16 { return m_cache64le.read_word(address); };
 		if (ENDIANNESS_NATIVE != ENDIANNESS_LITTLE)
-			m_prptr = [cache](offs_t address) -> const void * {
-				const u16 *ptr = static_cast<u16 *>(cache->read_ptr(address & ~7));
+			m_prptr = [this](offs_t address) -> const void * {
+				const u16 *ptr = static_cast<u16 *>(m_cache64le.read_ptr(address & ~7));
 				ptr += (~address >> 1) & 3;
 				return ptr;
 			};
 		else
-			m_prptr = [cache](offs_t address) -> const void * {
-				const u16 *ptr = static_cast<u16 *>(cache->read_ptr(address & ~7));
+			m_prptr = [this](offs_t address) -> const void * {
+				const u16 *ptr = static_cast<u16 *>(m_cache64le.read_ptr(address & ~7));
 				ptr += (address >> 1) & 3;
 				return ptr;
 			};
 	}
 	else
 	{
-		auto cache = m_program->cache<3, 0, ENDIANNESS_BIG>();
-		m_pr16 = [cache](offs_t address) -> u16 { return cache->read_word(address); };
+		m_program->cache(m_cache64be);
+		m_pr16 = [this](offs_t address) -> u16 { return m_cache64be.read_word(address); };
 		if (ENDIANNESS_NATIVE != ENDIANNESS_BIG)
-			m_prptr = [cache](offs_t address) -> const void * {
-				const u16 *ptr = static_cast<u16 *>(cache->read_ptr(address & ~7));
+			m_prptr = [this](offs_t address) -> const void * {
+				const u16 *ptr = static_cast<u16 *>(m_cache64be.read_ptr(address & ~7));
 				ptr += (~address >> 1) & 3;
 				return ptr;
 			};
 		else
-			m_prptr = [cache](offs_t address) -> const void * {
-				const u16 *ptr = static_cast<u16 *>(cache->read_ptr(address & ~7));
+			m_prptr = [this](offs_t address) -> const void * {
+				const u16 *ptr = static_cast<u16 *>(m_cache64be.read_ptr(address & ~7));
 				ptr += (address >> 1) & 3;
 				return ptr;
 			};

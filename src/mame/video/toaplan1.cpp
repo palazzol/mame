@@ -145,7 +145,7 @@ TILE_GET_INFO_MEMBER(toaplan1_state::get_tile_info)
 	tile_number = m_tilevram[Layer][2 * tile_index + 1] & 0x7fff;
 	attrib = m_tilevram[Layer][2 * tile_index];
 	color = attrib & 0x3f;
-	SET_TILE_INFO_MEMBER(0,
+	tileinfo.set(0,
 			tile_number,
 			color,
 			0);
@@ -192,7 +192,6 @@ void toaplan1_state::vram_alloc()
 
 void toaplan1_state::spritevram_alloc()
 {
-	m_spriteram.allocate(TOAPLAN1_SPRITERAM_SIZE / 2);
 	m_buffered_spriteram = make_unique_clear<u16[]>(TOAPLAN1_SPRITERAM_SIZE / 2);
 	m_spritesizeram = make_unique_clear<u16[]>(TOAPLAN1_SPRITESIZERAM_SIZE / 2);
 	m_buffered_spritesizeram = make_unique_clear<u16[]>(TOAPLAN1_SPRITESIZERAM_SIZE / 2);
@@ -285,7 +284,7 @@ u16 toaplan1_state::frame_done_r()
 	return m_screen->vblank();
 }
 
-WRITE16_MEMBER(toaplan1_state::tile_offsets_w)
+void toaplan1_state::tile_offsets_w(offs_t offset, u16 data, u16 mem_mask)
 {
 	if (offset == 0)
 	{
@@ -742,9 +741,9 @@ void toaplan1_state::draw_sprite_custom(screen_device &screen, bitmap_rgb32 &des
 		{ /* skip if inner loop doesn't draw anything */
 			for (int y = sy; y < ey; y++)
 			{
-				const u8 *source = source_base + (y_index >> 16) * gfx->rowbytes();
-				u32 *dest = &dest_bmp.pix32(y);
-				u8 *pri = &priority_bitmap.pix8(y);
+				u8 const *const source = source_base + (y_index >> 16) * gfx->rowbytes();
+				u32 *const dest = &dest_bmp.pix(y);
+				u8 *const pri = &priority_bitmap.pix(y);
 
 				int x_index = x_index_base;
 				for (int x = sx; x < ex; x++)

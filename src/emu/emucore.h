@@ -5,6 +5,7 @@
     emucore.h
 
     General core utilities and macros used throughout the emulator.
+
 ***************************************************************************/
 
 #ifndef MAME_EMU_EMUCORE_H
@@ -13,12 +14,12 @@
 #pragma once
 
 // standard C includes
-#include <assert.h>
-#include <math.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <stdarg.h>
+#include <cassert>
+#include <cmath>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <cstdarg>
 
 // some cleanups for Solaris for things defined in stdlib.h
 #if defined(__sun__) && defined(__svr4__)
@@ -72,6 +73,7 @@ using osd::s64;
 // useful utility functions
 using util::underlying_value;
 using util::enum_value;
+using util::make_bitmask;
 using util::BIT;
 using util::bitswap;
 using util::iabs;
@@ -82,9 +84,6 @@ typedef void genf(void);
 
 // pen_t is used to represent pixel values in bitmaps
 typedef u32 pen_t;
-
-// stream_sample_t is used to represent a single sample in a sound stream
-typedef s32 stream_sample_t;
 
 
 
@@ -308,7 +307,7 @@ inline std::enable_if_t<!std::is_base_of<device_t, Source>::value> report_bad_ca
 template <typename Dest, typename Source>
 inline Dest downcast(Source *src)
 {
-#if defined(MAME_DEBUG) && !defined(MAME_DEBUG_FAST)
+#if defined(MAME_DEBUG)
 	Dest const chk(dynamic_cast<Dest>(src));
 	if (chk != src) report_bad_cast<std::remove_pointer_t<Dest>, Source>(src);
 #endif
@@ -318,7 +317,7 @@ inline Dest downcast(Source *src)
 template<class Dest, class Source>
 inline Dest downcast(Source &src)
 {
-#if defined(MAME_DEBUG) && !defined(MAME_DEBUG_FAST)
+#if defined(MAME_DEBUG)
 	std::remove_reference_t<Dest> *const chk(dynamic_cast<std::remove_reference_t<Dest> *>(&src));
 	if (chk != &src) report_bad_cast<std::remove_reference_t<Dest>, Source>(&src);
 #endif

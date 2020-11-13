@@ -25,10 +25,10 @@ class horizon_ramdisk_device : public device_t, public device_ti99_peribox_card_
 {
 public:
 	horizon_ramdisk_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
-	DECLARE_READ8Z_MEMBER(readz) override;
+	void readz(offs_t offset, uint8_t *value) override;
 	void write(offs_t offset, uint8_t data) override;
 
-	DECLARE_READ8Z_MEMBER(crureadz) override;
+	void crureadz(offs_t offset, uint8_t *value) override;
 	void cruwrite(offs_t offset, uint8_t data) override;
 
 	DECLARE_INPUT_CHANGED_MEMBER( hs_changed );
@@ -51,9 +51,6 @@ private:
 	required_device<ram_device> m_nvram;
 	required_device<ram_device> m_ros;
 
-	int     m_select6_value;
-	int     m_select_all;
-
 	int     m_page;
 
 	int     m_cru_horizon;
@@ -64,6 +61,7 @@ private:
 	bool    m_rambo_mode;
 	bool    m_hideswitch;
 	bool    m_use_rambo;
+	bool    m_genmod_fix;
 };
 
 } } } // end namespace bus::ti99::peb

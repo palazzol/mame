@@ -10,6 +10,9 @@
 #include "bus/pc_kbd/keyboards.h"
 #include "softlist_dev.h"
 
+// According to http://nerdlypleasures.blogspot.com/2014/04/the-original-8-bit-ide-interface.html
+// the IBM PS/2 Model 25-286 and Model 30-286 use a customised version of the XTA (8-bit IDE) harddisk interface
+
 class ps2_state : public driver_device
 {
 public:
@@ -41,6 +44,7 @@ void ps2_state::at_softlists(machine_config &config)
 	SOFTWARE_LIST(config, "pc_disk_list").set_original("ibm5150");
 	SOFTWARE_LIST(config, "at_disk_list").set_original("ibm5170");
 	SOFTWARE_LIST(config, "at_cdrom_list").set_original("ibm5170_cdrom");
+	SOFTWARE_LIST(config, "at_hdd_list").set_original("ibm5170_hdd");
 	SOFTWARE_LIST(config, "midi_disk_list").set_compatible("midi_flop");
 }
 
@@ -82,9 +86,7 @@ void ps2_state::machine_start()
 	if (m_ram->size() > 0xa0000)
 	{
 		offs_t ram_limit = 0x100000 + m_ram->size() - 0xa0000;
-		space.install_read_bank(0x100000,  ram_limit - 1, "bank1");
-		space.install_write_bank(0x100000,  ram_limit - 1, "bank1");
-		membank("bank1")->set_base(m_ram->pointer() + 0xa0000);
+		space.install_ram(0x100000,  ram_limit - 1, m_ram->pointer() + 0xa0000);
 	}
 }
 

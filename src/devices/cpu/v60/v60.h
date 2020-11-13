@@ -109,6 +109,7 @@ protected:
 	// device_state_interface overrides
 	virtual void state_import(const device_state_entry &entry) override;
 	virtual void state_export(const device_state_entry &entry) override;
+	virtual void state_string_export(const device_state_entry &entry, std::string &str) const override;
 
 	// device_disasm_interface overrides
 	virtual std::unique_ptr<util::disasm_interface> create_disassembler() override;
@@ -162,6 +163,9 @@ private:
 	uint8_t               m_irq_line;
 	uint8_t               m_nmi_line;
 	address_space *m_program;
+	memory_access<32, 1, 0, ENDIANNESS_LITTLE>::cache m_cache16;
+	memory_access<32, 2, 0, ENDIANNESS_LITTLE>::cache m_cache32;
+
 	std::function<u8  (offs_t)> m_pr8;
 	std::function<u16 (offs_t)> m_pr16;
 	std::function<u32 (offs_t)> m_pr32;

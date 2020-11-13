@@ -13,8 +13,8 @@
 //============================================================
 
 // standard C headers
-#include <math.h>
-#include <stdio.h>
+#include <cmath>
+#include <cstdio>
 
 // MAME headers
 #include "osdcomm.h"
@@ -41,8 +41,8 @@
 #include "modules/opengl/gl_shader_mgr.h"
 
 #if defined(SDLMAME_MACOSX) || defined(OSD_MAC)
-#include <string.h>
-#include <stdio.h>
+#include <cstring>
+#include <cstdio>
 #include <sys/types.h>
 #include <sys/sysctl.h>
 
@@ -307,7 +307,7 @@ renderer_ogl::~renderer_ogl()
 	// free the memory in the window
 	destroy_all_textures();
 
-	global_free(m_gl_context);
+	delete m_gl_context;
 	m_gl_context = nullptr;
 }
 
@@ -366,7 +366,7 @@ static void loadgl_functions(osd_gl_context *context)
 //============================================================
 
 #ifdef USE_DISPATCH_GL
-osd_gl_dispatch *gl_dispatch;
+osd_gl_dispatch *gl_dispatch = nullptr;
 #endif
 
 void renderer_ogl::load_gl_lib(running_machine &machine)
@@ -394,7 +394,7 @@ void renderer_ogl::load_gl_lib(running_machine &machine)
 #endif
 #endif
 #ifdef USE_DISPATCH_GL
-		gl_dispatch = global_alloc(osd_gl_dispatch);
+		gl_dispatch = new osd_gl_dispatch;
 #endif
 		s_dll_loaded = true;
 	}
@@ -566,12 +566,12 @@ int renderer_ogl::create()
 
 	// create renderer
 #if defined(OSD_WINDOWS)
-	m_gl_context = global_alloc(win_gl_context(std::static_pointer_cast<win_window_info>(win)->platform_window()));
+	m_gl_context = new win_gl_context(std::static_pointer_cast<win_window_info>(win)->platform_window());
 #elif defined(OSD_MAC)
 // TODO
-//  m_gl_context = global_alloc(mac_gl_context(std::static_pointer_cast<mac_window_info>(win)->platform_window()));
+//  m_gl_context = new mac_gl_context(std::static_pointer_cast<mac_window_info>(win)->platform_window());
 #else
-	m_gl_context = global_alloc(sdl_gl_context(std::static_pointer_cast<sdl_window_info>(win)->platform_window()));
+	m_gl_context = new sdl_gl_context(std::static_pointer_cast<sdl_window_info>(win)->platform_window());
 #endif
 	if  (m_gl_context->LastErrorMsg() != nullptr)
 	{
@@ -696,7 +696,7 @@ void renderer_ogl::destroy_all_textures()
 				texture->data=nullptr;
 				texture->data_own=false;
 			}
-			global_free(texture);
+			delete texture;
 		}
 		i++;
 	}
@@ -1649,7 +1649,7 @@ void renderer_ogl::texture_compute_size_type(const render_texinfo *texsource, og
 //  texture_create
 //============================================================
 
-static int gl_checkFramebufferStatus(void)
+static int gl_checkFramebufferStatus()
 {
 	GLenum status;
 	status=(GLenum)pfn_glCheckFramebufferStatus(GL_FRAMEBUFFER_EXT);
@@ -1714,8 +1714,8 @@ static int texture_fbo_create(uint32_t text_unit, uint32_t text_name, uint32_t f
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
 	pfn_glFramebufferTexture2D(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
 					GL_TEXTURE_2D, text_name, 0);
@@ -1893,8 +1893,8 @@ int renderer_ogl::texture_shader_create(const render_texinfo *texsource, ogl_tex
 	}
 	else
 	{
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	}
 
 	GL_CHECK_ERROR_NORMAL();
@@ -1907,7 +1907,7 @@ ogl_texture_info *renderer_ogl::texture_create(const render_texinfo *texsource, 
 	ogl_texture_info *texture;
 
 	// allocate a new texture
-	texture = global_alloc(ogl_texture_info);
+	texture = new ogl_texture_info;
 
 	// fill in the core data
 	texture->hash = texture_compute_hash(texsource, flags);
@@ -1979,7 +1979,7 @@ ogl_texture_info *renderer_ogl::texture_create(const render_texinfo *texsource, 
 	{
 		if ( texture_shader_create(texsource, texture, flags) )
 		{
-			global_free(texture);
+			delete texture;
 			return nullptr;
 		}
 	}
@@ -2015,8 +2015,8 @@ ogl_texture_info *renderer_ogl::texture_create(const render_texinfo *texsource, 
 		if( texture->texTarget==GL_TEXTURE_RECTANGLE_ARB )
 		{
 			// texture rectangles can't wrap
-			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_RECTANGLE_ARB, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 		} else {
 			// set wrapping mode appropriately
 			if (texture->flags & PRIMFLAG_TEXWRAP_MASK)
@@ -2026,8 +2026,8 @@ ogl_texture_info *renderer_ogl::texture_create(const render_texinfo *texsource, 
 			}
 			else
 			{
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			}
 		}
 	}

@@ -324,8 +324,8 @@ void darius_state::update_psg1(int port)
 
 void darius_state::update_da()
 {
-	const int left  = m_def_vol[(m_pan[4] >> 4) & 0x0f];
-	const int right = m_def_vol[(m_pan[4] >> 0) & 0x0f];
+	const int left  = m_def_vol[(m_pan[4] >> 0) & 0x0f];
+	const int right = m_def_vol[(m_pan[4] >> 4) & 0x0f];
 
 	if (m_msm5205_l != nullptr)
 		m_msm5205_l->flt_volume_set_volume(left / 100.0);
@@ -481,7 +481,7 @@ void darius_state::adpcm_nmi_enable(u8 data)
 
 void darius_state::adpcm_data_w(u8 data)
 {
-	m_msm->write_data(data);
+	m_msm->data_w(data);
 	m_msm->reset_w(!(data & 0x20));    /* my best guess, but it could be output enable as well */
 }
 

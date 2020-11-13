@@ -306,7 +306,7 @@ TILE_GET_INFO_MEMBER(seta_state::twineagl_get_tile_info)
 	const u16 attr = vram[tile_index + 0x800];
 	if ((code & 0x3e00) == 0x3e00)
 		code = (code & 0xc07f) | ((m_twineagl_tilebank[(code & 0x0180) >> 7] >> 1) << 7);
-	SET_TILE_INFO_MEMBER(1, (code & 0x3fff), attr & 0x1f, TILE_FLIPXY((code & 0xc000) >> 14));
+	tileinfo.set(1, (code & 0x3fff), attr & 0x1f, TILE_FLIPXY((code & 0xc000) >> 14));
 }
 
 template<int Layer>
@@ -327,7 +327,7 @@ TILE_GET_INFO_MEMBER(seta_state::get_tile_info)
 		popmessage("Missing Color Mode = 1 for Layer = %d. Contact MAMETesters.", Layer);
 	}
 
-	SET_TILE_INFO_MEMBER(gfx, m_tiles_offset + (code & 0x3fff), attr & 0x1f, TILE_FLIPXY((code & 0xc000) >> 14));
+	tileinfo.set(gfx, m_tiles_offset + (code & 0x3fff), attr & 0x1f, TILE_FLIPXY((code & 0xc000) >> 14));
 }
 
 
@@ -655,24 +655,24 @@ void seta_state::draw_tilemap_palette_effect(bitmap_ind16 &bitmap, const rectang
 	const bitmap_ind16 &src_bitmap = tilemap->pixmap();
 	const int opaque_mask = gfx_tilemap->granularity() - 1;
 	const int pixel_effect_mask = gfx_tilemap->colorbase() + (gfx_tilemap->colors() - 1) * gfx_tilemap->granularity();
-	int p;
 
 	const int width_mask = src_bitmap.width() - 1;
 	const int height_mask = src_bitmap.height() - 1;
 
 	for (int y = cliprect.min_y; y <= cliprect.max_y; y++)
 	{
-		u16 *dest = &bitmap.pix16(y);
+		u16 *const dest = &bitmap.pix(y);
 
 		for (int x = cliprect.min_x; x <= cliprect.max_x; x++)
 		{
+			int p;
 			if (!flipscreen)
 			{
-				p = src_bitmap.pix16((y + scrolly) & height_mask, (x + scrollx) & width_mask);
+				p = src_bitmap.pix((y + scrolly) & height_mask, (x + scrollx) & width_mask);
 			}
 			else
 			{
-				p = src_bitmap.pix16((y - scrolly - 256) & height_mask, (x - scrollx - 512) & width_mask);
+				p = src_bitmap.pix((y - scrolly - 256) & height_mask, (x - scrollx - 512) & width_mask);
 			}
 
 			// draw not transparent pixels

@@ -94,7 +94,7 @@ offsets:
     0x001f PORT-AD (8ch, write: bits 0-2 - set channel, read: channel data with autoinc channel number)
 */
 
-READ8_MEMBER(stv_state::stv_ioga_r)
+uint8_t stv_state::stv_ioga_r(offs_t offset)
 {
 	const char *const portg[] = { "PORTG.0", "PORTG.1", "PORTG.2", "PORTG.3" };
 
@@ -130,7 +130,7 @@ READ8_MEMBER(stv_state::stv_ioga_r)
 	return res;
 }
 
-WRITE8_MEMBER(stv_state::stv_ioga_w)
+void stv_state::stv_ioga_w(offs_t offset, uint8_t data)
 {
 	if(offset & 0x10 && !machine().side_effects_disabled())
 		printf("Writing to mirror %08x %02x?\n",offset * 2 + 1,data);
@@ -162,7 +162,7 @@ WRITE8_MEMBER(stv_state::stv_ioga_w)
 	}
 }
 
-READ8_MEMBER(stv_state::critcrsh_ioga_r)
+uint8_t stv_state::critcrsh_ioga_r(offs_t offset)
 {
 	uint8_t res;
 	const char *const lgnames[] = { "LIGHTX", "LIGHTY" };
@@ -177,13 +177,13 @@ READ8_MEMBER(stv_state::critcrsh_ioga_r)
 			res = bitswap<8>(res, 2, 3, 0, 1, 6, 7, 5, 4) & 0xf3;
 			res |= (ioport("PORTC")->read() & 0x10) ? 0x0 : 0x4; // x/y hit latch actually
 			break;
-		default: res = stv_ioga_r(space,offset); break;
+		default: res = stv_ioga_r(offset); break;
 	}
 
 	return res;
 }
 
-READ8_MEMBER(stv_state::magzun_ioga_r)
+uint8_t stv_state::magzun_ioga_r(offs_t offset)
 {
 	uint8_t res;
 
@@ -199,23 +199,23 @@ READ8_MEMBER(stv_state::magzun_ioga_r)
 		case 0x19:
 			res = 0;
 			break;
-		default: res = stv_ioga_r(space,offset); break;
+		default: res = stv_ioga_r(offset); break;
 	}
 
 	return res;
 }
 
-WRITE8_MEMBER(stv_state::magzun_ioga_w)
+void stv_state::magzun_ioga_w(offs_t offset, uint8_t data)
 {
 	switch(offset * 2 + 1)
 	{
 		case 0x13: m_serial_tx = (data << 8) | (m_serial_tx & 0xff); break;
 		case 0x15: m_serial_tx = (data & 0xff) | (m_serial_tx & 0xff00); break;
-		default: stv_ioga_w(space,offset,data); break;
+		default: stv_ioga_w(offset,data); break;
 	}
 }
 
-READ8_MEMBER(stv_state::stvmp_ioga_r)
+uint8_t stv_state::stvmp_ioga_r(offs_t offset)
 {
 	const char *const mpnames[2][5] = {
 		{"P1_KEY0", "P1_KEY1", "P1_KEY2", "P1_KEY3", "P1_KEY4"},
@@ -229,7 +229,7 @@ READ8_MEMBER(stv_state::stvmp_ioga_r)
 		case 0x01:
 		case 0x03:
 			if(m_port_sel & 0x10) // joystick select <<< this is obviously wrong, this bit only select PORTE direction
-				res = stv_ioga_r(space,offset);
+				res = stv_ioga_r(offset);
 			else // mahjong panel select
 			{
 				int i;
@@ -241,27 +241,27 @@ READ8_MEMBER(stv_state::stvmp_ioga_r)
 				}
 			}
 			break;
-		default: res = stv_ioga_r(space,offset); break;
+		default: res = stv_ioga_r(offset); break;
 	}
 
 	return res;
 }
 
-WRITE8_MEMBER(stv_state::stvmp_ioga_w)
+void stv_state::stvmp_ioga_w(offs_t offset, uint8_t data)
 {
 	switch(offset * 2 + 1)
 	{
 		case 0x09: m_mux_data = data ^ 0xff; break;
 		case 0x11: m_port_sel = data; break;
-		default:   stv_ioga_w(space,offset,data); break;
+		default:   stv_ioga_w(offset,data); break;
 	}
 }
 
-WRITE8_MEMBER(stv_state::hop_ioga_w)
+void stv_state::hop_ioga_w(offs_t offset, uint8_t data)
 {
 	if ((offset * 2 + 1) == 7)
 		m_hopper->motor_w(data & 0x80);
-	stv_ioga_w(space, offset, data);
+	stv_ioga_w(offset, data);
 }
 
 /*
@@ -332,7 +332,7 @@ void stv_state::init_stv()
     TODO: game doesn't work if not in debugger?
 */
 
-READ32_MEMBER(stv_state::magzun_hef_hack_r)
+uint32 stv_state::magzun_hef_hack_r()
 {
 	if(m_maincpu->pc()==0x604bf20) return 0x00000001; //HWEF
 
@@ -341,7 +341,7 @@ READ32_MEMBER(stv_state::magzun_hef_hack_r)
 	return m_workram_h[0x08e830/4];
 }
 
-READ32_MEMBER(stv_state::magzun_rx_hack_r)
+uint32_t stv_state::magzun_rx_hack_r()
 {
 	if(m_maincpu->pc()==0x604c006) return 0x40;
 
@@ -356,8 +356,8 @@ void stv_state::init_magzun()
 
 	init_stv();
 
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x608e830, 0x608e833, read32_delegate(*this, FUNC(stv_state::magzun_hef_hack_r)));
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x60ff3b4, 0x60ff3b7, read32_delegate(*this, FUNC(stv_state::magzun_rx_hack_r)));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x608e830, 0x608e833, read32smo_delegate(*this, FUNC(stv_state::magzun_hef_hack_r)));
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x60ff3b4, 0x60ff3b7, read32smo_delegate(*this, FUNC(stv_state::magzun_rx_hack_r)));
 
 	/* Program ROM patches, don't understand how to avoid these two checks ... */
 	{
@@ -619,8 +619,8 @@ void stv_state::init_batmanfr()
 
 	init_stv();
 
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x04800000, 0x04800003, write32_delegate(*this, FUNC(stv_state::batmanfr_sound_comms_w)));
-	m_slave->space(AS_PROGRAM).install_write_handler(0x04800000, 0x04800003, write32_delegate(*this, FUNC(stv_state::batmanfr_sound_comms_w)));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x04800000, 0x04800003, write32s_delegate(*this, FUNC(stv_state::batmanfr_sound_comms_w)));
+	m_slave->space(AS_PROGRAM).install_write_handler(0x04800000, 0x04800003, write32s_delegate(*this, FUNC(stv_state::batmanfr_sound_comms_w)));
 
 	m_minit_boost = m_sinit_boost = 0;
 	m_minit_boost_timeslice = m_sinit_boost_timeslice = attotime::from_usec(50);
@@ -815,7 +815,7 @@ void stv_state::init_ffreveng()
 }
 
 
-READ32_MEMBER(stv_state::decathlt_prot_r)
+uint32_t stv_state::decathlt_prot_r(offs_t offset, uint32_t mem_mask)
 {
 	// needs to be a way to indicate if device is enabled and fall through to cartridge data if not?
 	if (m_newprotection_element)
@@ -825,12 +825,12 @@ READ32_MEMBER(stv_state::decathlt_prot_r)
 	}
 
 	uint32 ret = 0;
-	if (mem_mask & 0xffff0000) ret |= (m_5838crypt->data_r(space, offset, mem_mask)<<16);
-	if (mem_mask & 0x0000ffff) ret |= m_5838crypt->data_r(space, offset, mem_mask);
+	if (mem_mask & 0xffff0000) ret |= (m_5838crypt->data_r()<<16);
+	if (mem_mask & 0x0000ffff) ret |= m_5838crypt->data_r();
 	return ret;
 }
 
-WRITE32_MEMBER(stv_state::decathlt_prot_srcaddr_w)
+void stv_state::decathlt_prot_srcaddr_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	int offs = offset * 4;
 
@@ -840,22 +840,22 @@ WRITE32_MEMBER(stv_state::decathlt_prot_srcaddr_w)
 
 	if ((offs & 0x7fffff) == 0x7FFFF0)
 	{
-		m_5838crypt->srcaddr_w(space, offset, data, mem_mask);
+		m_5838crypt->srcaddr_w(offs, data, mem_mask);
 	}
 	else if ((offs & 0x7fffff) == 0x7FFFF4)
 	{
-		m_5838crypt->data_w(space, offset, data, mem_mask);
+		m_5838crypt->data_w(offs, data, mem_mask);
 	}
 }
 
 void stv_state::init_decathlt()
 {
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x2000000, 0x37fffff, write32_delegate(*this, FUNC(stv_state::decathlt_prot_srcaddr_w))); // set compressed data source address, write data
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x2000000, 0x37fffff, write32s_delegate(*this, FUNC(stv_state::decathlt_prot_srcaddr_w))); // set compressed data source address, write data
 
 	// really needs installing over the whole range, with fallbacks to read rom if device is disabled or isn't accessed on given address
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x27ffff8, 0x27ffffb, read32_delegate(*this, FUNC(stv_state::decathlt_prot_r))); // read decompressed data
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x2fffff8, 0x2fffffb, read32_delegate(*this, FUNC(stv_state::decathlt_prot_r))); //  ^
-	m_maincpu->space(AS_PROGRAM).install_read_handler(0x37ffff8, 0x37ffffb, read32_delegate(*this, FUNC(stv_state::decathlt_prot_r))); //  ^
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x27ffff8, 0x27ffffb, read32s_delegate(*this, FUNC(stv_state::decathlt_prot_r))); // read decompressed data
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x2fffff8, 0x2fffffb, read32s_delegate(*this, FUNC(stv_state::decathlt_prot_r))); //  ^
+	m_maincpu->space(AS_PROGRAM).install_read_handler(0x37ffff8, 0x37ffffb, read32s_delegate(*this, FUNC(stv_state::decathlt_prot_r))); //  ^
 
 	m_protbank->configure_entry(0, memregion("cart")->base() + 0x0000000);
 	m_protbank->configure_entry(1, memregion("cart")->base() + 0x0800000);
@@ -971,19 +971,19 @@ void stv_state::stv_select_game(int gameno)
 	}
 }
 
-READ8_MEMBER( stv_state::pdr1_input_r )
+uint8_t stv_state::pdr1_input_r()
 {
 	return (ioport("PDR1")->read() & 0x40) | 0x3f;
 }
 
 
-READ8_MEMBER( stv_state::pdr2_input_r )
+uint8_t stv_state::pdr2_input_r()
 {
 	return (ioport("PDR2")->read() & ~0x19) | 0x18 | (m_eeprom->do_read()<<0);
 }
 
 
-WRITE8_MEMBER( stv_state::pdr1_output_w )
+void stv_state::pdr1_output_w(uint8_t data)
 {
 	m_eeprom->clk_write((data & 0x08) ? ASSERT_LINE : CLEAR_LINE);
 	m_eeprom->di_write((data >> 4) & 1);
@@ -992,7 +992,7 @@ WRITE8_MEMBER( stv_state::pdr1_output_w )
 	stv_select_game(data & 3);
 }
 
-WRITE8_MEMBER( stv_state::pdr2_output_w )
+void stv_state::pdr2_output_w(uint8_t data)
 {
 	m_audiocpu->set_input_line(INPUT_LINE_RESET, (data & 0x10) ? ASSERT_LINE : CLEAR_LINE);
 	m_en_68k = ((data & 0x10) >> 4) ^ 1;
@@ -1131,11 +1131,11 @@ void stv_state::stv_5838(machine_config &config)
     Similar if not the same as Magic the Gathering, probably needs merging.
 */
 
-WRITE32_MEMBER( stv_state::batmanfr_sound_comms_w )
+void stv_state::batmanfr_sound_comms_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	// FIXME
 	if(ACCESSING_BITS_16_31)
-		m_rax->data_w(space, 0, data >> 16, 0x0000ffff);
+		m_rax->data_w(data >> 16);
 	if(ACCESSING_BITS_0_15)
 		printf("Warning: write %04x & %08x to lo-word sound communication area\n",data,mem_mask);
 }
@@ -1191,19 +1191,19 @@ MACHINE_RESET_MEMBER(stv_state,stv)
 
 	std::string region_tag;
 	if (m_cart1)
-		m_cart_reg[0] = memregion(region_tag.assign(m_cart1->tag()).append(GENERIC_ROM_REGION_TAG).c_str());
+		m_cart_reg[0] = memregion(region_tag.assign(m_cart1->tag()).append(GENERIC_ROM_REGION_TAG));
 	else
 		m_cart_reg[0] = memregion("cart");
 	if (m_cart2)
-		m_cart_reg[1] = memregion(region_tag.assign(m_cart2->tag()).append(GENERIC_ROM_REGION_TAG).c_str());
+		m_cart_reg[1] = memregion(region_tag.assign(m_cart2->tag()).append(GENERIC_ROM_REGION_TAG));
 	else
 		m_cart_reg[1] = nullptr;
 	if (m_cart3)
-		m_cart_reg[2] = memregion(region_tag.assign(m_cart3->tag()).append(GENERIC_ROM_REGION_TAG).c_str());
+		m_cart_reg[2] = memregion(region_tag.assign(m_cart3->tag()).append(GENERIC_ROM_REGION_TAG));
 	else
 		m_cart_reg[2] = nullptr;
 	if (m_cart4)
-		m_cart_reg[3] = memregion(region_tag.assign(m_cart4->tag()).append(GENERIC_ROM_REGION_TAG).c_str());
+		m_cart_reg[3] = memregion(region_tag.assign(m_cart4->tag()).append(GENERIC_ROM_REGION_TAG));
 	else
 		m_cart_reg[3] = nullptr;
 
@@ -1763,6 +1763,7 @@ INPUT_PORTS_END
 
 epr-17740  - Japan   STVB1.10J0950131  95/01/31 v1.10  - Found on a early board dated 02/1995
 epr-17740a - Japan   STVB1.11J0950220  95/02/20 v1.11
+epr-17741a - USA     STVB1.11U0950220  95/02/20 v1.11
 epr-17951a - Japan   STVB1.13J0950425  95/04/25 v1.13 - There's also a 100% identical mask ROM version: mpr-17951a
 epr-17952a - USA     STVB1.13U0950425  95/04/25 v1.13
 epr-17953a - Taiwan  STVB1.13T0950425  95/04/25 v1.13
@@ -1807,16 +1808,18 @@ ROM_LOAD16_WORD_SWAP_BIOS( x, "saturn.bin", 0x000000, 0x080000, CRC(653ff2d8) SH
 	ROM_LOAD16_WORD_SWAP_BIOS( 5,  "epr-17954a.ic8",  0x000000, 0x080000, CRC(f7722da3) SHA1(af79cff317e5b57d49e463af16a9f616ed1eee08) ) \
 	ROM_SYSTEM_BIOS( 6,  "us",    "EPR-17952A (USA 95/04/25)" ) \
 	ROM_LOAD16_WORD_SWAP_BIOS( 6,  "epr-17952a.ic8",  0x000000, 0x080000, CRC(d1be2adf) SHA1(eaf1c3e5d602e1139d2090a78d7e19f04f916794) ) \
-	ROM_SYSTEM_BIOS( 7,  "tw",    "EPR-19854 (Taiwan 97/05/15)" ) \
-	ROM_LOAD16_WORD_SWAP_BIOS( 7,  "epr-19854.ic8",   0x000000, 0x080000, CRC(e09d1f60) SHA1(b55cdcb45b2a5b0b35e352cf7625f0bd659084df) ) \
-	ROM_SYSTEM_BIOS( 8,  "tw1",   "EPR-17953A (Taiwan 95/04/25)" ) \
-	ROM_LOAD16_WORD_SWAP_BIOS( 8,  "epr-17953a.ic8",  0x000000, 0x080000, CRC(a4c47570) SHA1(9efc73717ec8a13417e65c54344ded9fc25bf5ef) ) \
-	ROM_SYSTEM_BIOS( 9,  "tw2",   "EPR-17742A (Taiwan 95/02/20)" ) \
-	ROM_LOAD16_WORD_SWAP_BIOS( 9,  "epr-17742a.ic8",  0x000000, 0x080000, CRC(02daf123) SHA1(23185beb1ce9c09b8719e57d1adb7b28c8141fd5) ) \
-	ROM_SYSTEM_BIOS( 10,  "debug","Development (1.10, 95/01/13)" ) \
-	ROM_LOAD16_WORD_SWAP_BIOS( 10,  "stv110.bin",     0x000000, 0x080000, CRC(3dfeda92) SHA1(8eb33192a57df5f3a1dfb57263054867c6b2db6d) ) \
-	ROM_SYSTEM_BIOS( 11, "dev",   "Development (1.061, 94/11/25)" ) \
-	ROM_LOAD16_WORD_SWAP_BIOS( 11, "stv1061.bin",     0x000000, 0x080000, CRC(728dbca3) SHA1(0ed2030177f0aa8285645c395ae9ad9f568ab1d6) ) \
+	ROM_SYSTEM_BIOS( 7,  "us1",   "EPR-17741a (USA 95/02/20)" ) \
+	ROM_LOAD16_WORD_SWAP_BIOS( 7,  "epr-17741a.ic8",  0x000000, 0x080000, CRC(4166c663) SHA1(cc41d30de06160083d77e0dc5d69e61fec7fdcb5) ) \
+	ROM_SYSTEM_BIOS( 8,  "tw",    "EPR-19854 (Taiwan 97/05/15)" ) \
+	ROM_LOAD16_WORD_SWAP_BIOS( 8,  "epr-19854.ic8",   0x000000, 0x080000, CRC(e09d1f60) SHA1(b55cdcb45b2a5b0b35e352cf7625f0bd659084df) ) \
+	ROM_SYSTEM_BIOS( 9,  "tw1",   "EPR-17953A (Taiwan 95/04/25)" ) \
+	ROM_LOAD16_WORD_SWAP_BIOS( 9,  "epr-17953a.ic8",  0x000000, 0x080000, CRC(a4c47570) SHA1(9efc73717ec8a13417e65c54344ded9fc25bf5ef) ) \
+	ROM_SYSTEM_BIOS( 10, "tw2",   "EPR-17742A (Taiwan 95/02/20)" ) \
+	ROM_LOAD16_WORD_SWAP_BIOS( 10, "epr-17742a.ic8",  0x000000, 0x080000, CRC(02daf123) SHA1(23185beb1ce9c09b8719e57d1adb7b28c8141fd5) ) \
+	ROM_SYSTEM_BIOS( 11,  "debug","Development (1.10, 95/01/13)" ) \
+	ROM_LOAD16_WORD_SWAP_BIOS( 11,  "stv110.bin",     0x000000, 0x080000, CRC(3dfeda92) SHA1(8eb33192a57df5f3a1dfb57263054867c6b2db6d) ) \
+	ROM_SYSTEM_BIOS( 12, "dev",   "Development (1.061, 94/11/25)" ) \
+	ROM_LOAD16_WORD_SWAP_BIOS( 12, "stv1061.bin",     0x000000, 0x080000, CRC(728dbca3) SHA1(0ed2030177f0aa8285645c395ae9ad9f568ab1d6) ) \
 	\
 	ROM_REGION32_BE( 0x3000000, "abus", ROMREGION_ERASE00 ) /* SH2 code */
 
@@ -2758,7 +2761,7 @@ ROM_START( batmanfr )
 	ROM_LOAD16_WORD_SWAP( "gfx5.u15",   0x1800000, 0x0400000, CRC(e201f830) SHA1(5aa22fcc8f2e153d1abc3aa4050c594b3942ee67) )
 	ROM_LOAD16_WORD_SWAP( "gfx6.u18",   0x1c00000, 0x0400000, CRC(c6b381a3) SHA1(46431f1e47c084a0bf85535d35af27471653b008) )
 
-	ROM_REGION16_LE( 0x1000000, "rax", 0 )
+	ROM_REGION( 0x1000000, "rax", 0 )
 	ROM_LOAD( "350snda1.u52",  0x000000, 0x080000, CRC(9027e7a0) SHA1(678df530838b078964a044ce734776f391654e6c) )
 	ROM_LOAD( "snd0.u48",      0x400000, 0x200000, CRC(02b1927c) SHA1(08b21d8b31b0f15c59fb5bb7eaf425e6fe04f7b5) )
 	ROM_LOAD( "snd1.u49",      0x600000, 0x200000, CRC(58b18eda) SHA1(7f3105fe04d9c0cdfd76e3323f623a4d0f7dad06) )

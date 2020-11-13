@@ -205,7 +205,7 @@ private:
 	template <typename DeviceClass>
 	static std::unique_ptr<device_t> create_device(device_type_impl_base const &type, machine_config const &mconfig, char const *tag, device_t *owner, u32 clock)
 	{
-		return make_unique_clear<DeviceClass>(mconfig, tag, owner, clock);
+		return std::make_unique<DeviceClass>(mconfig, tag, owner, clock);
 	}
 
 	template <typename DriverClass>
@@ -298,7 +298,7 @@ public:
 	template <typename... Params>
 	std::unique_ptr<DeviceClass> create(machine_config &mconfig, char const *tag, device_t *owner, Params &&... args) const
 	{
-		return make_unique_clear<DeviceClass>(mconfig, tag, owner, std::forward<Params>(args)...);
+		return std::make_unique<DeviceClass>(mconfig, tag, owner, std::forward<Params>(args)...);
 	}
 
 	template <typename... Params> DeviceClass &operator()(machine_config &mconfig, char const *tag, Params &&... args) const;
@@ -529,7 +529,7 @@ public:
 	device_type type() const { return m_type; }
 	const char *name() const { return m_type.fullname(); }
 	const char *shortname() const { return m_type.shortname(); }
-	const char *searchpath() const { return m_searchpath.c_str(); }
+	virtual std::vector<std::string> searchpath() const;
 	const char *source() const { return m_type.source(); }
 	device_t *owner() const { return m_owner; }
 	device_t *next() const { return m_next; }
@@ -638,7 +638,7 @@ public:
 	device_debug *debug() const { return m_debug.get(); }
 
 	void set_system_bios(u8 bios) { m_system_bios = bios; }
-	bool findit(bool isvalidation) const;
+	bool findit(validity_checker *valid) const;
 
 	// misc
 	template <typename Format, typename... Params> void popmessage(Format &&fmt, Params &&... args) const;
@@ -798,7 +798,6 @@ protected:
 
 	// core device properties
 	device_type             m_type;                 // device type
-	std::string             m_searchpath;           // search path, used for media loading
 
 	// device relationships & interfaces
 	device_t *              m_owner;                // device that owns us

@@ -14,6 +14,7 @@
 #include "debugger.h"
 #include "debug/debugcon.h"
 #include "debug/debugcpu.h"
+#include "debug/points.h"
 #include "debug/textbuf.h"
 #include "drivenum.h"
 #include "emuopts.h"
@@ -207,17 +208,87 @@ namespace sol
 }
 
 
+namespace
+{
+	// ======================> enum_parser
+	template<typename T, size_t SIZE>
+	class enum_parser
+	{
+	public:
+		constexpr enum_parser(std::initializer_list<std::pair<const char *, T>> values)
+		{
+			if (values.size() != SIZE)
+				throw false && "size template argument incorrectly specified";
+			std::copy(values.begin(), values.end(), m_map.begin());
+		}
+
+		T operator()(const char *text) const
+		{
+			auto iter = std::find_if(
+				m_map.begin() + 1,
+				m_map.end(),
+				[text](const auto &x) { return !strcmp(text, x.first); });
+			if (iter == m_map.end())
+				iter = m_map.begin();
+			return iter->second;
+		}
+
+		T operator()(const std::string &text) const
+		{
+			return (*this)(text.c_str());
+		}
+
+	private:
+		std::array<std::pair<const char *, T>, SIZE>    m_map;
+	};
+};
+
+
+static const enum_parser<input_seq_type, 3> s_seq_type_parser =
+{
+	{ "standard", SEQ_TYPE_STANDARD },
+	{ "increment", SEQ_TYPE_INCREMENT },
+	{ "decrement", SEQ_TYPE_DECREMENT },
+};
+
+
+static const enum_parser<movie_recording::format, 2> s_movie_recording_format_parser =
+{
+	{ "avi", movie_recording::format::AVI },
+	{ "mng", movie_recording::format::MNG }
+};
+
+
+static const enum_parser<read_or_write, 4> s_read_or_write_parser =
+{
+	{ "r", read_or_write::READ },
+	{ "w", read_or_write::WRITE },
+	{ "rw", read_or_write::READWRITE },
+	{ "wr", read_or_write::READWRITE }
+};
+
+
+static const enum_parser<ui::text_layout::text_justify, 3> s_text_justify_parser =
+{
+	{ "left", ui::text_layout::LEFT },
+	{ "right", ui::text_layout::RIGHT },
+	{ "center", ui::text_layout::CENTER },
+};
+
+
 //-------------------------------------------------
-// parse_seq_type - parses a string into an input_seq_type
+//  process_snapshot_filename - processes a snapshot
+//  filename
 //-------------------------------------------------
 
-static input_seq_type parse_seq_type(const std::string &s)
+static std::string process_snapshot_filename(running_machine &machine, const char *s)
 {
-	input_seq_type result = SEQ_TYPE_STANDARD;
-	if (s == "increment")
-		result = SEQ_TYPE_INCREMENT;
-	else if (s == "decrement")
-		result = SEQ_TYPE_DECREMENT;
+	std::string result(s);
+	if (!osd_is_absolute_path(s))
+	{
+		strreplace(result, "/", PATH_SEPARATOR);
+		strreplace(result, "%g", machine.basename());
+	}
 	return result;
 }
 
@@ -785,6 +856,7 @@ void lua_engine::initialize()
  * emu.keypost(keys) - post keys to natural keyboard
  * emu.wait(len) - wait for len within coroutine
  * emu.lang_translate(str) - get translation for str if available
+ * emu.subst_env(str) - substitute environment variables with values for str
  *
  * emu.register_prestart(callback) - register callback before reset
  * emu.register_start(callback) - register callback after reset
@@ -879,6 +951,11 @@ void lua_engine::initialize()
 		});
 	emu["lang_translate"] = &lang_translate;
 	emu["pid"] = &osd_getpid;
+	emu["subst_env"] = [](const std::string &str) {
+			std::string result;
+			osd_subst_env(result, str);
+			return result;
+		};
 
 
 /*  emu_file library
@@ -1094,7 +1171,7 @@ void lua_engine::initialize()
 	item_type.set("read", [this](save_item &item, int offset) -> sol::object {
 			if(!item.base || (offset >= item.count))
 				return sol::make_object(sol(), sol::nil);
-			const void *const data = reinterpret_cast<const uint8_t *>(item.base) + (item.size * item.stride * (offset / item.valcount));
+			const void *const data = reinterpret_cast<const uint8_t *>(item.base) + (item.stride * (offset / item.valcount));
 			uint64_t ret = 0;
 			switch(item.size)
 			{
@@ -1122,7 +1199,6 @@ void lua_engine::initialize()
 			else
 			{
 				const uint32_t blocksize = item.size * item.valcount;
-				const uint32_t bytestride = item.size * item.stride;
 				uint32_t remaining = buff->get_len();
 				uint8_t *dest = reinterpret_cast<uint8_t *>(buff->get_ptr());
 				while(remaining)
@@ -1130,7 +1206,7 @@ void lua_engine::initialize()
 					const uint32_t blockno = offset / blocksize;
 					const uint32_t available = blocksize - (offset % blocksize);
 					const uint32_t chunk = (available < remaining) ? available : remaining;
-					const void *const source = reinterpret_cast<const uint8_t *>(item.base) + (blockno * bytestride) + (offset % blocksize);
+					const void *const source = reinterpret_cast<const uint8_t *>(item.base) + (blockno * item.stride) + (offset % blocksize);
 					std::memcpy(dest, source, chunk);
 					offset += chunk;
 					remaining -= chunk;
@@ -1142,7 +1218,7 @@ void lua_engine::initialize()
 	item_type.set("write", [](save_item &item, int offset, uint64_t value) {
 			if(!item.base || (offset >= item.count))
 				return;
-			void *const data = reinterpret_cast<uint8_t *>(item.base) + (item.size * item.stride * (offset / item.valcount));
+			void *const data = reinterpret_cast<uint8_t *>(item.base) + (item.stride * (offset / item.valcount));
 			switch(item.size)
 			{
 				case 1:
@@ -1227,13 +1303,13 @@ void lua_engine::initialize()
 			if(e.type() != OPTION_FLOAT)
 				luaL_error(m_lua_state, "Cannot set option to wrong type");
 			else
-				e.set_value(string_format("%f", val).c_str(), OPTION_PRIORITY_CMDLINE);
+				e.set_value(string_format("%f", val), OPTION_PRIORITY_CMDLINE);
 		},
 		[this](core_options::entry &e, int val) {
 			if(e.type() != OPTION_INTEGER)
 				luaL_error(m_lua_state, "Cannot set option to wrong type");
 			else
-				e.set_value(string_format("%d", val).c_str(), OPTION_PRIORITY_CMDLINE);
+				e.set_value(string_format("%d", val), OPTION_PRIORITY_CMDLINE);
 		},
 		[this](core_options::entry &e, const char *val) {
 			if(e.type() != OPTION_STRING)
@@ -1273,6 +1349,8 @@ void lua_engine::initialize()
  * machine:soft_reset() - soft reset emulation
  * machine:save(filename) - save state to filename
  * machine:load(filename) - load state from filename
+ * machine:buffer_save() - return save state buffer as binary string
+ * machine:buffer_load(str) - load state from binary string buffer. returns true on success, otherwise nil
  * machine:popmessage(str) - print str as popup
  * machine:popmessage() - clear displayed popup message
  * machine:logerror(str) - print str to log
@@ -1305,6 +1383,31 @@ void lua_engine::initialize()
 	machine_type.set("soft_reset", &running_machine::schedule_soft_reset);
 	machine_type.set("save", &running_machine::schedule_save);
 	machine_type.set("load", &running_machine::schedule_load);
+	machine_type.set("buffer_save", [](running_machine &m, sol::this_state s) {
+			lua_State *L = s;
+			luaL_Buffer buff;
+			int size = ram_state::get_size(m.save());
+			u8 *ptr = (u8 *)luaL_buffinitsize(L, &buff, size);
+			save_error error = m.save().write_buffer(ptr, size);
+			if (error == STATERR_NONE)
+			{
+				luaL_pushresultsize(&buff, size);
+				return sol::make_reference(L, sol::stack_reference(L, -1));
+			}
+			luaL_error(L, "State save error.");
+			return sol::make_reference(L, nullptr);
+		});
+	machine_type.set("buffer_load", [](running_machine &m, sol::this_state s, std::string str) {
+			lua_State *L = s;
+			save_error error = m.save().read_buffer((u8 *)str.data(), str.size());
+			if (error == STATERR_NONE)
+				return true;
+			else
+			{
+				luaL_error(L,"State load error.");
+				return false;
+			}
+		});
 	machine_type.set("system", &running_machine::system);
 	machine_type.set("video", &running_machine::video);
 	machine_type.set("sound", &running_machine::sound);
@@ -1467,15 +1570,15 @@ void lua_engine::initialize()
  * debugger.execution_state - accessor for active cpu run state
  */
 
-	struct wrap_textbuf { wrap_textbuf(text_buffer *buf) { textbuf = buf; }; text_buffer *textbuf; };
+	struct wrap_textbuf { wrap_textbuf(const text_buffer &buf) : textbuf(buf) { } std::reference_wrapper<const text_buffer> textbuf; };
 
 	auto debugger_type = sol().registry().create_simple_usertype<debugger_manager>("new", sol::no_constructor);
 	debugger_type.set("command", [](debugger_manager &debug, const std::string &cmd) { debug.console().execute_command(cmd, false); });
 	debugger_type.set("consolelog", sol::property([](debugger_manager &debug) { return wrap_textbuf(debug.console().get_console_textbuf()); }));
 	debugger_type.set("errorlog", sol::property([](debugger_manager &debug) { return wrap_textbuf(debug.console().get_errorlog_textbuf()); }));
 	debugger_type.set("visible_cpu", sol::property(
-		[](debugger_manager &debug) { debug.cpu().get_visible_cpu(); },
-		[](debugger_manager &debug, device_t &dev) { debug.cpu().set_visible_cpu(&dev); }));
+		[](debugger_manager &debug) { debug.console().get_visible_cpu(); },
+		[](debugger_manager &debug, device_t &dev) { debug.console().set_visible_cpu(&dev); }));
 	debugger_type.set("execution_state", sol::property(
 		[](debugger_manager &debug) {
 			return debug.cpu().is_stopped() ? "stop" : "run";
@@ -1498,13 +1601,11 @@ void lua_engine::initialize()
  * #log - entry count
  */
 
-	auto text_buffer_type = sol().registry().create_simple_usertype<wrap_textbuf>("new", sol::no_constructor);
-	text_buffer_type.set("__metatable", [](){});
-	text_buffer_type.set("__newindex", [](){});
-	text_buffer_type.set("__index", [](wrap_textbuf &buf, int index) { return text_buffer_get_seqnum_line(buf.textbuf, index - 1); });
-	text_buffer_type.set("__len", [](wrap_textbuf &buf) { return text_buffer_num_lines(buf.textbuf) + text_buffer_line_index_to_seqnum(buf.textbuf, 0) - 1; });
-	sol().registry().set_usertype("text_buffer", text_buffer_type);
-
+	sol().registry().new_usertype<wrap_textbuf>("text_buffer", "new", sol::no_constructor,
+			"__metatable", [](){},
+			"__newindex", [](){},
+			"__index", [](wrap_textbuf &buf, int index) { return text_buffer_get_seqnum_line(buf.textbuf, index - 1); },
+			"__len", [](wrap_textbuf &buf) { return text_buffer_num_lines(buf.textbuf) + text_buffer_line_index_to_seqnum(buf.textbuf, 0) - 1; });
 
 /*  device_debug library (requires debugger to be active)
  *
@@ -1515,7 +1616,7 @@ void lua_engine::initialize()
  * debug:bpset(addr, [opt] cond, [opt] act) - set breakpoint on addr, cond and act are debugger
  *                                            expressions. returns breakpoint index
  * debug:bpclr(idx) - clear break
- * debug:bplist()[] - table of breakpoints (k=index, v=device_debug::breakpoint)
+ * debug:bplist()[] - table of breakpoints (k=index, v=debug_breakpoint)
  * debug:wpset(space, type, addr, len, [opt] cond, [opt] act) - set watchpoint, cond and act
  *                                                              are debugger expressions.
  *                                                              returns watchpoint index
@@ -1535,8 +1636,9 @@ void lua_engine::initialize()
 	device_debug_type.set("bpclr", &device_debug::breakpoint_clear);
 	device_debug_type.set("bplist", [this](device_debug &dev) {
 			sol::table table = sol().create_table();
-			for(const device_debug::breakpoint &bpt : dev.breakpoint_list())
+			for(const auto &bpp : dev.breakpoint_list())
 			{
+				const debug_breakpoint &bpt = *bpp.second;
 				sol::table bp = sol().create_table();
 				bp["enabled"] = bpt.enabled();
 				bp["address"] = bpt.address();
@@ -1547,11 +1649,7 @@ void lua_engine::initialize()
 			return table;
 		});
 	device_debug_type.set("wpset", [](device_debug &dev, addr_space &sp, const std::string &type, offs_t addr, offs_t len, const char *cond, const char *act) {
-			read_or_write wptype = read_or_write::READ;
-			if(type == "w")
-				wptype = read_or_write::WRITE;
-			else if((type == "rw") || (type == "wr"))
-				wptype = read_or_write::READWRITE;
+			read_or_write wptype = s_read_or_write_parser(type);
 			return dev.watchpoint_set(sp.space, wptype, addr, len, cond, act);
 		});
 	device_debug_type.set("wpclr", &device_debug::watchpoint_clear);
@@ -1600,6 +1698,7 @@ void lua_engine::initialize()
  * device.spaces[] - device address spaces table (k=name, v=addr_space)
  * device.state[] - device state entries table (k=name, v=device_state_entry)
  * device.items[] - device save state items table (k=name, v=index)
+ * device.roms[] - device rom entry table (k=name, v=rom_entry)
  */
 
 	auto device_type = sol().registry().create_simple_usertype<device_t>("new", sol::no_constructor);
@@ -1647,12 +1746,19 @@ void lua_engine::initialize()
 				if(!item)
 					break;
 				name = &(strchr(item, '/')[1]);
-				if(name.substr(0, name.find("/")) == tag)
+				if(name.substr(0, name.find('/')) == tag)
 				{
-					name = name.substr(name.find("/") + 1, std::string::npos);
+					name = name.substr(name.find('/') + 1, std::string::npos);
 					table[name] = i;
 				}
 			}
+			return table;
+		}));
+	device_type.set("roms", sol::property([this](device_t &dev) {
+			sol::table table = sol().create_table();
+			for(auto rom : dev.rom_region_vector())
+				if(!rom.name().empty())
+					table[rom.name()] = rom;
 			return table;
 		}));
 	sol().registry().set_usertype("device", device_type);
@@ -1669,12 +1775,17 @@ void lua_engine::initialize()
  * space:write_log_*(addr, val)
  * space:read_direct_*(addr)
  * space:write_direct_*(addr, val)
+ * space:read_range(first_addr, last_addr, width, [opt] step) - read range of addresses and
+ *                                                              return as a binary string
  *
  * space.name - address space name
  * space.shift - address bus shift, bitshift required for a bytewise address
- *               to map onto this space's addess resolution (addressing granularity).
+ *               to map onto this space's address resolution (addressing granularity).
  *               positive value means leftshift, negative means rightshift.
  * space.index
+ * space.address_mask
+ * space.data_width
+ * space.endianness
  *
  * space.map[] - table of address map entries (k=index, v=address_map_entry)
  */
@@ -1728,9 +1839,82 @@ void lua_engine::initialize()
 	addr_space_type.set("write_direct_u32", &addr_space::direct_mem_write<uint32_t>);
 	addr_space_type.set("write_direct_i64", &addr_space::direct_mem_write<int64_t>);
 	addr_space_type.set("write_direct_u64", &addr_space::direct_mem_write<uint64_t>);
+	addr_space_type.set("read_range", [](addr_space &sp, sol::this_state s, u64 first, u64 last, int width, sol::object opt_step) {
+			lua_State *L = s;
+			luaL_Buffer buff;
+			offs_t space_size = sp.space.addrmask();
+			u64 step = 1;
+			if (opt_step.is<u64>())
+			{
+				step = opt_step.as<u64>();
+				if (step < 1 || step > last - first)
+				{
+					luaL_error(L, "Invalid step");
+					return sol::make_reference(L, nullptr);
+				}
+			}
+			if (first > space_size || last > space_size || last < first)
+			{
+				luaL_error(L, "Invalid offset");
+				return sol::make_reference(L, nullptr);
+			}
+			int byte_count = width / 8 * (last - first + 1) / step;
+			switch (width)
+			{
+			case 8:
+			{
+				u8 *dest = (u8 *)luaL_buffinitsize(L, &buff, byte_count);
+				for(; first <= last; first += step)
+					*dest++ = sp.mem_read<u8>(first);
+				break;
+			}
+			case 16:
+			{
+				u16 *dest = (u16 *)luaL_buffinitsize(L, &buff, byte_count);
+				for(; first <= last; first += step)
+					*dest++ = sp.mem_read<u16>(first);
+				break;
+			}
+			case 32:
+			{
+				u32 *dest = (u32 *)luaL_buffinitsize(L, &buff, byte_count);
+				for(; first <= last; first += step)
+					*dest++ = sp.mem_read<u32>(first);
+				break;
+			}
+			case 64:
+			{
+				u64 *dest = (u64 *)luaL_buffinitsize(L, &buff, byte_count);
+				for(; first <= last; first += step)
+					*dest++ = sp.mem_read<u64>(first);
+				break;
+			}
+			default:
+				luaL_error(L, "Invalid width. Must be 8/16/32/64");
+				return sol::make_reference(L, nullptr);
+			}
+			luaL_pushresultsize(&buff, byte_count);
+			return sol::make_reference(L, sol::stack_reference(L, -1));
+		});
 	addr_space_type.set("name", sol::property([](addr_space &sp) { return sp.space.name(); }));
 	addr_space_type.set("shift", sol::property([](addr_space &sp) { return sp.space.addr_shift(); }));
 	addr_space_type.set("index", sol::property([](addr_space &sp) { return sp.space.spacenum(); }));
+	addr_space_type.set("address_mask", sol::property([](addr_space &sp) { return sp.space.addrmask(); }));
+	addr_space_type.set("data_width", sol::property([](addr_space &sp) { return sp.space.data_width(); }));
+	addr_space_type.set("endianness", sol::property([](addr_space &sp) {
+			std::string endianness;
+			switch (sp.space.endianness())
+			{
+				case endianness_t::ENDIANNESS_BIG:
+					endianness = "big";
+					break;
+				case endianness_t::ENDIANNESS_LITTLE:
+					endianness = "little";
+					break;
+			}
+			return endianness;
+		}));
+
 
 /* address_map_entry library
  *
@@ -1764,6 +1948,7 @@ void lua_engine::initialize()
  *
  * ioport:count_players() - get count of player controllers
  * ioport:type_group(type, player)
+ * ioport:type_seq(type, player, seqtype) - get input sequence for ioport type/player
  *
  * ioport.ports[] - ioports table (k=tag, v=ioport_port)
  */
@@ -1780,6 +1965,9 @@ void lua_engine::initialize()
 				port_table[port.second->tag()] = port.second.get();
 			return port_table;
 		}));
+	ioport_manager_type.set("type_seq", [](ioport_manager &m, ioport_type type, int player, input_seq_type seqtype) {
+			return sol::make_user(m.type_seq(type, player, seqtype));
+		});
 	sol().registry().set_usertype("ioport", ioport_manager_type);
 
 
@@ -1886,27 +2074,29 @@ void lua_engine::initialize()
  * field.crosshair_scale
  * field.crosshair_offset
  * field.user_value
+ *
+ * field.settings[] - ioport_setting table (k=value, v=name)
  */
 
 	auto ioport_field_type = sol().registry().create_simple_usertype<ioport_field>("new", sol::no_constructor);
 	ioport_field_type.set("set_value", &ioport_field::set_value);
 	ioport_field_type.set("set_input_seq", [](ioport_field &f, const std::string &seq_type_string, sol::user<input_seq> seq) {
-			input_seq_type seq_type = parse_seq_type(seq_type_string);
+			input_seq_type seq_type = s_seq_type_parser(seq_type_string);
 			ioport_field::user_settings settings;
 			f.get_user_settings(settings);
 			settings.seq[seq_type] = seq;
 			f.set_user_settings(settings);
 		});
 	ioport_field_type.set("input_seq", [](ioport_field &f, const std::string &seq_type_string) {
-			input_seq_type seq_type = parse_seq_type(seq_type_string);
+			input_seq_type seq_type = s_seq_type_parser(seq_type_string);
 			return sol::make_user(f.seq(seq_type));
 		});
 	ioport_field_type.set("set_default_input_seq", [](ioport_field &f, const std::string &seq_type_string, sol::user<input_seq> seq) {
-			input_seq_type seq_type = parse_seq_type(seq_type_string);
+			input_seq_type seq_type = s_seq_type_parser(seq_type_string);
 			f.set_defseq(seq_type, seq);
 		});
 	ioport_field_type.set("default_input_seq", [](ioport_field &f, const std::string &seq_type_string) {
-			input_seq_type seq_type = parse_seq_type(seq_type_string);
+			input_seq_type seq_type = s_seq_type_parser(seq_type_string);
 			return sol::make_user(f.defseq(seq_type));
 		});
 	ioport_field_type.set("keyboard_codes", [this](ioport_field &f, int which) {
@@ -1967,6 +2157,13 @@ void lua_engine::initialize()
 			settings.value = val;
 			f.set_user_settings(settings);
 		}));
+	ioport_field_type.set("settings", sol::property([this](ioport_field &f) {
+			sol::table result = sol().create_table();
+			for (ioport_setting &setting : f.settings())
+				if (setting.enabled())
+					result[setting.value()] = setting.name();
+			return result;
+		}));
 	sol().registry().set_usertype("ioport_field", ioport_field_type);
 
 
@@ -1998,7 +2195,7 @@ void lua_engine::initialize()
  *
  * manager:machine():video()
  *
- * video:begin_recording([opt] filename) - start AVI recording to filename if given or default
+ * video:begin_recording([opt] filename, [opt] format) - start AVI recording to filename if given or default
  * video:end_recording() - stop AVI recording
  * video:is_recording() - get recording status
  * video:snapshot() - save shot of all screens
@@ -2016,20 +2213,25 @@ void lua_engine::initialize()
 
 	auto video_type = sol().registry().create_simple_usertype<video_manager>("new", sol::no_constructor);
 	video_type.set("begin_recording", sol::overload(
-		[this](video_manager &vm, const char *filename) {
-			std::string fn = filename;
-			strreplace(fn, "/", PATH_SEPARATOR);
-			strreplace(fn, "%g", machine().basename());
-			vm.begin_recording(fn.c_str(), video_manager::MF_AVI);
+		[this](video_manager &vm, const char *filename, const char *format_string) {
+			std::string fn = process_snapshot_filename(machine(), filename);
+			movie_recording::format format = s_movie_recording_format_parser(format_string);
+			vm.begin_recording(fn.c_str(), format);
 		},
-		[](video_manager &vm) { vm.begin_recording(nullptr, video_manager::MF_AVI); }));
+		[this](video_manager &vm, const char *filename) {
+			std::string fn = process_snapshot_filename(machine(), filename);
+			vm.begin_recording(fn.c_str(), movie_recording::format::AVI);
+		},
+		[](video_manager &vm) {
+			vm.begin_recording(nullptr, movie_recording::format::AVI);
+		}));
 	video_type.set("end_recording", [this](video_manager &vm) {
 			if(!vm.is_recording())
 			{
 				machine().logerror("[luaengine] No active recording to stop\n");
 				return;
 			}
-			vm.end_recording(video_manager::MF_AVI);
+			vm.end_recording();
 		});
 	video_type.set("snapshot", &video_manager::save_active_screen_snapshots);
 	video_type.set("is_recording", &video_manager::is_recording);
@@ -2296,7 +2498,7 @@ void lua_engine::initialize()
 
 	auto target_type = sol().registry().create_simple_usertype<render_target>("new", sol::no_constructor);
 	target_type.set("view_bounds", [](render_target &rt) {
-			const render_bounds b = rt.current_view()->bounds();
+			const render_bounds b = rt.current_view().bounds();
 			return std::tuple<float, float, float, float>(b.x0, b.x1, b.y0, b.y1);
 		});
 	target_type.set("width", &render_target::width);
@@ -2385,6 +2587,7 @@ void lua_engine::initialize()
  * screen:yscale() - screen y scale factor
  * screen:pixel(x, y) - get pixel at (x, y) as packed RGB in a u32
  * screen:pixels() - get whole screen binary bitmap as string
+ * screen:time_until_pos(vpos, hpos) - get the time until this screen pos is reached
  */
 
 	auto screen_dev_type = sol().registry().create_simple_usertype<screen_device>("new", sol::no_constructor);
@@ -2418,11 +2621,7 @@ void lua_engine::initialize()
 			}
 			else if(xobj.is<const char *>())
 			{
-				std::string just_str = xobj.as<const char *>();
-				if(just_str == "right")
-					justify = ui::text_layout::RIGHT;
-				else if(just_str == "center")
-					justify = ui::text_layout::CENTER;
+				justify = s_text_justify_parser(xobj.as<const char *>());
 			}
 			else
 			{
@@ -2471,13 +2670,8 @@ void lua_engine::initialize()
 			if (filename.is<const char *>())
 			{
 				// a filename was specified; if it isn't absolute postprocess it
-				snapstr = filename.as<const char *>();
+				snapstr = process_snapshot_filename(machine(), filename.as<const char *>());
 				is_absolute_path = osd_is_absolute_path(snapstr);
-				if (!is_absolute_path)
-				{
-					strreplace(snapstr, "/", PATH_SEPARATOR);
-					strreplace(snapstr, "%g", machine().basename());
-				}
 			}
 
 			// open the file
@@ -2522,6 +2716,7 @@ void lua_engine::initialize()
 			luaL_pushresultsize(&buff, size);
 			return sol::make_reference(L, sol::stack_reference(L, -1));
 		});
+	screen_dev_type.set("time_until_pos", [](screen_device &sdev, int vpos, int hpos) { return sdev.time_until_pos(vpos, hpos).as_double(); });
 	sol().registry().set_usertype("screen_dev", screen_dev_type);
 
 
@@ -2591,13 +2786,33 @@ void lua_engine::initialize()
 	sol().registry().set_usertype("dev_space", dev_space_type);
 
 
+/*  rom_entry library
+ *
+ * manager:machine().devices[device_tag].roms[rom]
+ *
+ * rom:name()
+ * rom:hashdata() - see hash.h
+ * rom:offset()
+ * rom:length()
+ * rom:flags() - see romentry.h
+ */
+
+	auto rom_entry_type = sol().registry().create_simple_usertype<rom_entry>("new", sol::no_constructor);
+	rom_entry_type.set("name", &rom_entry::name);
+	rom_entry_type.set("hashdata", &rom_entry::hashdata);
+	rom_entry_type.set("offset", &rom_entry::get_offset);
+	rom_entry_type.set("length", &rom_entry::get_length);
+	rom_entry_type.set("flags", &rom_entry::get_flags);
+	sol().registry().set_usertype("rom_entry", rom_entry_type);
+
+
 /*  memory_manager library
  *
  * manager:machine():memory()
  *
- * memory.banks[] - table of memory banks
- * memory.regions[] - table of memory regions
- * memory.shares[] - table of memory shares
+ * memory.banks[] - table of memory banks (k=tag, v=memory_bank)
+ * memory.regions[] - table of memory regions (k=tag, v=memory_region)
+ * memory.shares[] - table of memory shares (k=tag, v=memory_share)
  */
 
 	auto memory_type = sol().registry().create_simple_usertype<memory_manager>("new", sol::no_constructor);
@@ -2723,7 +2938,8 @@ void lua_engine::initialize()
  * image:year()
  * image:software_list_name()
  * image:image_type_name() - floppy/cart/cdrom/tape/hdd etc
- * image:load()
+ * image:load(filename)
+ * image:load_software(softlist_name)
  * image:unload()
  * image:create()
  * image:crc()
@@ -2753,6 +2969,7 @@ void lua_engine::initialize()
 		}));
 	image_type.set("image_type_name", &device_image_interface::image_type_name);
 	image_type.set("load", &device_image_interface::load);
+	image_type.set("load_software", static_cast<image_init_result (device_image_interface::*)(const std::string &)>(&device_image_interface::load_software));
 	image_type.set("unload", &device_image_interface::unload);
 	image_type.set("create", [](device_image_interface &di, const std::string &filename) { return di.create(filename); });
 	image_type.set("crc", &device_image_interface::crc);

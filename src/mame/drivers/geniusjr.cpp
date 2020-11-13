@@ -7,8 +7,6 @@ VTech Genius Junior series
 CPU is 68HC05 derived?
 
 Other known undumped international versions:
-- Genius 4000 (French version of Genius Leader 4000)
-- Genius 5000 (French version of Genius Leader 5000)
 - Genius PRO (French version of Genius Leader Select)
 - Pitagorín Plus (Spanish version of Genius Junior Redstar 3)
 - PreComputer Notebook (alternate English version of Genius Leader Notebook)
@@ -25,6 +23,7 @@ Undumped VTech laptops possibly on similar hardware:
 - Genius Einstein (French version of Genius Leader Action)
 - Genius Explorations (French version; German version unknown)
 - Genius Junior Profi 2
+- Genius Junior Profi 3
 - Genius Leader Action
 - Genius Leader Notebook Plus
 - Genius Master Notebook MM
@@ -36,9 +35,12 @@ Undumped VTech laptops possibly on similar hardware:
 - Smart Start Future (alternate English version of Genius Junior Profi 2)
 - Talking Einstein (English version of Genius Leader Action)
 - Talking Whiz-Kid Explorer (alternate English version of Genius Leader Action)
+- Talking Whiz-Kid Honors (alternate English version of Genius Junior Notebook Plus)
 - Talking Whiz-Kid Laptop (English version of Genius Junior Profi 2)
+- Talking Whiz-Kid Lessons (English version of Genius Master Power Maus)
 - Talking Whiz-Kid Major Mouse (alternate English version of Genius Explorations)
 - Talking Whiz-Kid Notebook 2000 (English version of Genius Master Notebook MM)
+- Talking Whiz-Kid Notebook 3000 (alternate English version of Genius Master Notebook MM)
 - Talking Whiz-Kid Power Mouse Deluxe (English version of Genius Explorations)
 
 */
@@ -338,7 +340,7 @@ ROM_START( pitagjr )
 
 	ROM_REGION( 0x40000, "extrom", 0 )
 	ROM_LOAD( "lh532hjt_9811d.u3", 0x00000, 0x40000, CRC(23878b45) SHA1(8f3c41c10cfde9d76763c3a8701ec6616db4ab40) )
-	
+
 	ROM_REGION( 0x2000, "speech", 0 )
 	ROM_LOAD( "csm10150an.u2", 0x0000, 0x2000, NO_DUMP ) // TSP50C10 (8K bytes of ROM) labeled "CSM10150AN"
 ROM_END
@@ -381,7 +383,7 @@ ROM_START( pitagor )
 
 	ROM_REGION( 0x80000, "extrom", 0 )
 	ROM_LOAD( "27-5374-00.u2", 0x000000, 0x80000, CRC(89a8fe7d) SHA1(dff06f7313af22c6c19b1f00c0651a64cc505fe2))
-	
+
 	ROM_REGION( 0x2000, "speech", 0 )
 	ROM_LOAD( "csm10150an.u1", 0x0000, 0x2000, NO_DUMP ) // TSP50C10 (8K bytes of ROM) labeled "64C_4TT VIDEO TECH CSM10150AN"
 ROM_END

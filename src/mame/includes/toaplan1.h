@@ -27,7 +27,7 @@ public:
 		m_sharedram(*this, "sharedram"),
 		m_dswb_io(*this, "DSWB"),
 		m_tjump_io(*this, "TJUMP"),
-		m_spriteram(*this, "spriteram"),
+		m_spriteram(*this, "spriteram", 0x800, ENDIANNESS_BIG),
 		m_maincpu(*this, "maincpu"),
 		m_audiocpu(*this, "audiocpu"),
 		m_ymsnd(*this, "ymsnd"),
@@ -66,7 +66,7 @@ protected:
 	std::unique_ptr<u16[]> m_tilevram[0];   //  \/
 	*/
 
-	optional_shared_ptr<u16> m_spriteram;
+	memory_share_creator<u16> m_spriteram;
 	std::unique_ptr<u16[]> m_buffered_spriteram;
 	std::unique_ptr<u16[]> m_spritesizeram;
 	std::unique_ptr<u16[]> m_buffered_spritesizeram;
@@ -97,7 +97,7 @@ protected:
 	void coin_w(u8 data);
 
 	u16 frame_done_r();
-	DECLARE_WRITE16_MEMBER(tile_offsets_w);
+	void tile_offsets_w(offs_t offset, u16 data, u16 mem_mask = ~0);
 	void bcu_flipscreen_w(u8 data);
 	void fcu_flipscreen_w(u8 data);
 	u16 spriteram_offs_r();

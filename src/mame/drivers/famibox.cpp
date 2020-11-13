@@ -104,14 +104,14 @@ private:
 	emu_timer*  m_gameplay_timer;
 	uint8_t       m_money_reg;
 
-	DECLARE_WRITE8_MEMBER(famibox_nt_w);
-	DECLARE_READ8_MEMBER(famibox_nt_r);
-	DECLARE_WRITE8_MEMBER(sprite_dma_w);
-	DECLARE_READ8_MEMBER(famibox_IN0_r);
-	DECLARE_WRITE8_MEMBER(famibox_IN0_w);
-	DECLARE_READ8_MEMBER(famibox_IN1_r);
-	DECLARE_READ8_MEMBER(famibox_system_r);
-	DECLARE_WRITE8_MEMBER(famibox_system_w);
+	void famibox_nt_w(offs_t offset, uint8_t data);
+	uint8_t famibox_nt_r(offs_t offset);
+	void sprite_dma_w(address_space &space, uint8_t data);
+	uint8_t famibox_IN0_r();
+	void famibox_IN0_w(uint8_t data);
+	uint8_t famibox_IN1_r();
+	uint8_t famibox_system_r(offs_t offset);
+	void famibox_system_w(offs_t offset, uint8_t data);
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 	virtual void video_start() override;
@@ -120,6 +120,7 @@ private:
 	void famicombox_bankswitch(uint8_t bank);
 	void famicombox_reset();
 	void famibox_map(address_map &map);
+	void famibox_ppu_map(address_map &map);
 };
 
 /******************************************************
@@ -162,14 +163,14 @@ void famibox_state::set_mirroring(int mirroring)
 }
 #endif
 
-WRITE8_MEMBER(famibox_state::famibox_nt_w)
+void famibox_state::famibox_nt_w(offs_t offset, uint8_t data)
 {
 	int page = ((offset & 0xc00) >> 10);
 	m_nt_page[page][offset & 0x3ff] = data;
 }
 
 
-READ8_MEMBER(famibox_state::famibox_nt_r)
+uint8_t famibox_state::famibox_nt_r(offs_t offset)
 {
 	int page = ((offset & 0xc00) >> 10);
 	return m_nt_page[page][offset & 0x3ff];
@@ -181,7 +182,7 @@ READ8_MEMBER(famibox_state::famibox_nt_r)
 
 *******************************************************/
 
-WRITE8_MEMBER(famibox_state::sprite_dma_w)
+void famibox_state::sprite_dma_w(address_space &space, uint8_t data)
 {
 	int source = (data & 7);
 	m_ppu->spriteram_dma(space, source);
@@ -196,12 +197,12 @@ WRITE8_MEMBER(famibox_state::sprite_dma_w)
 *******************************************************/
 
 
-READ8_MEMBER(famibox_state::famibox_IN0_r)
+uint8_t famibox_state::famibox_IN0_r()
 {
 	return ((m_in_0 >> m_in_0_shift++) & 0x01) | 0x40;
 }
 
-WRITE8_MEMBER(famibox_state::famibox_IN0_w)
+void famibox_state::famibox_IN0_w(uint8_t data)
 {
 	if (data & 0x01)
 	{
@@ -215,7 +216,7 @@ WRITE8_MEMBER(famibox_state::famibox_IN0_w)
 	m_in_1 = ioport("P2")->read();
 }
 
-READ8_MEMBER(famibox_state::famibox_IN1_r)
+uint8_t famibox_state::famibox_IN1_r()
 {
 	return ((m_in_1 >> m_in_1_shift++) & 0x01) | 0x40;
 }
@@ -300,7 +301,7 @@ TIMER_CALLBACK_MEMBER(famibox_state::famicombox_gameplay_timer_callback)
 	}
 }
 
-READ8_MEMBER(famibox_state::famibox_system_r)
+uint8_t famibox_state::famibox_system_r(offs_t offset)
 {
 	switch( offset & 0x07 )
 	{
@@ -322,7 +323,7 @@ READ8_MEMBER(famibox_state::famibox_system_r)
 	}
 }
 
-WRITE8_MEMBER(famibox_state::famibox_system_w)
+void famibox_state::famibox_system_w(offs_t offset, uint8_t data)
 {
 	switch( offset & 0x07 )
 	{
@@ -386,6 +387,12 @@ void famibox_state::famibox_map(address_map &map)
 	map(0x6000, 0x7fff).ram();
 	map(0x8000, 0xbfff).bankr("cpubank1");
 	map(0xc000, 0xffff).bankr("cpubank2");
+}
+
+void famibox_state::famibox_ppu_map(address_map &map)
+{
+	map(0x0000, 0x1fff).bankr("ppubank1");
+	map(0x2000, 0x3eff).rw(FUNC(famibox_state::famibox_nt_r), FUNC(famibox_state::famibox_nt_w));
 }
 
 /******************************************************
@@ -510,11 +517,7 @@ void famibox_state::machine_start()
 	m_nt_page[2] = m_nt_ram.get() + 0x800;
 	m_nt_page[3] = m_nt_ram.get() + 0xc00;
 
-	m_ppu->space(AS_PROGRAM).install_readwrite_handler(0x2000, 0x3eff, read8_delegate(*this, FUNC(famibox_state::famibox_nt_r)), write8_delegate(*this, FUNC(famibox_state::famibox_nt_w)));
-	m_ppu->space(AS_PROGRAM).install_read_bank(0x0000, 0x1fff, "ppubank1");
-
 	famicombox_bankswitch(0);
-
 
 	m_attract_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(famibox_state::famicombox_attract_timer_callback),this));
 	m_gameplay_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(famibox_state::famicombox_gameplay_timer_callback),this));
@@ -539,6 +542,7 @@ void famibox_state::famibox(machine_config &config)
 	screen.set_screen_update("ppu", FUNC(ppu2c0x_device::screen_update));
 
 	PPU_2C02(config, m_ppu);
+	m_ppu->set_addrmap(0, &famibox_state::famibox_ppu_map);
 	m_ppu->set_cpu_tag(m_maincpu);
 	m_ppu->int_callback().set_inputline(m_maincpu, INPUT_LINE_NMI);
 

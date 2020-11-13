@@ -30,6 +30,8 @@
 #include "speaker.h"
 
 
+namespace {
+
 class metlfrzr_state : public driver_device
 {
 public:
@@ -48,10 +50,12 @@ public:
 
 	void init_metlfrzr();
 
-private:
+protected:
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 	virtual void video_start() override;
+
+private:
 	void legacy_bg_draw(bitmap_ind16 &bitmap, const rectangle &cliprect);
 	void legacy_obj_draw(bitmap_ind16 &bitmap, const rectangle &cliprect);
 
@@ -64,7 +68,7 @@ private:
 	required_device<palette_device> m_palette;
 	required_device<gfxdecode_device> m_gfxdecode;
 
-	DECLARE_WRITE8_MEMBER(output_w);
+	void output_w(uint8_t data);
 	TIMER_DEVICE_CALLBACK_MEMBER(scanline);
 	uint8_t m_fg_tilebank;
 	bool m_rowscroll_enable;
@@ -75,6 +79,11 @@ private:
 
 void metlfrzr_state::video_start()
 {
+	m_fg_tilebank = 0;
+	m_rowscroll_enable = false;
+
+	save_item(NAME(m_fg_tilebank));
+	save_item(NAME(m_rowscroll_enable));
 }
 
 /*
@@ -164,7 +173,7 @@ uint32_t metlfrzr_state::screen_update_metlfrzr(screen_device &screen, bitmap_in
 	return 0;
 }
 
-WRITE8_MEMBER(metlfrzr_state::output_w)
+void metlfrzr_state::output_w(uint8_t data)
 {
 	// bit 7: flip screen
 	// bit 6-5: coin lockouts
@@ -466,6 +475,7 @@ void metlfrzr_state::init_metlfrzr()
 	}
 }
 
+} // Anonymous namespace
 
 
-GAME( 1989, metlfrzr,  0,    metlfrzr, metlfrzr, metlfrzr_state, init_metlfrzr, ROT270, "Seibu Kaihatsu", "Metal Freezer (Japan)", MACHINE_NO_COCKTAIL )
+GAME( 1989, metlfrzr,  0,    metlfrzr, metlfrzr, metlfrzr_state, init_metlfrzr, ROT270, "Seibu Kaihatsu", "Metal Freezer (Japan)", MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )

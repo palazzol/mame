@@ -17,57 +17,114 @@
 Kyros no Yakata
 Alpha Denshi, 1986
 
-PCB Layout:
-
+PCB Layout
+----------
 Main Board
+
+(no PCB number)
 |----------------------------------------------------------|
 |                                                          |
 | 0.1T                                              24MHz  |
 |                                                          |
-| 15.3T                                                    |
-|         PROMG.4R          5814                           |
-| 16.5T   PROMR.5R PROMH.5P 5814                  DSW1(8)  |
-|         PROMB.6R PROML.6P                                |
-| 17.7T                                           MCU      |
-|                             2016 2016                    |
-| 18.9T   9.9S 8.9R           2016 2016                    |
-|                                                          |
+| 15.3T                  5814                              |
+|         PROMG.4R                             SW1  |   | 1|
+| 16.5T   PROMR.5R PROMH.5P 5814                    |   | 8|
+|         PROMB.6R PROML.6P                         |   | W|
+| 17.7T                                        8511 |   | A|
+|                             2016 2016             |   | Y|
+| 18.9T   9.9S 8.9R           2016 2016             |   |  |
+|                                                   |   |  |
 | 19.11T                            68000 2016 2.10C 4.10A |
 |              14.12R  12.12N             2016             |
 | 20.13T           13.12P  11.12M              1.13C 3.13A |
-|                                                          |
+|CN                                                        |
 |----------------------------------------------------------|
+Notes:
+         68000 clock - 6.000MHz [24/4]
+                2016 - 2kx8 SRAM
+                5814 - 2kx8 SRAM
+                  CN - 18-pin flat cable connector joining to sound PCB
+                   | - ALPHA-INPUT84 custom ceramic module (x2)
+                 SW1 - 8-position DIP Switch
+               VSync - 60Hz
+               HSync - 15.20kHz
+                8511 - Alpha 8511 Microcontroller at location 7C. '8511' is silkscreened on the PCB.
+                       Clock input 3.000MHz [24/8] (measured on pin 5).
+                       The chip is pin-compatible with Motorola MC68705U3, Motorola MC6805U2
+                       and Hitachi HD6805U1. The 4k MC68705U3 dump in MAME is from a bootleg PCB.
 
 Sound Board
+-----------
+
+SOUND BOARD NO.60MC01
 |---------------------|
+| 40174   324  UPC1181|
+| 4013     VOL  VOL   |
+| YM3014  324        6|
+|                    W|
+| YM2203  AY-3-8910  A|
+|                    Y|
+|         AY-3-8910   |
 |                     |
-|                     |
-| YM3014              |
-|                     |
-| YM2203    AY-3-8910 |
-|                     |
-|           AY-3-8910 |
-|                     |
-|                     |
+| DIP28               |
 |                     |
 | 2.1F 2114           |
 |      2114           |
 | 1.1D          16MHz |
 |                     |
 |  Z80                |
-|                     |
+|CN                   |
 |---------------------|
-
 Notes:
-        68k clock: 6.000MHz
-        Z80 clock: 4.000MHz
-            VSync: 60Hz
-            HSync: 15.20kHz
-  AY-3-8910 clock: 2.000MHz
-     YM2203 clock: 2.000MHz
-Unknown MCU clock: 3.000MHz (measured on pin 5)
+      Z80 clock - 4.000MHz [16/4]. The actual chip is a NEC D780C-1
+AY-3-8910 clock - 2.000MHz [16/8]
+   YM2203 clock - 2.000MHz [16/8]
+         YM3014 - Yamaha YM3014 DAC. Clock input 1.33333MHz [16/12]
+        UPC1181 - Power AMP IC
+            324 - LM324 Quad Op Amp
+           2114 - 1kx4 SRAM
+           40xx - 4000-series logic chips
+             CN - 18-pin flat cable connector joining to main PCB
+          DIP28 - Empty socket
+
+PCB Pinout
+----------
+
+       18-WAY Connector (Main)
+           Parts   Solder
+         -----------------
+          +5V A1   B1 +5V
+          +5V A2   B2 +5V
+        1P UP A3   B3 2P DOWN
+      1P DOWN A4   B4 2P RIGHT
+     1P RIGHT A5   B5 2P LEFT
+      1P LEFT A6   B6 2P BUTTON 1
+  1P BUTTON 1 A7   B7 -
+  1P BUTTON 2 A8   B8 -
+           -  A9   B9 COIN 1
+    1P START A10   B10 COIN 2
+       2P UP A11   B11 2P BUTTON 2
+       GREEN A12   B12 -
+        BLUE A13   B13 2P START
+         RED A14   B14 -
+        SYNC A15   B15 -
+         GND A16   B16 GND
+         GND A17   B17 GND
+         GND A18   B18 GND
+
+6-WAY Connector (Sound)
+    Parts   Solder
+  -----------------
+  +12V A1   B1 +12V
+     - A2   B2 -
+   +5V A3   B3 +5V
+  SPK+ A4   B4 SPK+
+  SPK- A5   B5 GND
+   GND A6   B6 GND
+
 
 ***************************************************************************/
+
 
 #include "emu.h"
 #include "includes/alpha68k.h"
@@ -557,10 +614,10 @@ static INPUT_PORTS_START( sstingry )
 	ALPHA68K_PLAYER_INPUT_SWAP_LR_MSB( 2, IPT_UNKNOWN, IPT_START2, IP_ACTIVE_HIGH )
 
 	PORT_START("IN1")
-	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x01, 0x01, DEF_STR( Demo_Sounds ) )  PORT_DIPLOCATION("SW1:!1")
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x01, DEF_STR( On ) )
-	PORT_DIPNAME( 0x0e, 0x00, DEF_STR( Coinage ) )
+	PORT_DIPNAME( 0x0e, 0x00, DEF_STR( Coinage ) )      PORT_DIPLOCATION("SW1:!2,!3,!4")
 	PORT_DIPSETTING(    0x00, "A 1C/1C B 1C/1C" )
 	PORT_DIPSETTING(    0x02, "A 1C/2C B 2C/1C" )
 	PORT_DIPSETTING(    0x04, "A 1C/3C B 3C/1C" )
@@ -569,15 +626,15 @@ static INPUT_PORTS_START( sstingry )
 	PORT_DIPSETTING(    0x0a, "A 1C/6C B 6C/1C" )
 	PORT_DIPSETTING(    0x0c, "A 2C/3C B 7C/1C" )
 	PORT_DIPSETTING(    0x0e, "A 3C/2C B 8C/1C" )
-	PORT_DIPNAME( 0x30, 0x00, DEF_STR( Lives ) )
+	PORT_DIPNAME( 0x30, 0x00, DEF_STR( Lives ) )        PORT_DIPLOCATION("SW1:!5,!6")
 	PORT_DIPSETTING(    0x00, "3" )
 	PORT_DIPSETTING(    0x10, "4" )
 	PORT_DIPSETTING(    0x20, "5" )
 	PORT_DIPSETTING(    0x30, "6" )
-	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Unused ) )
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Unused ) )       PORT_DIPLOCATION("SW1:!7")
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( On ) )
-	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Cabinet ) )
+	PORT_DIPNAME( 0x80, 0x00, DEF_STR( Cabinet ) )      PORT_DIPLOCATION("SW1:!8")
 	PORT_DIPSETTING(    0x00, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Cocktail ) )
 
@@ -590,7 +647,7 @@ static INPUT_PORTS_START( kyros )
 	ALPHA68K_PLAYER_INPUT_SWAP_LR_MSB( 2, IPT_UNKNOWN, IPT_START2, IP_ACTIVE_HIGH )
 
 	PORT_START("IN1")  /* dipswitches */
-	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Demo_Sounds ) )  PORT_DIPLOCATION("SW1:1")
+	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Demo_Sounds ) )  PORT_DIPLOCATION("SW1:!1")
 	PORT_DIPSETTING(    0x01, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x0e, 0x0e, DEF_STR( Coinage ) )      PORT_DIPLOCATION("SW1:2,3,4")
@@ -602,15 +659,15 @@ static INPUT_PORTS_START( kyros )
 	PORT_DIPSETTING(    0x04, "A 1C/6C B 6C/1C" )
 	PORT_DIPSETTING(    0x08, "A 2C/3C B 7C/1C" )
 	PORT_DIPSETTING(    0x00, "A 3C/2C B 8C/1C" )
-	PORT_DIPNAME( 0x30, 0x00, DEF_STR( Lives ) )        PORT_DIPLOCATION("SW1:5,6")
+	PORT_DIPNAME( 0x30, 0x00, DEF_STR( Lives ) )        PORT_DIPLOCATION("SW1:!5,!6")
 	PORT_DIPSETTING(    0x00, "3" )
 	PORT_DIPSETTING(    0x10, "4" )
 	PORT_DIPSETTING(    0x20, "5" )
 	PORT_DIPSETTING(    0x30, "6" )
-	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Difficulty ) )   PORT_DIPLOCATION("SW1:7")
+	PORT_DIPNAME( 0x40, 0x00, DEF_STR( Difficulty ) )   PORT_DIPLOCATION("SW1:!7")
 	PORT_DIPSETTING(    0x00, DEF_STR( Easy ) )
 	PORT_DIPSETTING(    0x40, DEF_STR( Hard ) )
-	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Cabinet ) )      PORT_DIPLOCATION("SW1:8")
+	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Cabinet ) )      PORT_DIPLOCATION("SW1:!8")
 	PORT_DIPSETTING(    0x80, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
 
@@ -626,27 +683,27 @@ static INPUT_PORTS_START( jongbou )
 	PORT_BIT( 0x8000, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(2)
 
 	PORT_START("IN1")
-	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Lives ) )
+	PORT_DIPNAME( 0x01, 0x00, DEF_STR( Lives ) )       PORT_DIPLOCATION("SW1:!1")
 	PORT_DIPSETTING(    0x00, "3" )
 	PORT_DIPSETTING(    0x01, "5" )
-	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Coinage ) )
+	PORT_DIPNAME( 0x02, 0x00, DEF_STR( Coinage ) )     PORT_DIPLOCATION("SW1:!2")
 	PORT_DIPSETTING(    0x00, "A 1C/1C B 1C/5C" )
 	PORT_DIPSETTING(    0x02, "A 1C/2C B 1C/3C" )
-	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Bonus_Life ) )
+	PORT_DIPNAME( 0x04, 0x00, DEF_STR( Bonus_Life ) )  PORT_DIPLOCATION("SW1:!3")
 	PORT_DIPSETTING(    0x00, "30000 - 60000" )
 	PORT_DIPSETTING(    0x04, "Every 30000" )
-	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Demo_Sounds ) )
+	PORT_DIPNAME( 0x08, 0x00, DEF_STR( Demo_Sounds ) ) PORT_DIPLOCATION("SW1:!4")
 	PORT_DIPSETTING(    0x08, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_DIPNAME( 0x30, 0x00, DEF_STR( Difficulty ) )
+	PORT_DIPNAME( 0x30, 0x00, DEF_STR( Difficulty ) )  PORT_DIPLOCATION("SW1:!5,!6")
 	PORT_DIPSETTING(    0x00, DEF_STR( Easy ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Normal ) )
 	PORT_DIPSETTING(    0x10, DEF_STR( Hard ) )
 	PORT_DIPSETTING(    0x30, DEF_STR( Very_Hard ) )
-	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Cabinet ) )
+	PORT_DIPNAME( 0x40, 0x40, DEF_STR( Cabinet ) )     PORT_DIPLOCATION("SW1:!7")
 	PORT_DIPSETTING(    0x40, DEF_STR( Upright ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( Cocktail ) )
-	PORT_DIPNAME( 0x80, 0x80, "Show Girls" )
+	PORT_DIPNAME( 0x80, 0x80, "Show Girls" )           PORT_DIPLOCATION("SW1:!8")
 	PORT_DIPSETTING(    0x00, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
 
@@ -730,9 +787,6 @@ void sstingray_state::sstingry(machine_config &config)
 	ym3.add_route(ALL_OUTPUTS, "speaker", 0.5);
 
 	DAC_8BIT_R2R(config, "dac", 0).add_route(ALL_OUTPUTS, "speaker", 0.75); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref", 0));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 void kyros_state::kyros(machine_config &config)
@@ -766,9 +820,6 @@ void kyros_state::kyros(machine_config &config)
 	ym3.add_route(ALL_OUTPUTS, "speaker", 0.9);
 
 	DAC_8BIT_R2R(config, "dac", 0).add_route(ALL_OUTPUTS, "speaker", 0.75); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref", 0));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 void jongbou_state::jongbou(machine_config &config)

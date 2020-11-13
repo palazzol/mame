@@ -46,10 +46,10 @@ public:
 	auto mcu_int() { return m_mcu_int_callback.bind(); }
 
 	// public interface
-	DECLARE_READ8_MEMBER( read );
-	DECLARE_WRITE8_MEMBER( write );
-	DECLARE_READ8_MEMBER( pread );
-	DECLARE_WRITE8_MEMBER( pwrite );
+	u8 read(address_space &space, offs_t offset);
+	void write(offs_t offset, u8 data);
+	u8 pread();
+	void pwrite(u8 data);
 
 	// mapping helpers
 	void map_as_rom(u32 offset, u32 length, offs_t mirror, const char *bank_name, const char *decrypted_bank_name, offs_t rgnoffset, write16_delegate whandler);
@@ -92,17 +92,15 @@ private:
 		// configuration
 		void set_decrypt(fd1089_base_device *fd1089);
 		void set_decrypt(fd1094_device *fd1094);
-		void clear() { set(nullptr, nullptr, 0, 0, ~0, nullptr); }
-		void set(memory_bank *bank, memory_bank *decrypted_bank, offs_t start, offs_t end, offs_t rgnoffs, u8 *src);
+		void clear() { set(0, 0, ~0, nullptr); }
+		void *set(offs_t start, offs_t end, offs_t rgnoffs, void *src);
 
 		// updating
-		void update();
+		void *update();
 		void reset() { m_fd1089_decrypted.clear(); if (m_fd1094_cache != nullptr) m_fd1094_cache->reset(); }
 
 	private:
 		// internal state
-		memory_bank *      m_bank;
-		memory_bank *      m_decrypted_bank;
 		offs_t             m_start;
 		offs_t             m_end;
 		offs_t             m_rgnoffs;

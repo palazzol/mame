@@ -102,9 +102,9 @@ private:
 	required_memory_bank m_rombank;
 	required_ioport m_in0;
 
-	DECLARE_READ8_MEMBER(magtouch_io_r);
-	DECLARE_WRITE8_MEMBER(magtouch_io_w);
-	DECLARE_WRITE8_MEMBER(dma8237_1_dack_w);
+	uint8_t magtouch_io_r(offs_t offset);
+	void magtouch_io_w(offs_t offset, uint8_t data);
+	void dma8237_1_dack_w(uint8_t data);
 	virtual void machine_start() override;
 	static void magtouch_sb_conf(device_t *device);
 	void magtouch_io(address_map &map);
@@ -117,7 +117,7 @@ private:
  *
  *************************************/
 
-READ8_MEMBER(magtouch_state::magtouch_io_r)
+uint8_t magtouch_state::magtouch_io_r(offs_t offset)
 {
 	switch(offset)
 	{
@@ -128,7 +128,7 @@ READ8_MEMBER(magtouch_state::magtouch_io_r)
 	}
 }
 
-WRITE8_MEMBER(magtouch_state::magtouch_io_w)
+void magtouch_state::magtouch_io_w(offs_t offset, uint8_t data)
 {
 	switch(offset)
 	{
@@ -145,7 +145,7 @@ void magtouch_state::magtouch_map(address_map &map)
 	map(0x000c0000, 0x000c7fff).rom().region("video_bios", 0);
 	map(0x000d0000, 0x000d1fff).ram().share("nvram");
 	map(0x000d8000, 0x000dffff).bankr("rombank");
-	map(0x000f0000, 0x000fffff).ram().region("bios", 0);
+	map(0x000f0000, 0x000fffff).rom().region("bios", 0);
 	map(0xffff0000, 0xffffffff).rom().region("bios", 0);
 }
 
@@ -169,7 +169,7 @@ static INPUT_PORTS_START( magtouch )
 INPUT_PORTS_END
 
 //TODO: use atmb device
-WRITE8_MEMBER( magtouch_state::dma8237_1_dack_w ){ m_isabus->dack_w(1, data); }
+void magtouch_state::dma8237_1_dack_w(uint8_t data) { m_isabus->dack_w(1, data); }
 
 void magtouch_state::machine_start()
 {

@@ -97,6 +97,7 @@ driver modified by Hau
 #include "cpu/m68000/m68000.h"
 #include "cpu/upd7810/upd7810.h"
 #include "cpu/h8/h83006.h"
+#include "cpu/z8/z8.h"
 #include "machine/watchdog.h"
 #include "sound/msm5205.h"
 #include "sound/ym2413.h"
@@ -133,7 +134,7 @@ u8 metro_state::irq_cause_r(offs_t offset)
 
 	*/
 
-	uint8_t res = 0;
+	u8 res = 0;
 	for (int i = 0; i < 8; i++)
 		res |= (m_requested_int[i] << i);
 
@@ -145,12 +146,12 @@ u8 metro_state::irq_cause_r(offs_t offset)
 void metro_state::update_irq_state()
 {
 	/*  Get the pending IRQs (only the enabled ones, e.g. where irq_enable is *0*)  */
-	uint8_t irq = irq_cause_r(0) & ~*m_irq_enable;
+	u8 irq = irq_cause_r(0) & ~*m_irq_enable;
 
 	if (m_irq_line == -1)    /* mouja, gakusai, gakusai2, dokyusei, dokyusp */
 	{
 		/*  This is for games that supply an *IRQ Vector* on the data bus together with an IRQ level for each possible IRQ source */
-		uint8_t irq_level[8] = { 0 };
+		u8 irq_level[8] = { 0 };
 		int i;
 
 		for (i = 0; i < 8; i++)
@@ -172,7 +173,7 @@ void metro_state::update_irq_state()
 
 
 /* For games that supply an *IRQ Vector* on the data bus */
-uint8_t metro_state::irq_vector_r(offs_t offset)
+u8 metro_state::irq_vector_r(offs_t offset)
 {
 	// logerror("%s: irq callback returns %04X\n", machine().describe_context(), m_irq_vectors[offset]);
 	return m_irq_vectors[offset] & 0xff;
@@ -270,7 +271,7 @@ WRITE_LINE_MEMBER(metro_state::karatour_vblank_irq)
 	}
 }
 
-WRITE16_MEMBER(metro_state::mouja_irq_timer_ctrl_w)
+void metro_state::mouja_irq_timer_ctrl_w(uint16_t data)
 {
 	double freq = 58.0 + (0xff - (data & 0xff)) / 2.2; /* 0xff=58Hz, 0x80=116Hz? */
 
@@ -301,24 +302,29 @@ WRITE_LINE_MEMBER(metro_state::puzzlet_vblank_irq)
 
 READ_LINE_MEMBER(metro_state::rxd_r)
 {
-	uint8_t data = m_soundlatch->read();
+	u8 data = m_sound_data;
 
-	m_soundlatch->write(data >> 1);
+	// TODO: shift on SCK falling edges
+	m_sound_data >>= 1;
 
 	return data & 1;
 
 }
 
-WRITE8_MEMBER(metro_state::soundlatch_w)
+void metro_state::sound_data_w(u8 data)
 {
-	m_soundlatch->write(data & 0xff);
+	machine().scheduler().synchronize(timer_expired_delegate(FUNC(metro_state::sound_data_sync), this), data);
 	m_audiocpu->pulse_input_line(INPUT_LINE_NMI, attotime::zero); // seen rxd_r
-	m_maincpu->spin_until_interrupt();
+}
+
+TIMER_CALLBACK_MEMBER(metro_state::sound_data_sync)
+{
+	m_sound_data = param;
 	m_busy_sndcpu = 1;
 }
 
 
-READ8_MEMBER(metro_state::soundstatus_r)
+u8 metro_state::soundstatus_r()
 {
 	return (m_busy_sndcpu ? 0x00 : 0x01);
 }
@@ -328,36 +334,36 @@ READ_LINE_MEMBER(metro_state::custom_soundstatus_r)
 	return (m_busy_sndcpu ? 1 : 0);
 }
 
-WRITE8_MEMBER(metro_state::soundstatus_w)
+void metro_state::soundstatus_w(u8 data)
 {
 	m_soundstatus = data & 0x01;
 }
 
 template<int Mask>
-WRITE8_MEMBER(metro_state::upd7810_rombank_w)
+void metro_state::upd7810_rombank_w(u8 data)
 {
 	m_audiobank->set_entry((data >> 4) & Mask);
 }
 
 
-READ8_MEMBER(metro_state::upd7810_porta_r)
+u8 metro_state::upd7810_porta_r()
 {
 	return m_porta;
 }
 
-WRITE8_MEMBER(metro_state::upd7810_porta_w)
+void metro_state::upd7810_porta_w(u8 data)
 {
 	m_porta = data;
 }
 
-WRITE8_MEMBER(metro_state::upd7810_portb_w)
+void metro_state::upd7810_portb_w(u8 data)
 {
 	/* port B layout:
 	   7 !clock latch for message to main CPU
 	   6
 	   5 !clock YM2413 I/O
 	   4 !clock MSM6295 I/O
-	   3
+	   3 !enable read from 6295
 	   2 !enable write to YM2413/6295
 	   1 select YM2413 register or data port
 	   0
@@ -388,11 +394,18 @@ WRITE8_MEMBER(metro_state::upd7810_portb_w)
 			m_oki->write(m_porta);
 	}
 
+	if (BIT(m_portb, 3) && !BIT(data, 3))   /* clock 1->0 */
+	{
+		/* read */
+		if (!BIT(data, 4))
+			m_porta = m_oki->read();
+	}
+
 	m_portb = data;
 }
 
 
-WRITE8_MEMBER(metro_state::daitorid_portb_w)
+void metro_state::daitorid_portb_w(u8 data)
 {
 	/* port B layout:
 	   7 !clock latch for message to main CPU
@@ -456,7 +469,7 @@ WRITE8_MEMBER(metro_state::daitorid_portb_w)
 
 ***************************************************************************/
 
-WRITE8_MEMBER(metro_state::coin_lockout_1word_w)
+void metro_state::coin_lockout_1word_w(u8 data)
 {
 	machine().bookkeeping().coin_counter_w(0, BIT(data, 0));
 	machine().bookkeeping().coin_counter_w(1, BIT(data, 1));
@@ -466,7 +479,7 @@ WRITE8_MEMBER(metro_state::coin_lockout_1word_w)
 
 // value written doesn't matter, also each counted coin gets reported after one full second.
 // TODO: maybe the counter also controls lockout?
-WRITE16_MEMBER(metro_state::coin_lockout_4words_w)
+void metro_state::coin_lockout_4words_w(offs_t offset, uint16_t data)
 {
 	machine().bookkeeping().coin_counter_w((offset >> 1) & 1, offset & 1);
 //  machine().bookkeeping().coin_lockout_w((offset >> 1) & 1, offset & 1);
@@ -516,7 +529,7 @@ void metro_state::ymf278_map(address_map &map)
 ***************************************************************************/
 
 /* Really weird way of mapping 3 DSWs */
-READ16_MEMBER(metro_state::balcube_dsw_r)
+uint16_t metro_state::balcube_dsw_r(offs_t offset)
 {
 	uint16_t dsw1 = ioport("DSW0")->read() >> 0;
 	uint16_t dsw2 = ioport("DSW0")->read() >> 8;
@@ -650,7 +663,7 @@ void metro_state::msgogo_map(address_map &map)
 }
 
 /***************************************************************************
-                                Daitoride
+                       Daitoride and Puzzli (revision B)
 ***************************************************************************/
 
 void metro_state::daitorid_map(address_map &map)
@@ -659,7 +672,7 @@ void metro_state::daitorid_map(address_map &map)
 	map(0x400000, 0x47ffff).m(m_vdp2, FUNC(imagetek_i4220_device::v2_map));
 	map(0x4788a3, 0x4788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause / IRQ Acknowledge
 	map(0x4788a4, 0x4788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x4788a9, 0x4788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x4788a9, 0x4788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0x800000, 0x80ffff).ram().mirror(0x0f0000);                         // RAM (mirrored)
 	map(0xc00000, 0xc00001).portr("IN0");
 	map(0xc00001, 0xc00001).w(FUNC(metro_state::soundstatus_w));  // To Sound CPU
@@ -681,7 +694,7 @@ void metro_state::dharma_map(address_map &map)
 	map(0x800000, 0x87ffff).m(m_vdp2, FUNC(imagetek_i4220_device::v2_map));
 	map(0x8788a3, 0x8788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause / IRQ Acknowledge
 	map(0x8788a4, 0x8788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0xc00000, 0xc00001).portr("IN0");
 	map(0xc00001, 0xc00001).w(FUNC(metro_state::soundstatus_w));  // To Sound CPU
 	map(0xc00002, 0xc00003).portr("IN1");                                //
@@ -708,7 +721,7 @@ void metro_state::karatour_map(address_map &map)
 	map(0x800000, 0x87ffff).m(m_vdp, FUNC(imagetek_i4100_device::map));
 	map(0x8788a3, 0x8788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause / IRQ Acknowledge
 	map(0x8788a4, 0x8788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0xf00000, 0xf0ffff).ram().mirror(0x0f0000);                         // RAM (mirrored)
 }
 
@@ -726,7 +739,7 @@ void metro_state::kokushi_map(address_map &map)
 	map(0x800000, 0x87ffff).m(m_vdp2, FUNC(imagetek_i4220_device::v2_map));
 	map(0x8788a3, 0x8788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause /  IRQ Acknowledge
 	map(0x8788a4, 0x8788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0xc00000, 0xc00001).portr("IN0");
 	map(0xc00001, 0xc00001).w(FUNC(metro_state::soundstatus_w));  // To Sound CPU
 	map(0xc00002, 0xc00003).portr("IN1");                                // Inputs
@@ -746,7 +759,7 @@ void metro_state::lastfort_map(address_map &map)
 	map(0x800000, 0x87ffff).m(m_vdp, FUNC(imagetek_i4100_device::map));
 	map(0x8788a3, 0x8788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause / IRQ Acknowledge
 	map(0x8788a4, 0x8788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0xc00001, 0xc00001).rw(FUNC(metro_state::soundstatus_r), FUNC(metro_state::soundstatus_w)); // From / To Sound CPU
 	map(0xc00003, 0xc00003).w(FUNC(metro_state::coin_lockout_1word_w));               // Coin Lockout
 	map(0xc00004, 0xc00005).portr("IN0");                                // Inputs
@@ -773,7 +786,7 @@ void metro_state::lastforg_map(address_map &map)
 	map(0x880000, 0x8fffff).m(m_vdp, FUNC(imagetek_i4100_device::map));
 	map(0x8f88a3, 0x8f88a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause / IRQ Acknowledge
 	map(0x8f88a4, 0x8f88a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x8f88a9, 0x8f88a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x8f88a9, 0x8f88a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0xc00000, 0xc0ffff).ram().mirror(0x0f0000);                         // RAM (mirrored)
 }
 
@@ -788,20 +801,20 @@ void metro_state::gakusai_oki_bank_set()
 	m_oki->set_rom_bank(bank);
 }
 
-WRITE8_MEMBER(metro_state::gakusai_oki_bank_hi_w)
+void metro_state::gakusai_oki_bank_hi_w(u8 data)
 {
 	m_gakusai_oki_bank_hi = data;
 	gakusai_oki_bank_set();
 }
 
-WRITE8_MEMBER(metro_state::gakusai_oki_bank_lo_w)
+void metro_state::gakusai_oki_bank_lo_w(u8 data)
 {
 	m_gakusai_oki_bank_lo = data;
 	gakusai_oki_bank_set();
 }
 
 
-READ16_MEMBER(metro_state::gakusai_input_r)
+uint16_t metro_state::gakusai_input_r()
 {
 	uint16_t input_sel = (*m_input_sel) ^ 0x3e;
 	// Bit 0 ??
@@ -813,12 +826,12 @@ READ16_MEMBER(metro_state::gakusai_input_r)
 	return 0xffff;
 }
 
-READ8_MEMBER(metro_state::gakusai_eeprom_r)
+u8 metro_state::gakusai_eeprom_r()
 {
 	return m_eeprom->do_read() & 1;
 }
 
-WRITE8_MEMBER(metro_state::gakusai_eeprom_w)
+void metro_state::gakusai_eeprom_w(u8 data)
 {
 	// latch the bit
 	m_eeprom->di_write(BIT(data, 0));
@@ -882,7 +895,7 @@ void metro_state::gakusai2_map(address_map &map)
                         Mahjong Doukyuusei Special
 ***************************************************************************/
 
-READ8_MEMBER(metro_state::dokyusp_eeprom_r)
+u8 metro_state::dokyusp_eeprom_r()
 {
 	// clock line asserted: write latch or select next bit to read
 	m_eeprom->clk_write(CLEAR_LINE);
@@ -891,7 +904,7 @@ READ8_MEMBER(metro_state::dokyusp_eeprom_r)
 	return m_eeprom->do_read() & 1;
 }
 
-WRITE8_MEMBER(metro_state::dokyusp_eeprom_bit_w)
+void metro_state::dokyusp_eeprom_bit_w(u8 data)
 {
 	// latch the bit
 	m_eeprom->di_write(BIT(data, 0));
@@ -901,7 +914,7 @@ WRITE8_MEMBER(metro_state::dokyusp_eeprom_bit_w)
 	m_eeprom->clk_write(ASSERT_LINE);
 }
 
-WRITE8_MEMBER(metro_state::dokyusp_eeprom_reset_w)
+void metro_state::dokyusp_eeprom_reset_w(u8 data)
 {
 	// reset line asserted: reset.
 	m_eeprom->cs_write(BIT(data, 0) ? ASSERT_LINE : CLEAR_LINE);
@@ -967,7 +980,7 @@ void metro_state::pangpoms_map(address_map &map)
 	map(0x400000, 0x47ffff).m(m_vdp, FUNC(imagetek_i4100_device::map));
 	map(0x4788a3, 0x4788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w));  // IRQ Cause / IRQ Acknowledge
 	map(0x4788a4, 0x4788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x4788a9, 0x4788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x4788a9, 0x4788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0x800001, 0x800001).rw(FUNC(metro_state::soundstatus_r), FUNC(metro_state::soundstatus_w));  // From / To Sound CPU
 	map(0x800002, 0x800003).nopr();
 	map(0x800003, 0x800003).w(FUNC(metro_state::coin_lockout_1word_w));    // Coin Lockout
@@ -998,7 +1011,7 @@ void metro_state::poitto_map(address_map &map)
 	map(0xc00000, 0xc7ffff).m(m_vdp, FUNC(imagetek_i4100_device::map));
 	map(0xc788a3, 0xc788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w));  // IRQ Cause / IRQ Acknowledge
 	map(0xc788a4, 0xc788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0xc788a9, 0xc788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0xc788a9, 0xc788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 }
 
 
@@ -1021,13 +1034,13 @@ void metro_state::skyalert_map(address_map &map)
 	map(0x800000, 0x87ffff).m(m_vdp, FUNC(imagetek_i4100_device::map));
 	map(0x8788a3, 0x8788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w));  // IRQ Cause / IRQ Acknowledge
 	map(0x8788a4, 0x8788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0x8788a9, 0x8788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 	map(0xc00000, 0xc0ffff).ram().mirror(0x0f0000);                         // RAM (mirrored)
 }
 
 
 /***************************************************************************
-                                Pururun
+                        Pururun and Puzzli (revision A)
 ***************************************************************************/
 
 void metro_state::pururun_map(address_map &map)
@@ -1043,7 +1056,7 @@ void metro_state::pururun_map(address_map &map)
 	map(0xc00000, 0xc7ffff).m(m_vdp2, FUNC(imagetek_i4220_device::v2_map));
 	map(0xc788a3, 0xc788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w));  // IRQ Cause / IRQ Acknowledge
 	map(0xc788a4, 0xc788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0xc788a9, 0xc788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0xc788a9, 0xc788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 }
 
 
@@ -1064,7 +1077,7 @@ void metro_state::toride2g_map(address_map &map)
 	map(0xc00000, 0xc7ffff).m(m_vdp2, FUNC(imagetek_i4220_device::v2_map));
 	map(0xc788a3, 0xc788a3).rw(FUNC(metro_state::irq_cause_r), FUNC(metro_state::irq_cause_w)); // IRQ Cause / IRQ Acknowledge
 	map(0xc788a4, 0xc788a5).writeonly().share("irq_enable");                // IRQ Enable
-	map(0xc788a9, 0xc788a9).w(FUNC(metro_state::soundlatch_w));                       // To Sound CPU
+	map(0xc788a9, 0xc788a9).w(FUNC(metro_state::sound_data_w));                       // To Sound CPU
 }
 
 
@@ -1072,7 +1085,7 @@ void metro_state::toride2g_map(address_map &map)
                             Blazing Tornado
 ***************************************************************************/
 
-WRITE8_MEMBER(metro_state::blzntrnd_sh_bankswitch_w)
+void metro_state::blzntrnd_sh_bankswitch_w(u8 data)
 {
 	m_audiobank->set_entry(data & 0x07);
 }
@@ -1117,7 +1130,7 @@ void metro_state::blzntrnd_map(address_map &map)
                                     Mouja
 ***************************************************************************/
 
-WRITE8_MEMBER(metro_state::mouja_sound_rombank_w)
+void metro_state::mouja_sound_rombank_w(u8 data)
 {
 	m_okibank->set_entry((data >> 3) & 0x07);
 }
@@ -1153,80 +1166,7 @@ void metro_state::mouja_okimap(address_map &map)
                                 Puzzlet
 ***************************************************************************/
 
-class puzzlet_io_device : public device_t {
-public:
-	puzzlet_io_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
-
-	DECLARE_WRITE_LINE_MEMBER( ce_w );
-	DECLARE_WRITE_LINE_MEMBER( clk_w );
-
-	auto data_callback() { return data_cb.bind(); }
-
-protected:
-	virtual void device_start() override;
-	virtual void device_reset() override;
-
-private:
-	devcb_write_line data_cb;
-	required_ioport port;
-	int ce, clk;
-	int cur_bit;
-	uint8_t value;
-};
-
-DEFINE_DEVICE_TYPE(PUZZLET_IO, puzzlet_io_device, "puzzlet_io", "Puzzlet Coin/Start I/O")
-
-
-puzzlet_io_device::puzzlet_io_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: device_t(mconfig, PUZZLET_IO, tag, owner, clock)
-	, data_cb(*this)
-	, port(*this, ":IN0")
-{
-}
-
-void puzzlet_io_device::device_start()
-{
-	data_cb.resolve_safe();
-	save_item(NAME(ce));
-	save_item(NAME(clk));
-	save_item(NAME(cur_bit));
-	save_item(NAME(value));
-	ce = 1;
-	clk = 1;
-}
-
-void puzzlet_io_device::device_reset()
-{
-	cur_bit = 0;
-	value = 0xff;
-}
-
-WRITE_LINE_MEMBER(puzzlet_io_device::ce_w)
-{
-	if(ce && !state) {
-		value = port->read();
-		cur_bit = 0;
-	} else if(!ce && state)
-		data_cb(1);
-
-	ce = state;
-}
-
-WRITE_LINE_MEMBER(puzzlet_io_device::clk_w)
-{
-	if(clk && !state) {
-		if(cur_bit == 8)
-			data_cb(1);
-		else {
-			data_cb((value >> cur_bit) & 1);
-			cur_bit++;
-		}
-	}
-	clk = state;
-}
-
-
-WRITE16_MEMBER(metro_state::puzzlet_irq_enable_w)
+void metro_state::puzzlet_irq_enable_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	if (ACCESSING_BITS_0_7)
 		*m_irq_enable = data ^ 0xffff;
@@ -1258,7 +1198,7 @@ void metro_state::puzzlet_map(address_map &map)
 }
 
 
-WRITE16_MEMBER(metro_state::puzzlet_portb_w)
+void metro_state::puzzlet_portb_w(uint16_t data)
 {
 //  popmessage("PORTB %02x", data);
 }
@@ -1274,7 +1214,7 @@ void metro_state::puzzlet_io_map(address_map &map)
                                 Varia Metal
 ***************************************************************************/
 
-WRITE8_MEMBER(metro_state::vmetal_control_w)
+void metro_state::vmetal_control_w(u8 data)
 {
 	/* Lower nibble is the coin control bits shown in
 	   service mode, but in game mode they're different */
@@ -1298,7 +1238,7 @@ WRITE8_MEMBER(metro_state::vmetal_control_w)
 		logerror("%s: Writing unknown bits %04x to $200000\n",machine().describe_context(),data);
 }
 
-WRITE8_MEMBER(metro_state::es8712_reset_w)
+void metro_state::es8712_reset_w(u8 data)
 {
 	m_essnd->reset();
 }
@@ -2498,15 +2438,16 @@ INPUT_PORTS_END
 ***************************************************************************/
 
 static INPUT_PORTS_START( puzzlet )
-	PORT_START("IN0")       // IN0 - ser B
+	PORT_START("COIN")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN1 )
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_COIN2 )
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_START2 )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_START1 )
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
+
+	PORT_START("START")
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_COIN2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_START2 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_START1 )
 
 	PORT_START("IN1")       // IN1 - 7f8880.w
 	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNKNOWN )
@@ -2994,6 +2935,7 @@ void metro_state::machine_start()
 	save_item(NAME(m_blitter_bit));
 	save_item(NAME(m_irq_line));
 	save_item(NAME(m_requested_int));
+	save_item(NAME(m_sound_data));
 	save_item(NAME(m_soundstatus));
 	save_item(NAME(m_porta));
 	save_item(NAME(m_portb));
@@ -3149,7 +3091,7 @@ void metro_state::batlbubl(machine_config &config)
 
 void metro_state::metro_upd7810_sound(machine_config &config)
 {
-	upd7810_device &upd(UPD7810(config, m_audiocpu, 24_MHz_XTAL/2));
+	upd78c10_device &upd(UPD78C10(config, m_audiocpu, 24_MHz_XTAL/2));
 	upd.rxd_func().set(FUNC(metro_state::rxd_r));
 	upd.set_addrmap(AS_PROGRAM, &metro_state::upd7810_map);
 	upd.pa_in_cb().set(FUNC(metro_state::upd7810_porta_r));
@@ -3160,7 +3102,7 @@ void metro_state::metro_upd7810_sound(machine_config &config)
 
 void metro_state::daitorid_upd7810_sound(machine_config &config)
 {
-	upd7810_device &upd(UPD7810(config, m_audiocpu, 12_MHz_XTAL));
+	upd78c10_device &upd(UPD78C10(config, m_audiocpu, 12_MHz_XTAL));
 	upd.rxd_func().set(FUNC(metro_state::rxd_r));
 	upd.set_addrmap(AS_PROGRAM, &metro_state::upd7810_map);
 	upd.pa_in_cb().set(FUNC(metro_state::upd7810_porta_r));
@@ -3187,8 +3129,6 @@ void metro_state::daitorid(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	GENERIC_LATCH_8(config, m_soundlatch);
-
 	ym2151_device &ymsnd(YM2151(config, "ymsnd", 3.579545_MHz_XTAL));
 	ymsnd.irq_handler().set_inputline(m_audiocpu, UPD7810_INTF2);
 	ymsnd.add_route(ALL_OUTPUTS, "mono", 0.80);
@@ -3208,6 +3148,13 @@ void metro_state::puzzli(machine_config &config)
 	m_screen->screen_vblank().set_nop();
 }
 
+void metro_state::puzzlia(machine_config &config)
+{
+	puzzli(config);
+
+	m_maincpu->set_addrmap(AS_PROGRAM, &metro_state::pururun_map);
+}
+
 void metro_state::dharma(machine_config &config)
 {
 	/* basic machine hardware */
@@ -3224,8 +3171,6 @@ void metro_state::dharma(machine_config &config)
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
-
-	GENERIC_LATCH_8(config, m_soundlatch);
 
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // sample rate =  M6295 clock / 132
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
@@ -3251,8 +3196,6 @@ void metro_state::karatour(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	GENERIC_LATCH_8(config, m_soundlatch);
-
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // was /128.. so pin 7 not verified
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
 
@@ -3276,8 +3219,6 @@ void metro_state::sankokushi(machine_config &config)
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
-
-	GENERIC_LATCH_8(config, m_soundlatch);
 
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // was /128.. so pin 7 not verified
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
@@ -3304,8 +3245,6 @@ void metro_state::lastfort(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	GENERIC_LATCH_8(config, m_soundlatch);
-
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_LOW); // sample rate =  M6295 clock / 165
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
 
@@ -3328,8 +3267,6 @@ void metro_state::lastforg(machine_config &config)
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
-
-	GENERIC_LATCH_8(config, m_soundlatch);
 
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // was /128.. so pin 7 not verified
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
@@ -3455,8 +3392,6 @@ void metro_state::pangpoms(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	GENERIC_LATCH_8(config, m_soundlatch);
-
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // was /128.. so pin 7 not verified
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
 
@@ -3481,8 +3416,6 @@ void metro_state::poitto(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	GENERIC_LATCH_8(config, m_soundlatch);
-
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // was /128.. so pin 7 not verified
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
 
@@ -3506,8 +3439,6 @@ void metro_state::pururun(machine_config &config)
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
-
-	GENERIC_LATCH_8(config, m_soundlatch);
 
 	ym2151_device &ymsnd(YM2151(config, "ymsnd", 3.579545_MHz_XTAL));  /* Confirmed match to reference video */
 	ymsnd.irq_handler().set_inputline(m_audiocpu, UPD7810_INTF2);
@@ -3534,8 +3465,6 @@ void metro_state::skyalert(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
 
-	GENERIC_LATCH_8(config, m_soundlatch);
-
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_LOW); // sample rate =  M6295 clock / 165
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
 
@@ -3560,8 +3489,6 @@ void metro_state::toride2g(machine_config &config)
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
-
-	GENERIC_LATCH_8(config, m_soundlatch);
 
 	OKIM6295(config, m_oki, 24_MHz_XTAL/20, okim6295_device::PIN7_HIGH); // clock frequency & pin 7 not verified
 	m_oki->add_route(ALL_OUTPUTS, "mono", 0.10);
@@ -3608,8 +3535,10 @@ void metro_state::vmetal(machine_config &config)
 
 	m_screen->screen_vblank().set(FUNC(metro_state::vblank_irq));
 
-	m_vdp2->set_tmap_xoffsets(-16,-16,-16);
-	m_vdp2->set_tmap_yoffsets(-16,-16,-16);
+	m_vdp2->set_tmap_xoffsets(0,0,0);
+	m_vdp2->set_tmap_yoffsets(0,0,0);
+	m_vdp2->set_tmap_flip_xoffsets(16,16,16);
+	m_vdp2->set_tmap_flip_yoffsets(16,16,16);
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
@@ -3706,10 +3635,12 @@ void metro_state::puzzlet(machine_config &config)
 	m_maincpu->set_addrmap(AS_IO, &metro_state::puzzlet_io_map);
 
 	/* Coins/service */
-	puzzlet_io_device &coins(PUZZLET_IO(config, "coins", 0));
-	coins.data_callback().set("maincpu:sci1", FUNC(h8_sci_device::rx_w));
-	subdevice<h8_sci_device>("maincpu:sci1")->tx_handler().set("coins", FUNC(puzzlet_io_device::ce_w));
-	subdevice<h8_sci_device>("maincpu:sci1")->clk_handler().set("coins", FUNC(puzzlet_io_device::clk_w));
+	z8_device &coinmcu(Z86E02(config, "coinmcu", 20_MHz_XTAL/5)); // clock divider guessed
+	coinmcu.p0_in_cb().set_ioport("COIN");
+	coinmcu.p2_in_cb().set_ioport("START");
+	coinmcu.p2_out_cb().set("maincpu:sci1", FUNC(h8_sci_device::rx_w)).bit(6);
+	subdevice<h8_sci_device>("maincpu:sci1")->tx_handler().set_inputline("coinmcu", INPUT_LINE_IRQ2).invert();
+	subdevice<h8_sci_device>("maincpu:sci1")->clk_handler().set_inputline("coinmcu", INPUT_LINE_IRQ0).invert();
 
 	/* video hardware */
 	// TODO: looks like game is running in i4220 compatibilty mode, $778000 seems to be an id for the chip?
@@ -4180,6 +4111,24 @@ ROM_START( dharma )
 	ROM_REGION( 0x040000, "maincpu", 0 )        /* 68000 Code */
 	ROM_LOAD16_BYTE( "dd__wea5.u39", 0x000000, 0x020000, CRC(960319d7) SHA1(f76783fcbb5e5a027889620c783f053d372346a8) )
 	ROM_LOAD16_BYTE( "dd__wea6.u42", 0x000001, 0x020000, CRC(386eb6b3) SHA1(e353ea70bae521c4cc362cf2f5ce643c98c61681) )
+
+	ROM_REGION( 0x20000, "audiocpu", 0 )       /* NEC78C10 Code */
+	ROM_LOAD( "dd__wa-8.u9", 0x000000, 0x020000, CRC(af7ebc4c) SHA1(6abf0036346da10be56932f9674f8c250a3ea592) ) // (c)1992 Imagetek (11xxxxxxxxxxxxxxx = 0xFF) // == dd_ja-8
+
+	ROM_REGION( 0x200000, "vdp2", 0 )   /* Gfx + Data (Addressable by CPU & Blitter) */
+	ROM_LOAD64_WORD( "dd__wa-2.u4",  0x000000, 0x080000, CRC(2c67a5c8) SHA1(777d5f64446004bbb6dafee610ad9a1ff262349d) )
+	ROM_LOAD64_WORD( "dd__wa-4.u5",  0x000002, 0x080000, CRC(36ca7848) SHA1(278788727193ae65ed012d230a4e5966c07afe9e) )
+	ROM_LOAD64_WORD( "dd__wa-1.u10", 0x000004, 0x080000, CRC(d8034574) SHA1(a9bf29ae980033dfaae43b6ab46f850744020d92) )
+	ROM_LOAD64_WORD( "dd__wa-3.u11", 0x000006, 0x080000, CRC(fe320fa3) SHA1(80532cc38bd21608e4cff1254d993e0df72eaccf) )
+
+	ROM_REGION( 0x040000, "oki", 0 )    /* Samples */
+	ROM_LOAD( "dd__wa-7.u3", 0x000000, 0x040000, CRC(7ce817eb) SHA1(9dfb79021a552877fbc26049cca853c0b93735b5) ) // == dd_ja-7
+ROM_END
+
+ROM_START( dharmag )
+	ROM_REGION( 0x040000, "maincpu", 0 )        /* 68000 Code */
+	ROM_LOAD16_BYTE( "dd__wga5.u39", 0x000000, 0x020000, CRC(b08664f7) SHA1(d4df2af4c8c0a736d5454d74cd2ce1d770feb8e3) )
+	ROM_LOAD16_BYTE( "dd__wga6.u42", 0x000001, 0x020000, CRC(4ae89edc) SHA1(a02dba09359fa99f946c8afad89625c63c7ed14e) )
 
 	ROM_REGION( 0x20000, "audiocpu", 0 )       /* NEC78C10 Code */
 	ROM_LOAD( "dd__wa-8.u9", 0x000000, 0x020000, CRC(af7ebc4c) SHA1(6abf0036346da10be56932f9674f8c250a3ea592) ) // (c)1992 Imagetek (11xxxxxxxxxxxxxxx = 0xFF) // == dd_ja-8
@@ -5078,7 +5027,7 @@ ROM_START( puzzlet )
 	ROM_REGION( 0x200000, "maincpu", 0 )    /* H8/3007 Code */
 	ROM_LOAD16_WORD_SWAP( "prg1_ver2.u9", 0x000000, 0x200000, CRC(592760da) SHA1(08f7493d2e50831438f53bbf0ae211ec40057da7) )
 
-	ROM_REGION( 0x200, "z86e02", 0 )    /* Zilog Z8 family 8-bit MCU */
+	ROM_REGION( 0x200, "coinmcu", 0 )    /* Zilog Z8 family 8-bit MCU */
 	ROM_LOAD( "z86e02.mcu", 0x000, 0x200, CRC(399fa417) SHA1(f6c57020ea394c858742759050bf4f4b2f1e1fc5) )
 
 	ROM_REGION( 0x400000, "vdp2", 0 )   /* Gfx + Data (Addressable by CPU & Blitter) */
@@ -5093,7 +5042,7 @@ ROM_START( metabee ) // handwritten labels, unpopulated sound chips and ROM. Sti
 	ROM_REGION( 0x200000, "maincpu", 0 )    /* H8/3007 Code */
 	ROM_LOAD16_WORD_SWAP( "medabee2way.u9", 0x000000, 0x200000, CRC(aba51e0f) SHA1(99f18d772a73c499b1b33222b9bae8c1e1d4114b) ) // ST-M27C160 handwritten "メダビー2WAY"
 
-	ROM_REGION( 0x200, "z86e02", 0 )    /* Zilog Z8 family 8-bit MCU */
+	ROM_REGION( 0x200, "coinmcu", 0 )    /* Zilog Z8 family 8-bit MCU */
 	ROM_LOAD( "z86e02.mcu", 0x000, 0x200, NO_DUMP )
 
 	ROM_REGION( 0x800000, "vdp2", 0 )   /* Gfx + Data (Addressable by CPU & Blitter) */
@@ -5144,6 +5093,23 @@ ROM_START( puzzli )
 	ROM_LOAD( "pz_jb7.3g", 0x000000, 0x040000, CRC(b3aab610) SHA1(9bcf1f98e19a7e26b22e152313dfbd43c882f008) )
 ROM_END
 
+ROM_START( puzzlia )
+	ROM_REGION( 0x80000, "maincpu", 0 )        // 68000 Code
+	ROM_LOAD16_BYTE( "pz-ja-5.20e", 0x000000, 0x020000, CRC(4e162574) SHA1(808de335064d6483cfaf8548ba0b1b8769828ca8) )
+	ROM_LOAD16_BYTE( "pz-ja-6.20c", 0x000001, 0x020000, CRC(19210626) SHA1(d0d20dbe65cbe255f66526db6fc75d8c37d2a842) )
+
+	ROM_REGION( 0x20000, "audiocpu", 0 )       // NEC78C10 Code
+	ROM_LOAD( "pz-ja-8.3i", 0x000000, 0x020000, CRC(fd492a57) SHA1(43699a4607d586827b771180fcd6581988173bed) )
+
+	ROM_REGION( 0x200000, "vdp2", 0 )   // Gfx + Data (Addressable by CPU & Blitter)
+	ROM_LOAD64_WORD( "pz-ja-2.14i", 0x000000, 0x080000, CRC(0c0997d4) SHA1(922d8553ef505f65238e5cc77b45861a80022d75) )
+	ROM_LOAD64_WORD( "pz-ja-4.18i", 0x000002, 0x080000, CRC(576bc5c2) SHA1(08c10e0a3356ee1f79b78eff92395d8b18e43485) )
+	ROM_LOAD64_WORD( "pz-ja-1.12i", 0x000004, 0x080000, CRC(29f01eb3) SHA1(1a56f0b8efb599ae4f3cd0a4f0b6a6152ea6b117) )
+	ROM_LOAD64_WORD( "pz-ja-3.16i", 0x000006, 0x080000, CRC(6753e282) SHA1(49d092543db34f2cb54697897790df12ca3eda74) )
+
+	ROM_REGION( 0x040000, "oki", 0 )    // Samples
+	ROM_LOAD( "pz-ja-7.3g", 0x000000, 0x040000, CRC(de285717) SHA1(040f999a640337716baa1c09ab0740f2d2ca09d2) )
+ROM_END
 
 /***************************************************************************
 
@@ -5558,7 +5524,7 @@ void metro_state::init_karatour()
 /* Unscramble the GFX ROMs */
 void metro_state::init_balcube()
 {
-	uint8_t *ROM       = memregion("vdp2")->base();
+	u8 *ROM       = memregion("vdp2")->base();
 	const unsigned len = memregion("vdp2")->bytes();
 
 	for (unsigned i = 0; i < len; i+=2)
@@ -5573,10 +5539,10 @@ void metro_state::init_balcube()
 
 void metro_state::init_dharmak()
 {
-	uint8_t *src = memregion("vdp2")->base();
+	u8 *src = memregion("vdp2")->base();
 	for (int i = 0; i < 0x200000; i += 4)
 	{
-		uint8_t dat = src[i + 1];
+		u8 dat = src[i + 1];
 		dat = bitswap<8>(dat, 7,3,2,4, 5,6,1,0);
 		src[i + 1] = dat;
 
@@ -5664,6 +5630,7 @@ GAME( 1994, lastfortg, lastfort, lastforg,  ladykill,   metro_state, init_lastfo
 GAME( 1993, poitto,    0,        poitto,    poitto,     metro_state, init_metro,    ROT0,   "Metro / Able Corp.",                              "Poitto! (revision D)", MACHINE_SUPPORTS_SAVE )
 GAME( 1993, poittoc,   poitto,   poitto,    poitto,     metro_state, init_metro,    ROT0,   "Metro / Able Corp.",                              "Poitto! (revision C)", MACHINE_NOT_WORKING | MACHINE_SUPPORTS_SAVE ) // missing 1 program ROM
 GAME( 1994, dharma,    0,        dharma,    dharma,     metro_state, init_dharmak,  ROT0,   "Metro",                                           "Dharma Doujou", MACHINE_SUPPORTS_SAVE )
+GAME( 1994, dharmag,   dharma,   dharma,    dharma,     metro_state, init_dharmak,  ROT0,   "Metro",                                           "Dharma Doujou (Germany)", MACHINE_SUPPORTS_SAVE )
 GAME( 1994, dharmaj,   dharma,   dharma,    dharma,     metro_state, init_metro,    ROT0,   "Metro",                                           "Dharma Doujou (Japan)", MACHINE_SUPPORTS_SAVE )
 GAME( 1994, dharmak,   dharma,   dharma,    dharma,     metro_state, init_dharmak,  ROT0,   "Metro",                                           "Dharma Doujou (Korea)", MACHINE_SUPPORTS_SAVE )
 GAME( 1994, toride2g,  0,        toride2g,  toride2g,   metro_state, init_metro,    ROT0,   "Metro",                                           "Toride II Adauchi Gaiden", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE )
@@ -5673,7 +5640,8 @@ GAME( 1994, toride2j,  toride2g, toride2g,  toride2g,   metro_state, init_metro,
 GAME( 1994, gunmast,   0,        pururun,   gunmast,    metro_state, init_metro,    ROT0,   "Metro",                                           "Gun Master", MACHINE_SUPPORTS_SAVE )
 GAME( 1995, daitorid,  0,        daitorid,  daitorid,   metro_state, init_metro,    ROT0,   "Metro",                                           "Daitoride", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE )
 GAME( 1995, pururun,   0,        pururun,   pururun,    metro_state, init_metro,    ROT0,   "Metro / Banpresto",                               "Pururun", MACHINE_SUPPORTS_SAVE )
-GAME( 1995, puzzli,    0,        puzzli,    puzzli,     metro_state, init_metro,    ROT0,   "Metro / Banpresto",                               "Puzzli",      MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE )
+GAME( 1995, puzzli,    0,        puzzli,    puzzli,     metro_state, init_metro,    ROT0,   "Metro / Banpresto",                               "Puzzli (revision B)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE )
+GAME( 1995, puzzlia,   puzzli,   puzzlia,   puzzli,     metro_state, init_metro,    ROT0,   "Metro / Banpresto",                               "Puzzli (revision A)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE )
 GAME( 1996, 3kokushi,  0,        sankokushi,sankokushi, metro_state, init_karatour, ROT0,   "Mitchell",                                        "Sankokushi (Japan)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_SUPPORTS_SAVE )
 
 // ? with additional gfx data scramble (probably MTR5260 based)

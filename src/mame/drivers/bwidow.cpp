@@ -258,7 +258,7 @@ Typically, only the high 2 bits are read.
 
 */
 
-READ8_MEMBER(bwidow_state::spacduel_IN3_r)
+uint8_t bwidow_state::spacduel_IN3_r(offs_t offset)
 {
 	int res;
 	int res1;
@@ -314,7 +314,7 @@ READ_LINE_MEMBER(bwidow_state::clock_r)
 	return (m_maincpu->total_cycles() & 0x100) ? 1 : 0;
 }
 
-READ8_MEMBER(bwidow_state::bwidowp_in_r)
+uint8_t bwidow_state::bwidowp_in_r()
 {
 	return (m_in4->read() & 0x0f) | ((m_in3->read() & 0x0f) << 4);
 }
@@ -325,7 +325,7 @@ READ8_MEMBER(bwidow_state::bwidowp_in_r)
  *
  *************************************/
 
-WRITE8_MEMBER(bwidow_state::bwidow_misc_w)
+void bwidow_state::bwidow_misc_w(uint8_t data)
 {
 	/*
 	    0x10 = p1 led
@@ -342,7 +342,7 @@ WRITE8_MEMBER(bwidow_state::bwidow_misc_w)
 	m_lastdata = data;
 }
 
-WRITE8_MEMBER(bwidow_state::spacduel_coin_counter_w)
+void bwidow_state::spacduel_coin_counter_w(uint8_t data)
 {
 	if (data == m_lastdata) return;
 	m_leds[0] = BIT(~data, 5); // start lamp
@@ -362,18 +362,18 @@ WRITE8_MEMBER(bwidow_state::spacduel_coin_counter_w)
  *
  *************************************/
 
-READ8_MEMBER(bwidow_state::earom_read)
+uint8_t bwidow_state::earom_read()
 {
 	return m_earom->data();
 }
 
-WRITE8_MEMBER(bwidow_state::earom_write)
+void bwidow_state::earom_write(offs_t offset, uint8_t data)
 {
 	m_earom->set_address(offset & 0x3f);
 	m_earom->set_data(data);
 }
 
-WRITE8_MEMBER(bwidow_state::earom_control_w)
+void bwidow_state::earom_control_w(uint8_t data)
 {
 	// CK = DB0, C1 = /DB2, C2 = DB1, CS1 = DB3, /CS2 = GND
 	m_earom->set_control(BIT(data, 3), 1, !BIT(data, 2), BIT(data, 1));
@@ -382,7 +382,7 @@ WRITE8_MEMBER(bwidow_state::earom_control_w)
 
 void bwidow_state::machine_reset()
 {
-	earom_control_w(machine().dummy_space(), 0, 0);
+	earom_control_w(0);
 }
 
 
@@ -392,7 +392,7 @@ void bwidow_state::machine_reset()
  *
  *************************************/
 
-WRITE8_MEMBER(bwidow_state::irq_ack_w)
+void bwidow_state::irq_ack_w(uint8_t data)
 {
 	m_maincpu->set_input_line(0, CLEAR_LINE);
 }
@@ -407,7 +407,7 @@ WRITE8_MEMBER(bwidow_state::irq_ack_w)
 void bwidow_state::bwidow_map(address_map &map)
 {
 	map(0x0000, 0x07ff).ram();
-	map(0x2000, 0x27ff).ram().share("avg:vectorram").region("maincpu", 0x2000);
+	map(0x2000, 0x27ff).ram().share("avg:vectorram");
 	map(0x2800, 0x5fff).rom();
 	map(0x6000, 0x67ff).rw("pokey1", FUNC(pokey_device::read), FUNC(pokey_device::write));
 	map(0x6800, 0x6fff).rw("pokey2", FUNC(pokey_device::read), FUNC(pokey_device::write));
@@ -436,7 +436,7 @@ void bwidow_state::bwidowp_map(address_map &map)
 	map(0x2800, 0x2800).w("avg", FUNC(avg_device::reset_w));
 	map(0x3000, 0x3000).w("watchdog", FUNC(watchdog_timer_device::reset_w));
 	map(0x3800, 0x3800).w(FUNC(bwidow_state::bwidow_misc_w)); /* coin counters, leds */
-	map(0x4000, 0x47ff).ram().share("avg:vectorram").region("maincpu", 0x4000);
+	map(0x4000, 0x47ff).ram().share("avg:vectorram");
 	map(0x4800, 0x6fff).rom();
 	map(0x6000, 0x6000).w(FUNC(bwidow_state::irq_ack_w)); /* interrupt acknowledge */
 	map(0x8000, 0x803f).w(FUNC(bwidow_state::earom_write));
@@ -462,7 +462,7 @@ void bwidow_state::spacduel_map(address_map &map)
 	map(0x0f00, 0x0f3f).w(FUNC(bwidow_state::earom_write));
 	map(0x1000, 0x10ff).rw("pokey1", FUNC(pokey_device::read), FUNC(pokey_device::write));
 	map(0x1400, 0x14ff).rw("pokey2", FUNC(pokey_device::read), FUNC(pokey_device::write));
-	map(0x2000, 0x27ff).ram().share("avg:vectorram").region("maincpu", 0x2000);
+	map(0x2000, 0x27ff).ram().share("avg:vectorram");
 	map(0x2800, 0x3fff).rom();
 	map(0x4000, 0xffff).rom();
 }

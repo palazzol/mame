@@ -75,7 +75,7 @@ building MAME on a 64-bit system.  Instructions may need to be adjusted for
   add **OSD=sdl** to the make options.  The main emulator binary will have an
   ``sdl`` prefix prepended (e.g. ``sdlmame64.exe`` or ``sdlmame.exe``).  You
   will need to install the MSYS2 packages for SDL 2 version 2.0.3 or later.
-* By default, MAME will include the native Windows debugger.  To also inculde
+* By default, MAME will include the native Windows debugger.  To also include
   the portable Qt debugger, add **USE_QTDEBUG=1** to the make options.  You
   will need to install the MSYS2 packages for Qt 5.
 
@@ -96,10 +96,14 @@ with MSYS2 and the **pacman** package manager.
 * Install packages necessary to build MAME.  At the very least, you'll need
   ``bash``, ``git``, ``make``.
 * For 64-bit builds you'll need ``mingw-w64-x86_64-gcc`` and
-  ``mingw-w64-x86_64-python2``.
+  ``mingw-w64-x86_64-python``.
 * For 32-bit builds you'll need ``mingw-w64-i686-gcc`` and
-  ``mingw-w64-i686-python2``.
+  ``mingw-w64-i686-python``.
 * For debugging you may want to install ``gdb``.
+* To link using the LLVM linker (generally much faster than the GNU linker),
+  you'll need ``mingw-w64-x86_64-lld`` and ``mingw-w64-x86_64-libc++`` for
+  64-bit builds, or ``mingw-w64-i686-lld`` and ``mingw-w64-i686-libc++`` for
+  32-bit builds.
 * To build against the portable SDL interfaces, you'll need
   ``mingw-w64-x86_64-SDL2`` and ``mingw-w64-x86_64-SDL2_ttf`` for 64-bit builds,
   or ``mingw-w64-i686-SDL2`` and ``mingw-w64-i686-SDL2_ttf`` for 32-bit builds.
@@ -114,6 +118,28 @@ with MSYS2 and the **pacman** package manager.
   up the environment variables ``MINGW32`` to ``/mingw32`` and ``MINGW64`` to an
   empty string (e.g. using the command **export MINGW32=/mingw32 MINGW64=** in
   the Bash shell).
+
+For example you could use these commands to ensure you have the packages you
+need to compile MAME, omitting the ones for configurations you don’t plan to
+build for or combining multiple **pacman** commands to install more packages at
+once::
+
+    pacman -Syu
+    pacman -S curl git make
+    pacman -S mingw-w64-x86_64-gcc mingw-w64-x86_64-libc++ mingw-w64-x86_64-lld mingw-w64-x86_64-python
+    pacman -S mingw-w64-x86_64-SDL2 mingw-w64-x86_64-SDL2_ttf
+    pacman -S mingw-w64-x86_64-qt5
+    pacman -S mingw-w64-i686-gcc mingw-w64-i686-libc++ mingw-w64-i686-lld mingw-w64-i686-python
+    pacman -S mingw-w64-i686-SDL2 mingw-w64-i686-SDL2_ttf
+    pacman -S mingw-w64-i686-qt5
+
+You could use these commands to install the current version of the
+mame-essentials package and add the MAME package repository to yur pacman
+configuration::
+
+    curl -O "https://repo.mamedev.org/x86_64/mame-essentials-1.0.6-1-x86_64.pkg.tar.xz"
+    pacman -U mame-essentials-1.0.6-1-x86_64.pkg.tar.xz
+    echo -e '\n[mame]\nInclude = /etc/pacman.d/mirrorlist.mame' >> /etc/pacman.conf
 
 Building with Microsoft Visual Studio
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -133,13 +159,59 @@ Building with Microsoft Visual Studio
 * The MSYS2 environment is still required to generate the project files, convert
   built-in layouts, compile UI translations, etc.
 
+Some notes about the MSYS2 environment
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+MSYS2 uses the pacman tool from Arch Linux for package management.  There is a
+`page on the Arch Linux wiki <https://wiki.archlinux.org/index.php/Pacman>`_
+with helpful information on using the pacman package management tool.
+
+The MSYS2 environment includes two kinds of tools: MSYS2 tools designed to work
+in a UNIX-like environment on top of Windows, and MinGW tools designed to work
+in a more Windows-like environment.  The MSYS2 tools are installed in
+``/usr/bin`` while the MinGW tools are installed in ``/ming64/bin`` and/or
+``/mingw32/bin`` (relative to the MSYS2 installation directory).  MSYS2 tools
+work best in an MSYS2 terminal, while MinGW tools work best in a Microsoft
+command prompt.
+
+The most obvious symptom of this is that arrow keys don’t work in interactive
+programs don’t work if you run them in the wrong kind of terminal.  If you run
+MinGW gdb or python from an MSYS2 terminal window, command history won’t work
+and it may not be possible to interrupt an attached program with gdb.  Similarly
+it may be very difficult to edit using MSYS2 vim in a Microsoft command prompt
+window.
+
+MAME is built using the MinGW compilers, so the MinGW directories are included
+earlier in the ``PATH`` for the build environments.  If you want to use an
+interactive MSYS2 program from an MSYS2 shell, you may need to type the absolute
+path to avoid using the MinGW equivalent instead.
+
+MSYS2 gdb may have issues debugging MinGW programs like MAME.  You may get
+better results by installing the MinGW version of gdb and running it from a
+Microsoft command prompt window to debug MAME.
+
+GNU make supports both POSIX-style shells (e.g. bash) and the Microsoft cmd.exe
+shell.  One issue to be aware of when using the cmd.exe shell is that the
+``copy`` command doesn’t provide a useful exit status, so file copy tasks can
+fail silently.
+
+It is not possible to cross-compile a 32-bit version of MAME using 64-bit MinGW
+tools on Windows, the 32-bit MinGW tools must be used.  This causes issues due
+to the size of MAME.  It is not possible to link a full 32-bit MAME build
+including the SDL OS-dependent layer and the Qt debugger.  GNU ld and lld will
+both run out of memory, leaving an output file that doesn’t work.  It’s also
+impossible to make a 32-bit build with full local variable symbols.  GCC may run
+out of memory, and certain source files may exceed the limit of 32,768 sections
+imposed by the PE/COFF object file format.
+
 
 .. _compiling-fedora:
 
 Fedora Linux
 ------------
 
-You'll need a few prerequisites from your distro. Make sure you get SDL2 2.0.3 or 2.0.4 as earlier versions are buggy.
+You'll need a few prerequisites from your Linux distribution.  Make sure you get
+SDL2 2.0.4 or later as earlier versions are buggy.
 
 **sudo dnf install gcc gcc-c++ SDL2-devel SDL2_ttf-devel libXi-devel libXinerama-devel qt5-qtbase-devel qt5-qttools expat-devel fontconfig-devel alsa-lib-devel**
 
@@ -151,7 +223,8 @@ Compilation is exactly as described above in All Platforms.
 Debian and Ubuntu (including Raspberry Pi and ODROID devices)
 -------------------------------------------------------------
 
-You'll need a few prerequisites from your distro. Make sure you get SDL2 2.0.3 or 2.0.4 as earlier versions are buggy.
+You'll need a few prerequisites from your Linux distribution.  Make sure you get
+SDL2 2.0.4 or later as earlier versions are buggy.
 
 **sudo apt-get install git build-essential python libsdl2-dev libsdl2-ttf-dev libfontconfig-dev qt5-default**
 
@@ -175,7 +248,7 @@ Compilation is exactly as described above in All Platforms.
 Apple Mac OS X
 --------------
 
-You'll need a few prerequisites to get started. Make sure you're on OS X 10.9 Mavericks or later. You will NEED SDL2 2.0.4 for OS X.
+You'll need a few prerequisites to get started. Make sure you're on OS X 10.9 Mavericks or later. You will need SDL2 2.0.4 or later for OS X.
 
 * Install **Xcode** from the Mac App Store
 * Launch **Xcode**. It will download a few additional prerequisites. Let this run through before proceeding.
@@ -491,6 +564,16 @@ variables.
 
 Unusual Build Configurations
 ----------------------------
+
+Linking using the LLVM linker
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The LLVM linker is generally faster than the GNU linker that GCC uses by
+default.  This is more pronounced on systems with a high overhead for file
+system operations (e.g. Microsoft Windows, or when compiling on a disk mounted
+over a network).  To use the LLVM linker with GCC, ensure the LLVM linker is
+installed and add ``-fuse-ld=lld`` to the linker options (e.g. in the
+**LDFLAGS** environment variable or in the **ARCHOPTS** setting).
 
 Cross-compiling MAME
 ~~~~~~~~~~~~~~~~~~~~

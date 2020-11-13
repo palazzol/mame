@@ -3539,11 +3539,11 @@ void taitof2_state::cameltrya(machine_config &config)
 void taitof2_state::driveout(machine_config &config)
 {
 	/* basic machine hardware */
-	M68000(config, m_maincpu, 24000000/2);  /* 12 MHz */
+	M68000(config, m_maincpu, 14_MHz_XTAL);  // verified on PCB
 	m_maincpu->set_addrmap(AS_PROGRAM, &taitof2_state::driveout_map);
 	m_maincpu->set_vblank_int("screen", FUNC(taitof2_state::interrupt));
 
-	Z80(config, m_audiocpu, 24000000/6);    /* 4 MHz */
+	Z80(config, m_audiocpu, 8_MHz_XTAL / 2); // verified on PCB
 	m_audiocpu->set_addrmap(AS_PROGRAM, &taitof2_state::driveout_sound_map);
 
 	TC0510NIO(config, m_tc0510nio, 0);
@@ -3583,7 +3583,7 @@ void taitof2_state::driveout(machine_config &config)
 	SPEAKER(config, "lspeaker").front_left();   /* does it ? */
 	SPEAKER(config, "rspeaker").front_right();
 
-	OKIM6295(config, m_oki, 1056000, okim6295_device::PIN7_HIGH); // clock frequency & pin 7 not verified
+	OKIM6295(config, m_oki, 8_MHz_XTAL / 8, okim6295_device::PIN7_LOW);  // verified on PCB
 	m_oki->set_addrmap(0, &taitof2_state::driveout_oki_map);
 	m_oki->add_route(ALL_OUTPUTS, "lspeaker", 1.0);
 	m_oki->add_route(ALL_OUTPUTS, "rspeaker", 1.0);
@@ -4202,6 +4202,10 @@ ROM_START( ssi )
 	ROM_LOAD( "c64-02.2",     0x00000, 0x20000, CRC(3cb0b907) SHA1(7cbe437fe584575a2f26a582095fd49665c7003e) )
 
 	/* no Delta-T samples */
+
+	ROM_REGION( 0x400, "plds", 0 ) // originals are protected PAL16L8s, these are brute-forced and reversed for GAL16V8s
+	ROM_LOAD( "c64-10.ic42", 0x000, 0x117, CRC(08e8c3d6) SHA1(9e1f0c8a70af7355d82c2bac249363415c2293e2) )
+	ROM_LOAD( "c64-11.ic43", 0x200, 0x117, CRC(f116413e) SHA1(696a8c404ef3d6d832e0fcf530452344f96dd0b2) )
 ROM_END
 
 ROM_START( ssia )
@@ -4222,6 +4226,34 @@ ROM_START( ssia )
 	ROM_LOAD( "c64-02.2",     0x00000, 0x20000, CRC(3cb0b907) SHA1(7cbe437fe584575a2f26a582095fd49665c7003e) )
 
 	/* no Delta-T samples */
+
+	ROM_REGION( 0x400, "plds", 0 ) // originals are protected PAL16L8s, these are brute-forced and reversed for GAL16V8s
+	ROM_LOAD( "c64-10.ic42", 0x000, 0x117, CRC(08e8c3d6) SHA1(9e1f0c8a70af7355d82c2bac249363415c2293e2) )
+	ROM_LOAD( "c64-11.ic43", 0x200, 0x117, CRC(f116413e) SHA1(696a8c404ef3d6d832e0fcf530452344f96dd0b2) )
+ROM_END
+
+ROM_START( ssib ) // this is identical to majest12u, but the region-defining byte which is changed to 0x03 (World). All labels are original and the new ROM's number (13) does fill a hole, so seems original
+	ROM_REGION( 0x80000, "maincpu", 0 )
+	ROM_LOAD16_BYTE( "c64_12.ic9", 0x00000, 0x40000, CRC(d5716d7e) SHA1(3a18d8ef1d16380946714910245b00bbcec39e3d) )
+	ROM_LOAD16_BYTE( "c64_13.ic8", 0x00001, 0x40000, CRC(99e3dd1c) SHA1(631e6db268d5411acf73d2892ad5107401212a5d) )
+
+	ROM_REGION( 0x100000, "tc0100scn_1", ROMREGION_ERASEFF )
+	// empty!
+
+	ROM_REGION( 0x100000, "sprites", 0 )   // OBJ
+	ROM_LOAD( "c64-01.ic51",     0x000000, 0x100000, CRC(a1b4f486) SHA1(bdd6bf144e50fe7b1d4cf4504471a689669415a4) )
+
+	ROM_REGION( 0x10000, "audiocpu", 0 )
+	ROM_LOAD( "c64-09.ic38",    0x00000, 0x10000, CRC(88d7f65c) SHA1(d6383bf8fd035772fa3c57b26b727eefe1aadd93) )
+
+	ROM_REGION( 0x20000, "ymsnd", 0 )   // ADPCM samples
+	ROM_LOAD( "c64-02.ic1",     0x00000, 0x20000, CRC(3cb0b907) SHA1(7cbe437fe584575a2f26a582095fd49665c7003e) )
+
+	// no Delta-T samples
+
+	ROM_REGION( 0x400, "plds", 0 ) // originals are protected PAL16L8s, these are brute-forced and reversed for GAL16V8s
+	ROM_LOAD( "c64-10.ic42", 0x000, 0x117, CRC(08e8c3d6) SHA1(9e1f0c8a70af7355d82c2bac249363415c2293e2) )
+	ROM_LOAD( "c64-11.ic43", 0x200, 0x117, CRC(f116413e) SHA1(696a8c404ef3d6d832e0fcf530452344f96dd0b2) )
 ROM_END
 
 ROM_START( majest12u )
@@ -4242,6 +4274,10 @@ ROM_START( majest12u )
 	ROM_LOAD( "c64-02.2",     0x00000, 0x20000, CRC(3cb0b907) SHA1(7cbe437fe584575a2f26a582095fd49665c7003e) )
 
 	/* no Delta-T samples */
+
+	ROM_REGION( 0x400, "plds", 0 ) // originals are protected PAL16L8s, these are brute-forced and reversed for GAL16V8s
+	ROM_LOAD( "c64-10.ic42", 0x000, 0x117, CRC(08e8c3d6) SHA1(9e1f0c8a70af7355d82c2bac249363415c2293e2) )
+	ROM_LOAD( "c64-11.ic43", 0x200, 0x117, CRC(f116413e) SHA1(696a8c404ef3d6d832e0fcf530452344f96dd0b2) )
 ROM_END
 
 ROM_START( majest12j )
@@ -4264,6 +4300,10 @@ ROM_START( majest12j )
 	ROM_LOAD( "c64-02.2",     0x00000, 0x20000, CRC(3cb0b907) SHA1(7cbe437fe584575a2f26a582095fd49665c7003e) )
 
 	/* no Delta-T samples */
+
+	ROM_REGION( 0x400, "plds", 0 ) // originals are protected PAL16L8s, these are brute-forced and reversed for GAL16V8s
+	ROM_LOAD( "c64-10.ic42", 0x000, 0x117, CRC(08e8c3d6) SHA1(9e1f0c8a70af7355d82c2bac249363415c2293e2) )
+	ROM_LOAD( "c64-11.ic43", 0x200, 0x117, CRC(f116413e) SHA1(696a8c404ef3d6d832e0fcf530452344f96dd0b2) )
 ROM_END
 
 
@@ -5263,25 +5303,25 @@ ROM_END
 
 ROM_START( driveout )
 	ROM_REGION( 0x100000, "maincpu", 0 )     /* 1024k for 68000 code */
-	ROM_LOAD16_BYTE( "driveout.003", 0x00000, 0x80000, CRC(dc431e4e) SHA1(6002cb7a2bd05e28a2413942998a5c7e11fc1432) )
-	ROM_LOAD16_BYTE( "driveout.002", 0x00001, 0x80000, CRC(6f9063f4) SHA1(7ea55126a2f6391322740432d835cd06450909ae) )
+	ROM_LOAD16_BYTE( "4.u3", 0x00000, 0x80000, CRC(dc431e4e) SHA1(6002cb7a2bd05e28a2413942998a5c7e11fc1432) )
+	ROM_LOAD16_BYTE( "5.u2", 0x00001, 0x80000, CRC(6f9063f4) SHA1(7ea55126a2f6391322740432d835cd06450909ae) )
 
 	ROM_REGION( 0x080000, "tc0100scn_1", ROMREGION_ERASEFF )
 	/* empty */
 
 	ROM_REGION( 0x080000, "sprites", 0 )      /* OBJ */
-	ROM_LOAD16_BYTE( "driveout.084", 0x00000, 0x40000, CRC(530ac420) SHA1(d66006958580205d0962871ba7d0b40a067bb9af) )
-	ROM_LOAD16_BYTE( "driveout.081", 0x00001, 0x40000, CRC(0e9a3e9e) SHA1(7bb21e6fc930a5e1913bffb626958d0ee22d5883) )
+	ROM_LOAD16_BYTE( "6.u84", 0x00000, 0x40000, CRC(530ac420) SHA1(d66006958580205d0962871ba7d0b40a067bb9af) )
+	ROM_LOAD16_BYTE( "7.u81", 0x00001, 0x40000, CRC(0e9a3e9e) SHA1(7bb21e6fc930a5e1913bffb626958d0ee22d5883) )
 
 	ROM_REGION( 0x080000, "tc0430grw", 0 )      /* pivot gfx */
-	ROM_LOAD( "do_piv.rom",    0x00000, 0x80000, CRC(c4f012f7) SHA1(4ad6a88f6a7f89b2b4c62c2b376d4e7b43c3d442) )
+	ROM_LOAD( "8.u37",    0x00000, 0x80000, CRC(c4f012f7) SHA1(4ad6a88f6a7f89b2b4c62c2b376d4e7b43c3d442) )
 
 	ROM_REGION( 0x10000, "audiocpu", 0 )    /* sound cpu */
-	ROM_LOAD( "driveout.020",  0x0000,  0x8000, CRC(99aaeb2e) SHA1(c7eb174f2ddcd8fd2b73b5251f434a20a9627b49) )
+	ROM_LOAD( "3.u20",  0x0000,  0x8000, CRC(99aaeb2e) SHA1(c7eb174f2ddcd8fd2b73b5251f434a20a9627b49) ) // found on another PCB double sized with the first half 0xff filled
 
 	ROM_REGION( 0xa0000, "oki", 0 )    /* ADPCM samples */
-	ROM_LOAD( "driveout.028",  0x00000, 0x80000, CRC(cbde0b66) SHA1(b264aa525ff40c7813182031825cd052db887000) ) /* banked */
-	ROM_LOAD( "driveout.029",  0x80000, 0x20000, CRC(0aba2026) SHA1(f592e3b294d44f499fdca4cc31646e55d8c3dfbf) ) /* sandwiched */
+	ROM_LOAD( "1.u28",  0x00000, 0x80000, CRC(cbde0b66) SHA1(b264aa525ff40c7813182031825cd052db887000) ) /* banked */
+	ROM_LOAD( "2.u29",  0x80000, 0x20000, CRC(0aba2026) SHA1(f592e3b294d44f499fdca4cc31646e55d8c3dfbf) ) /* sandwiched */
 ROM_END
 
 
@@ -5394,6 +5434,7 @@ GAME( 1990, quizhq,     0,        quizhq,    quizhq,     taitof2_state, empty_in
 
 GAME( 1990, ssi,        0,        ssi,       ssi,        taitof2_state, empty_init,    ROT270, "Taito Corporation Japan",   "Super Space Invaders '91 (World, Rev 1)", MACHINE_SUPPORTS_SAVE )
 GAME( 1990, ssia,       ssi,      ssi,       ssi,        taitof2_state, empty_init,    ROT270, "Taito Corporation Japan",   "Super Space Invaders '91 (World)", MACHINE_SUPPORTS_SAVE )
+GAME( 1990, ssib,       ssi,      ssi,       ssi,        taitof2_state, empty_init,    ROT270, "Taito Corporation Japan",   "Super Space Invaders '91 (World, earlier?)", MACHINE_SUPPORTS_SAVE )
 GAME( 1990, majest12u,  ssi,      ssi,       majest12u,  taitof2_state, empty_init,    ROT270, "Taito America Corporation", "Majestic Twelve - The Space Invaders Part IV (US)", MACHINE_SUPPORTS_SAVE )
 GAME( 1990, majest12j,  ssi,      ssi,       majest12j,  taitof2_state, empty_init,    ROT270, "Taito Corporation",         "Majestic Twelve - The Space Invaders Part IV (Japan)", MACHINE_SUPPORTS_SAVE )
 

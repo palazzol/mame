@@ -71,6 +71,8 @@ void kbdc8042_device::device_start()
 	m_sending = 0;
 	m_last_write_to_control = 0;
 	m_status_read_mode = 0;
+	m_speaker = 0;
+	m_offset1 = 0;
 
 	m_update_timer = timer_alloc(TIMER_UPDATE);
 	m_update_timer->adjust(attotime::never);
@@ -134,7 +136,7 @@ void kbdc8042_device::at_8042_check_keyboard()
 {
 	if (!m_keyboard.received && !m_mouse.received)
 	{
-		int data = m_keyboard_dev->read(machine().dummy_space(), 0);
+		int data = m_keyboard_dev->read();
 		if (data)
 			at_8042_receive(data);
 	}
@@ -207,7 +209,8 @@ void kbdc8042_device::device_timer(emu_timer &timer, device_timer_id id, int par
 	if (id == TIMER_UPDATE)
 	{
 		at_8042_check_keyboard();
-		at_8042_check_mouse();
+		if (m_mouse.on)
+			at_8042_check_mouse();
 	}
 }
 
@@ -234,7 +237,7 @@ void kbdc8042_device::device_timer(emu_timer &timer, device_timer_id id, int par
  *      0: Keyboard data in
  */
 
-READ8_MEMBER(kbdc8042_device::data_r)
+uint8_t kbdc8042_device::data_r(offs_t offset)
 {
 	uint8_t data = 0;
 
@@ -275,7 +278,8 @@ READ8_MEMBER(kbdc8042_device::data_r)
 
 	case 4:
 		at_8042_check_keyboard();
-		at_8042_check_mouse();
+		if (m_mouse.on)
+			at_8042_check_mouse();
 
 		if (m_keyboard.received || m_mouse.received)
 			data |= 1;
@@ -310,7 +314,7 @@ READ8_MEMBER(kbdc8042_device::data_r)
 
 
 
-WRITE8_MEMBER(kbdc8042_device::data_w)
+void kbdc8042_device::data_w(offs_t offset, uint8_t data)
 {
 	switch (offset) {
 	case 0:
@@ -319,8 +323,8 @@ WRITE8_MEMBER(kbdc8042_device::data_w)
 		switch (m_operation_write_state) {
 		case 0:
 			m_data = data;
-			m_sending=1;
-			m_keyboard_dev->write(space, 0, data);
+			m_sending = 1;
+			m_keyboard_dev->write(data);
 			break;
 
 		case 1:

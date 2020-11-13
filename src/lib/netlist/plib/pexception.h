@@ -30,19 +30,6 @@ namespace plib {
 	[[noreturn]] void passert_fail(const char *assertion,
 		const char *file, int lineno, const char *msg) noexcept;
 
-	/// \brief throw an exception.
-	///
-	/// throws an exception E. The purpose is to clearly identify exception
-	/// throwing in the code
-	///
-	/// \tparam E Type of exception to be thrown
-	///
-	template<typename E, typename... Args>
-	[[noreturn]] static inline void pthrow(Args&&... args) noexcept(false)
-	{
-		throw E(std::forward<Args>(args)...);
-	}
-
 	//============================================================
 	//  exception base
 	//============================================================
@@ -52,11 +39,11 @@ namespace plib {
 	public:
 		explicit pexception(const pstring &text);
 
-		const pstring &text() const noexcept { return m_text; }
+		const putf8string &text() const noexcept { return m_text; }
 		const char* what() const noexcept override { return m_text.c_str(); }
 
 	private:
-		pstring m_text;
+		putf8string m_text;
 	};
 
 	class file_e : public plib::pexception
@@ -119,7 +106,7 @@ namespace plib {
 	public:
 		explicit fpsignalenabler(unsigned fpexceptions);
 
-		COPYASSIGNMOVE(fpsignalenabler, delete)
+		PCOPYASSIGNMOVE(fpsignalenabler, delete)
 
 		~fpsignalenabler();
 
@@ -138,7 +125,7 @@ namespace plib {
 	private:
 		int m_last_enabled;
 
-		static bool m_enable;
+		static bool m_enable; // NOLINT
 	};
 
 

@@ -23,6 +23,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <vector>
 
 
 namespace ui {
@@ -48,6 +49,38 @@ public:
 		FLAG_COLOR_BOX      = 1U << 8
 	};
 
+	enum : unsigned {
+		INPUT_GROUPS,
+		INPUT_SPECIFIC,
+		SETTINGS_DIP_SWITCHES,
+		SETTINGS_DRIVER_CONFIG,
+		ANALOG,
+		BOOKKEEPING,
+		GAME_INFO,
+		WARN_INFO,
+		IMAGE_MENU_IMAGE_INFO,
+		IMAGE_MENU_FILE_MANAGER,
+		TAPE_CONTROL,
+		SLOT_DEVICES,
+		NETWORK_DEVICES,
+		KEYBOARD_MODE,
+		SLIDERS,
+		VIDEO_TARGETS,
+		VIDEO_OPTIONS,
+		CROSSHAIR,
+		CHEAT,
+		PLUGINS,
+		SELECT_GAME,
+		BIOS_SELECTION,
+		BARCODE_READ,
+		PTY_INFO,
+		EXTERNAL_DATS,
+		ADD_FAVORITE,
+		REMOVE_FAVORITE,
+		QUIT_GAME,
+		ABOUT
+	};
+
 	virtual ~menu();
 
 	// append a new item to the end of the menu
@@ -67,12 +100,12 @@ public:
 	template <typename T, typename... Params>
 	static void stack_push(Params &&... args)
 	{
-		stack_push(std::unique_ptr<menu>(global_alloc_clear<T>(std::forward<Params>(args)...)));
+		stack_push(std::unique_ptr<menu>(make_unique_clear<T>(std::forward<Params>(args)...)));
 	}
 	template <typename T, typename... Params>
 	static void stack_push_special_main(Params &&... args)
 	{
-		std::unique_ptr<menu> ptr(global_alloc_clear<T>(std::forward<Params>(args)...));
+		std::unique_ptr<menu> ptr(make_unique_clear<T>(std::forward<Params>(args)...));
 		ptr->set_special_main_menu(true);
 		stack_push(std::move(ptr));
 	}

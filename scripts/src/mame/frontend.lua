@@ -79,6 +79,8 @@ files {
 	MAME_DIR .. "src/frontend/mame/media_ident.h",
 	MAME_DIR .. "src/frontend/mame/pluginopts.cpp",
 	MAME_DIR .. "src/frontend/mame/pluginopts.h",
+	MAME_DIR .. "src/frontend/mame/ui/about.cpp",
+	MAME_DIR .. "src/frontend/mame/ui/about.h",
 	MAME_DIR .. "src/frontend/mame/ui/analogipt.cpp",
 	MAME_DIR .. "src/frontend/mame/ui/analogipt.cpp",
 	MAME_DIR .. "src/frontend/mame/ui/auditmenu.cpp",
@@ -119,6 +121,8 @@ files {
 	MAME_DIR .. "src/frontend/mame/ui/inifile.h",
 	MAME_DIR .. "src/frontend/mame/ui/inputmap.cpp",
 	MAME_DIR .. "src/frontend/mame/ui/inputmap.h",
+	MAME_DIR .. "src/frontend/mame/ui/keyboard.cpp",
+	MAME_DIR .. "src/frontend/mame/ui/keyboard.h",
 	MAME_DIR .. "src/frontend/mame/ui/mainmenu.cpp",
 	MAME_DIR .. "src/frontend/mame/ui/mainmenu.h",
 	MAME_DIR .. "src/frontend/mame/ui/menu.cpp",
@@ -174,3 +178,11 @@ files {
 }
 
 pchsource(MAME_DIR .. "src/frontend/mame/audit.cpp")
+
+dependency {
+	{ MAME_DIR .. "src/frontend/mame/ui/about.cpp", GEN_DIR .. "emu/copying.ipp" },
+}
+
+custombuildtask {
+	{ MAME_DIR .. "COPYING", GEN_DIR .. "emu/copying.ipp", { MAME_DIR .. "scripts/build/file2lines.py" }, { "@echo Converting COPYING...", PYTHON .. " $(1) $(<) $(@) copying_text" } },
+}

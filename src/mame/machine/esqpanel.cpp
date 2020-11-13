@@ -12,12 +12,13 @@
 // External panel support
 //**************************************************************************
 
+#include <list>
 #include <mutex>
 #include <set>
 #include <sstream>
 #include <string>
 #include <thread>
-#include <list>
+
 
 namespace esqpanel {
 
@@ -154,7 +155,7 @@ namespace esqpanel {
 			m_to_send.put(c);
 			const std::string &s = m_to_send.str();
 
-			for (auto iter: m_panels)
+			for (const auto &iter: m_panels)
 			{
 				external_panel_ptr panel = iter.second;
 				if (panel->send_display_data())
@@ -215,7 +216,7 @@ namespace esqpanel {
 				}
 
 				// Echo the non-command message to any other connected panels that want it
-				for (auto iter: m_panels)
+				for (const auto &iter: m_panels)
 				{
 					external_panel_ptr other_panel = iter.second;
 					if (other_panel != panel && (t & other_panel->send_message_types()) != 0)

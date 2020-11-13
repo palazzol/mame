@@ -238,7 +238,7 @@ void ti_pio_attached_device::call_unload()
 /*
     CRU read
 */
-READ8Z_MEMBER(ti_rs232_pio_device::crureadz)
+void ti_rs232_pio_device::crureadz(offs_t offset, uint8_t *value)
 {
 	if ((offset & 0xff00)==m_cru_base)
 	{
@@ -374,7 +374,7 @@ WRITE_LINE_MEMBER(ti_rs232_pio_device::led_w)
 /*
     Memory read
 */
-READ8Z_MEMBER( ti_rs232_pio_device::readz )
+void ti_rs232_pio_device::readz(offs_t offset, uint8_t *value)
 {
 	if (m_senila==ASSERT_LINE)
 	{
@@ -387,7 +387,7 @@ READ8Z_MEMBER( ti_rs232_pio_device::readz )
 		// use of it
 		m_ila = 0;
 	}
-	if (((offset & m_select_mask)==m_select_value) && m_selected)
+	if (in_dsr_space(offset, true) && m_selected)
 	{
 		if ((offset & 0x1000)==0x0000)
 		{
@@ -405,7 +405,7 @@ READ8Z_MEMBER( ti_rs232_pio_device::readz )
 */
 void ti_rs232_pio_device::write(offs_t offset, uint8_t data)
 {
-	if (((offset & m_select_mask)==m_select_value) && m_selected)
+	if (in_dsr_space(offset, true) && m_selected)
 	{
 		if ((offset & 0x1001)==0x1000)
 		{
@@ -1060,17 +1060,6 @@ void ti_rs232_pio_device::device_reset()
 	m_recv_mode[1] = RECV_MODE_NORMAL;
 
 	m_bufpos[0] = m_bufpos[1] = m_buflen[0] = m_buflen[1] = 0;
-
-	if (m_genmod)
-	{
-		m_select_mask = 0x1fe000;
-		m_select_value = 0x174000;
-	}
-	else
-	{
-		m_select_mask = 0x7e000;
-		m_select_value = 0x74000;
-	}
 
 	m_selected = false;
 

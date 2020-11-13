@@ -12,7 +12,6 @@
 #pragma once
 
 #include "cpu/m6809/m6809.h"
-#include "video/generic.h"
 #include "machine/wd_fdc.h"
 #include "imagedev/floppy.h"
 #include "machine/6840ptm.h"
@@ -59,11 +58,13 @@ public:
 	void swtpc09d3(machine_config &config);
 	void swtpc09u(machine_config &config);
 	void swtpc09(machine_config &config);
+	void swtpc09o(machine_config &config);
 
 	void init_swtpc09();
 	void init_swtpc09i();
 	void init_swtpc09u();
 	void init_swtpc09d3();
+	void init_swtpc09o();
 
 	DECLARE_INPUT_CHANGED_MEMBER(maincpu_clock_change);
 	DECLARE_INPUT_CHANGED_MEMBER(fdc_clock_change);
@@ -73,8 +74,8 @@ private:
 	DECLARE_FLOPPY_FORMATS(floppy_flex_formats);
 	DECLARE_FLOPPY_FORMATS(floppy_uniflex_formats);
 
-	DECLARE_READ8_MEMBER(pia0_a_r);
-	DECLARE_READ8_MEMBER(pia0_ca1_r);
+	uint8_t pia0_a_r();
+	uint8_t pia0_ca1_r();
 	DECLARE_WRITE_LINE_MEMBER( pia0_irq_a );
 
 	DECLARE_WRITE_LINE_MEMBER(io_irq_w);
@@ -87,54 +88,54 @@ private:
 	DECLARE_WRITE_LINE_MEMBER( fdc_drq_w );
 	DECLARE_WRITE_LINE_MEMBER( fdc_sso_w );
 
-	DECLARE_READ8_MEMBER( dmaf3_via_read_porta );
-	DECLARE_READ8_MEMBER( dmaf3_via_read_portb );
-	DECLARE_WRITE8_MEMBER( dmaf3_via_write_porta );
-	DECLARE_WRITE8_MEMBER( dmaf3_via_write_portb );
+	uint8_t dmaf3_via_read_porta();
+	uint8_t dmaf3_via_read_portb();
+	void dmaf3_via_write_porta(uint8_t data);
+	void dmaf3_via_write_portb(uint8_t data);
 	DECLARE_WRITE_LINE_MEMBER( dmaf3_via_irq );
 
 	TIMER_CALLBACK_MEMBER(floppy_motor_callback);
 
-	DECLARE_READ8_MEMBER( dmaf2_fdc_r );
-	DECLARE_WRITE8_MEMBER( dmaf2_fdc_w );
-	DECLARE_READ8_MEMBER ( dmaf2_dma_address_reg_r );
-	DECLARE_WRITE8_MEMBER ( dmaf2_dma_address_reg_w );
-	DECLARE_READ8_MEMBER ( dmaf2_control_reg_r );
-	DECLARE_WRITE8_MEMBER ( dmaf2_control_reg_w );
+	uint8_t dmaf2_fdc_r(offs_t offset);
+	void dmaf2_fdc_w(offs_t offset, uint8_t data);
+	uint8_t dmaf2_dma_address_reg_r();
+	void dmaf2_dma_address_reg_w(uint8_t data);
+	uint8_t dmaf2_control_reg_r();
+	void dmaf2_control_reg_w(uint8_t data);
 
-	DECLARE_READ8_MEMBER( dmaf3_fdc_r );
-	DECLARE_WRITE8_MEMBER( dmaf3_fdc_w );
-	DECLARE_READ8_MEMBER ( dmaf3_dma_address_reg_r );
-	DECLARE_WRITE8_MEMBER ( dmaf3_dma_address_reg_w );
-	DECLARE_READ8_MEMBER ( dmaf3_control_reg_r );
-	DECLARE_WRITE8_MEMBER ( dmaf3_control_reg_w );
+	uint8_t dmaf3_fdc_r(offs_t offset);
+	void dmaf3_fdc_w(offs_t offset, uint8_t data);
+	uint8_t dmaf3_dma_address_reg_r();
+	void dmaf3_dma_address_reg_w(uint8_t data);
+	uint8_t dmaf3_control_reg_r();
+	void dmaf3_control_reg_w(uint8_t data);
 
 	DECLARE_WRITE_LINE_MEMBER(dmaf3_hdc_intrq_w);
 	DECLARE_WRITE_LINE_MEMBER( dmaf3_hdc_drq_w );
-	DECLARE_READ8_MEMBER( dmaf3_hdc_control_r );
-	DECLARE_WRITE8_MEMBER( dmaf3_hdc_control_w );
-	DECLARE_READ8_MEMBER( dmaf3_hdc_reset_r );
-	DECLARE_WRITE8_MEMBER( dmaf3_hdc_reset_w );
-	DECLARE_READ8_MEMBER( dmaf3_archive_reset_r );
-	DECLARE_WRITE8_MEMBER( dmaf3_archive_reset_w );
-	DECLARE_READ8_MEMBER( dmaf3_archive_clear_r );
-	DECLARE_WRITE8_MEMBER( dmaf3_archive_clear_w );
+	uint8_t dmaf3_hdc_control_r();
+	void dmaf3_hdc_control_w(uint8_t data);
+	uint8_t dmaf3_hdc_reset_r();
+	void dmaf3_hdc_reset_w(uint8_t data);
+	uint8_t dmaf3_archive_reset_r();
+	void dmaf3_archive_reset_w(uint8_t data);
+	uint8_t dmaf3_archive_clear_r();
+	void dmaf3_archive_clear_w(uint8_t data);
 
-	DECLARE_WRITE8_MEMBER(dat_w);
-	DECLARE_READ8_MEMBER(main_r);
-	DECLARE_WRITE8_MEMBER(main_w);
+	uint8_t main_r(offs_t offset);
+	void main_w(offs_t offset, uint8_t data);
 
-	DECLARE_READ8_MEMBER ( m6844_r );
-	DECLARE_WRITE8_MEMBER ( m6844_w );
+	uint8_t m6844_r(offs_t offset);
+	void m6844_w(offs_t offset, uint8_t data);
 
-	DECLARE_READ8_MEMBER ( unmapped_r );
-	DECLARE_WRITE8_MEMBER ( unmapped_w );
+	uint8_t unmapped_r(offs_t offset);
+	void unmapped_w(offs_t offset, uint8_t data);
 
 	void flex_dc5_piaide_mem(address_map &map);
 	void flex_dmaf2_mem(address_map &map);
 	void mp09_mem(address_map &map);
 	void uniflex_dmaf2_mem(address_map &map);
 	void uniflex_dmaf3_mem(address_map &map);
+	void os9_mem(address_map &map);
 
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
@@ -186,6 +187,7 @@ private:
 	emu_timer *m_floppy_motor_timer;
 	floppy_image_device *m_fdc_floppy; // Current selected floppy.
 	uint8_t m_fdc_side;                // Current floppy side.
+	uint8_t m_fdc_dden;                // Current dden state.
 	uint8_t m_dmaf3_via_porta;
 	uint8_t m_dmaf3_via_portb;
 	uint8_t m_active_interrupt;

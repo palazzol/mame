@@ -103,6 +103,12 @@ private:
 
 class c39_device : public r65c19_device
 {
+public:
+	enum {
+		C39_BSR0 = R65C19_I + 1,
+		C39_BSR1, C39_BSR2, C39_BSR3, C39_BSR4, C39_BSR5, C39_BSR6, C39_BSR7
+	};
+
 protected:
 	c39_device(const machine_config &mconfig, device_type type, const char *tag, device_t *owner, u32 clock, address_map_constructor internal_map);
 
@@ -132,9 +138,9 @@ private:
 		u8 es4_read(u16 adr);
 		void es4_write(u16 adr, u8 val);
 
-		address_space *exp;
-		memory_access_cache<0, 0, ENDIANNESS_LITTLE> *escache;
-		address_space *es4;
+		memory_access<21, 0, 0, ENDIANNESS_LITTLE>::cache escache;
+		memory_access<21, 0, 0, ENDIANNESS_LITTLE>::specific exp;
+		memory_access< 9, 0, 0, ENDIANNESS_LITTLE>::specific es4;
 
 		u8 bsr[8];
 		u8 pbs;

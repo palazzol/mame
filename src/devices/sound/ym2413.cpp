@@ -1473,9 +1473,9 @@ void ym2413_device::write_reg(int r, int v)
 //  sound_stream_update - handle a stream update
 //-------------------------------------------------
 
-void ym2413_device::sound_stream_update(sound_stream &stream, stream_sample_t **inputs, stream_sample_t **outputs, int samples)
+void ym2413_device::sound_stream_update(sound_stream &stream, std::vector<read_stream_view> const &inputs, std::vector<write_stream_view> &outputs)
 {
-	for(int i=0; i < samples ; i++ )
+	for(int i=0; i < outputs[0].samples() ; i++ )
 	{
 		output[0] = 0;
 		output[1] = 0;
@@ -1496,8 +1496,8 @@ void ym2413_device::sound_stream_update(sound_stream &stream, stream_sample_t **
 			rhythm_calc(&P_CH[0], noise_rng & 1 );
 		}
 
-		outputs[0][i] = limit( output[0] , 32767, -32768 );
-		outputs[1][i] = limit( output[1] , 32767, -32768 );
+		outputs[0].put_int_clamp(i, output[0], 32768);
+		outputs[1].put_int_clamp(i, output[1], 32768);
 
 		advance();
 	}
@@ -1511,7 +1511,7 @@ void ym2413_device::device_start()
 {
 	int rate = clock()/72;
 
-	m_stream = machine().sound().stream_alloc(*this,0,2,rate);
+	m_stream = stream_alloc(0,2,rate);
 
 	for (int x=0; x<TL_RES_LEN; x++)
 	{
@@ -1772,7 +1772,7 @@ ym2413_device::ym2413_device(const machine_config &mconfig, device_type type, co
 	std::fill(std::begin(output), std::end(output), 0);
 }
 
-DEFINE_DEVICE_TYPE(VRC7, vrc7snd_device, "vrc7snd", "Konami VRC7 (Sound)")
+DEFINE_DEVICE_TYPE(VRC7, vrc7snd_device, "vrc7snd", "Konami 053982 VRC VII (Sound)") // die label: D51001
 
 vrc7snd_device::vrc7snd_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: ym2413_device(mconfig, VRC7, tag, owner, clock)

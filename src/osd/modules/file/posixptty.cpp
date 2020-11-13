@@ -15,11 +15,11 @@
 #include <cstring>
 
 #include <fcntl.h>
-#include <limits.h>
+#include <climits>
 #include <unistd.h>
-#include <stdlib.h>
+#include <cstdlib>
 
-#if defined(__FreeBSD_kernel__) || defined(__DragonFly__)
+#if defined(__FreeBSD__) || defined(__DragonFly__)
 #include <termios.h>
 #include <libutil.h>
 #elif defined(__NetBSD__) || defined(__OpenBSD__) || defined(__APPLE__)

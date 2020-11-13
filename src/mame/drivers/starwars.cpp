@@ -26,7 +26,6 @@
 
 #include "emu.h"
 #include "includes/starwars.h"
-#include "includes/slapstic.h"
 
 #include "cpu/m6809/m6809.h"
 #include "machine/74259.h"
@@ -42,7 +41,7 @@
 #define CLOCK_3KHZ   (MASTER_CLOCK / 4096)
 
 
-WRITE8_MEMBER(starwars_state::quad_pokeyn_w)
+void starwars_state::quad_pokeyn_w(offs_t offset, uint8_t data)
 {
 	int pokey_num = (offset >> 3) & ~0x04;
 	int control = (offset & 0x20) >> 2;
@@ -80,7 +79,7 @@ void starwars_state::machine_reset()
  *
  *************************************/
 
-WRITE8_MEMBER(starwars_state::irq_ack_w)
+void starwars_state::irq_ack_w(uint8_t data)
 {
 	m_maincpu->set_input_line(M6809_IRQ_LINE, CLEAR_LINE);
 }
@@ -106,7 +105,7 @@ void starwars_state::esb_slapstic_tweak(address_space &space, offs_t offset)
 }
 
 
-READ8_MEMBER(starwars_state::esb_slapstic_r)
+uint8_t starwars_state::esb_slapstic_r(address_space &space, offs_t offset)
 {
 	int result = m_slapstic_base[offset];
 	esb_slapstic_tweak(space, offset);
@@ -114,7 +113,7 @@ READ8_MEMBER(starwars_state::esb_slapstic_r)
 }
 
 
-WRITE8_MEMBER(starwars_state::esb_slapstic_w)
+void starwars_state::esb_slapstic_w(address_space &space, offs_t offset, uint8_t data)
 {
 	esb_slapstic_tweak(space, offset);
 }
@@ -128,7 +127,7 @@ WRITE8_MEMBER(starwars_state::esb_slapstic_w)
 
 void starwars_state::main_map(address_map &map)
 {
-	map(0x0000, 0x2fff).ram().share("avg:vectorram").region("maincpu", 0);
+	map(0x0000, 0x2fff).ram().share("avg:vectorram");
 	map(0x3000, 0x3fff).rom();                             /* vector_rom */
 	map(0x4300, 0x431f).portr("IN0");
 	map(0x4320, 0x433f).portr("IN1");

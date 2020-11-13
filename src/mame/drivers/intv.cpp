@@ -226,7 +226,7 @@ static INPUT_PORTS_START( intvkbd )
 
 	PORT_START("ROW6")
 	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_UP)  PORT_CHAR(UCHAR_MAMEKEY(UP)) PORT_CHAR('|')
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_MINUS)   PORT_CHAR('_') PORT_CHAR('-')
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_MINUS)   PORT_CHAR('-') PORT_CHAR('_')
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_9)       PORT_CHAR('9') PORT_CHAR('(')
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_7)       PORT_CHAR('7') PORT_CHAR('&')
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_KEYBOARD) PORT_CODE(KEYCODE_5)       PORT_CHAR('5') PORT_CHAR('%')
@@ -460,9 +460,10 @@ INTERRUPT_GEN_MEMBER(intv_state::intv_interrupt2)
 void intv_state::intv(machine_config &config)
 {
 	/* basic machine hardware */
-	CP1610(config, m_maincpu, XTAL(3'579'545)/4);        /* Colorburst/4 */
-	m_maincpu->set_addrmap(AS_PROGRAM, &intv_state::intv_mem);
-	m_maincpu->set_vblank_int("screen", FUNC(intv_state::intv_interrupt));
+	cp1610_cpu_device &maincpu(CP1610(config, m_maincpu, XTAL(3'579'545)/4));        /* Colorburst/4 */
+	maincpu.set_addrmap(AS_PROGRAM, &intv_state::intv_mem);
+	maincpu.set_vblank_int("screen", FUNC(intv_state::intv_interrupt));
+	maincpu.iab().set(FUNC(intv_state::iab_r));
 	config.set_maximum_quantum(attotime::from_hz(60));
 
 	/* video hardware */

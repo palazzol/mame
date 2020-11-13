@@ -30,10 +30,10 @@ consolewin_info::consolewin_info(debugger_windows_interface &debugger) :
 		goto cleanup;
 
 	// create the views
-	m_views[1].reset(global_alloc(debugview_info(debugger, *this, window(), DVT_STATE)));
+	m_views[1].reset(new debugview_info(debugger, *this, window(), DVT_STATE));
 	if (!m_views[1]->is_valid())
 		goto cleanup;
-	m_views[2].reset(global_alloc(debugview_info(debugger, *this, window(), DVT_CONSOLE)));
+	m_views[2].reset(new debugview_info(debugger, *this, window(), DVT_CONSOLE));
 	if (!m_views[2]->is_valid())
 		goto cleanup;
 
@@ -78,7 +78,7 @@ consolewin_info::consolewin_info(debugger_windows_interface &debugger) :
 	}
 
 	// recompute the children
-	set_cpu(*machine().debugger().cpu().get_visible_cpu());
+	set_cpu(*machine().debugger().console().get_visible_cpu());
 
 	// mark the edit box as the default focus and set it
 	editwin_info::set_default_focus();
@@ -281,7 +281,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 						std::string as = slmap.find(opt_name)->second;
 
 						/* Make sure a folder was specified, and that it exists */
-						if ((!osd::directory::open(as.c_str())) || (as.find(':') == std::string::npos))
+						if ((!osd::directory::open(as)) || (as.find(':') == std::string::npos))
 						{
 							/* Default to emu directory */
 							osd_get_full_path(as, ".");
@@ -321,7 +321,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 							buf.erase(0, t1+1);
 
 							// load software
-							img->load_software( buf.c_str());
+							img->load_software(buf);
 						}
 					}
 				}
@@ -351,7 +351,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 							as = buf; // the only path
 
 						/* Make sure a folder was specified, and that it exists */
-						if ((!osd::directory::open(as.c_str())) || (as.find(':') == std::string::npos))
+						if ((!osd::directory::open(as)) || (as.find(':') == std::string::npos))
 						{
 							/* Default to emu directory */
 							osd_get_full_path(as, ".");
@@ -377,7 +377,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 						if (GetOpenFileName(&ofn))
 						{
 							auto utf8_buf = osd::text::from_tstring(selectedFilename);
-							img->load(utf8_buf.c_str());
+							img->load(utf8_buf);
 						}
 					}
 				}
@@ -406,7 +406,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 							as = buf; // the only path
 
 						/* Make sure a folder was specified, and that it exists */
-						if ((!osd::directory::open(as.c_str())) || (as.find(':') == std::string::npos))
+						if ((!osd::directory::open(as)) || (as.find(':') == std::string::npos))
 						{
 							/* Default to emu directory */
 							osd_get_full_path(as, ".");
@@ -432,7 +432,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 						if (GetSaveFileName(&ofn))
 						{
 							auto utf8_buf = osd::text::from_tstring(selectedFilename);
-							img->create(utf8_buf.c_str(), img->device_get_indexed_creatable_format(0), nullptr);
+							img->create(utf8_buf, img->device_get_indexed_creatable_format(0), nullptr);
 						}
 					}
 				}
@@ -443,7 +443,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 			}
 			if (img->device().type() == CASSETTE)
 			{
-				cassette_image_device *const cassette = downcast<cassette_image_device *>(&img->device());
+				auto *const cassette = downcast<cassette_image_device *>(&img->device());
 				bool s;
 				switch ((LOWORD(wparam) - ID_DEVICE_OPTIONS) % DEVOPTION_MAX)
 				{
@@ -481,7 +481,7 @@ bool consolewin_info::handle_command(WPARAM wparam, LPARAM lparam)
 void consolewin_info::process_string(std::string const &string)
 {
 	if (string.empty()) // an empty string is a single step
-		machine().debugger().cpu().get_visible_cpu()->debug()->single_step();
+		machine().debugger().console().get_visible_cpu()->debug()->single_step();
 	else                // otherwise, just process the command
 		machine().debugger().console().execute_command(string, true);
 
@@ -598,7 +598,7 @@ bool consolewin_info::get_softlist_info(device_image_interface *img)
 		while (sl_root && !passes_tests)
 		{
 			std::string test_path = sl_root + sl_dir;
-			if (osd::directory::open(test_path.c_str()))
+			if (osd::directory::open(test_path))
 			{
 				passes_tests = true;
 				slmap[opt_name] = test_path;

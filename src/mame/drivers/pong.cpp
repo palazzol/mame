@@ -52,7 +52,6 @@ TODO: Volleyball...
 #include "machine/netlist.h"
 
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 
 #include "video/fixfreq.h"
 
@@ -105,11 +104,11 @@ TODO: Volleyball...
  *
  */
 
-static const int NS_PER_CLOCK_PONG  = static_cast<int>((double) NETLIST_INTERNAL_RES / (double) 7159000 + 0.5);
-static const int MASTER_CLOCK_PONG  = static_cast<int>((double) NETLIST_INTERNAL_RES / (double) NS_PER_CLOCK_PONG + 0.5);
+static const int NS_PER_CLOCK_PONG  = static_cast<int>((double) netlist::config::INTERNAL_RES::value / (double) 7159000 + 0.5);
+static const int MASTER_CLOCK_PONG  = static_cast<int>((double) netlist::config::INTERNAL_RES::value / (double) NS_PER_CLOCK_PONG + 0.5);
 
 #define V_TOTAL_PONG    (0x105+1)       // 262
-#define H_TOTAL_PONG    (0x1C6+1)       // 454
+#define H_TOTAL_PONG    (0x1C5+1)       // 454
 
 /*
  * Breakout's H1 signal:
@@ -127,8 +126,8 @@ static const int MASTER_CLOCK_PONG  = static_cast<int>((double) NETLIST_INTERNAL
  */
 
 //#define MASTER_CLOCK_BREAKOUT    (14318000)
-static const int NS_PER_CLOCK_BREAKOUT           = static_cast<int>((double) NETLIST_INTERNAL_RES / (double) 14318000 + 0.5);
-static const int MASTER_CLOCK_BREAKOUT  = static_cast<int>((double) NETLIST_INTERNAL_RES / (double) NS_PER_CLOCK_BREAKOUT + 0.5);
+static const int NS_PER_CLOCK_BREAKOUT  = static_cast<int>((double) netlist::config::INTERNAL_RES::value / (double) 14318000 + 0.5);
+static const int MASTER_CLOCK_BREAKOUT  = static_cast<int>((double) netlist::config::INTERNAL_RES::value / (double) NS_PER_CLOCK_BREAKOUT + 0.5);
 
 static const int V_TOTAL_BREAKOUT       = (0xFC);       // 252
 static const int H_TOTAL_BREAKOUT       = (448*2);      // 448
@@ -473,7 +472,7 @@ INPUT_PORTS_END
 void pong_state::pong(machine_config &config)
 {
 	/* basic machine hardware */
-	NETLIST_CPU(config, "maincpu", NETLIST_CLOCK).set_source(this, &pong_state::NETLIST_NAME(pong));
+	NETLIST_CPU(config, "maincpu", netlist::config::DEFAULT_CLOCK()).set_source(this, &pong_state::NETLIST_NAME(pong));
 
 	NETLIST_ANALOG_INPUT(config, "maincpu:vr0", "ic_b9_R.R").set_mult_offset(1.0 / 100.0 * RES_K(50), RES_K(56) );
 	NETLIST_ANALOG_INPUT(config, "maincpu:vr1", "ic_a9_R.R").set_mult_offset(1.0 / 100.0 * RES_K(50), RES_K(56) );
@@ -490,26 +489,24 @@ void pong_state::pong(machine_config &config)
 	/* video hardware */
 	SCREEN(config, "screen", SCREEN_TYPE_RASTER);
 	//SCREEN(config, "screen", SCREEN_TYPE_VECTOR);
-	FIXFREQ(config, m_video).set_screen("screen");
-	m_video->set_monitor_clock(MASTER_CLOCK_PONG);
-	m_video->set_horz_params(H_TOTAL_PONG-67,H_TOTAL_PONG-40,H_TOTAL_PONG-8,H_TOTAL_PONG);
-	m_video->set_vert_params(V_TOTAL_PONG-22,V_TOTAL_PONG-19,V_TOTAL_PONG-12,V_TOTAL_PONG);
-	m_video->set_fieldcount(1);
-	m_video->set_threshold(0.11);
-	m_video->set_horz_scale(4);
-
+	FIXFREQ(config, m_video)
+		.set_monitor_clock(MASTER_CLOCK_PONG)
+		.set_horz_params(H_TOTAL_PONG-66,H_TOTAL_PONG-40,H_TOTAL_PONG-8,H_TOTAL_PONG)
+		.set_vert_params(V_TOTAL_PONG-22,V_TOTAL_PONG-10,V_TOTAL_PONG-8,V_TOTAL_PONG)
+		.set_fieldcount(1)
+		.set_threshold(0.11)
+		.set_gain(2.37)
+		.set_horz_scale(4)
+		.set_screen("screen");
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_16BIT_R2R_TWOS_COMPLEMENT(config, m_dac, 0).add_route(ALL_OUTPUTS, "speaker", 0.5); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 void breakout_state::breakout(machine_config &config)
 {
 	/* basic machine hardware */
-	NETLIST_CPU(config, "maincpu", NETLIST_CLOCK).set_source(NETLIST_NAME(breakout));
+	NETLIST_CPU(config, "maincpu", netlist::config::DEFAULT_CLOCK()).set_source(NETLIST_NAME(breakout));
 
 	NETLIST_ANALOG_INPUT(config, "maincpu:pot1", "POTP1.DIAL");
 	NETLIST_ANALOG_INPUT(config, "maincpu:pot2", "POTP2.DIAL");
@@ -540,26 +537,24 @@ void breakout_state::breakout(machine_config &config)
 	NETLIST_ANALOG_OUTPUT(config, "maincpu:coin_counter", 0).set_params("CON_T", FUNC(breakout_state::coin_counter_cb));
 
 	/* video hardware */
-	FIXFREQ(config, m_video).set_screen("screen");
-	SCREEN(config, "screen", SCREEN_TYPE_RASTER);
-	//SCREEN(config, "screen", SCREEN_TYPE_VECTOR);
 	/* The Pixel width is a 2,1,2,1,2,1,1,1 repeating pattern
 	 * Thus we must use double resolution horizontally
 	 */
-	m_video->set_monitor_clock(MASTER_CLOCK_BREAKOUT);
-	m_video->set_horz_params((H_TOTAL_BREAKOUT-208),(H_TOTAL_BREAKOUT-144),(H_TOTAL_BREAKOUT-16),  (H_TOTAL_BREAKOUT));
-	m_video->set_vert_params(V_TOTAL_BREAKOUT-22,V_TOTAL_BREAKOUT-23,V_TOTAL_BREAKOUT-4, V_TOTAL_BREAKOUT);
-	m_video->set_fieldcount(1);
-	m_video->set_threshold(1.0);
-	m_video->set_gain(1.5);
-	m_video->set_horz_scale(2);
+	SCREEN(config, "screen", SCREEN_TYPE_RASTER);
+	//SCREEN(config, "screen", SCREEN_TYPE_VECTOR);
+	FIXFREQ(config, m_video)
+		.set_monitor_clock(MASTER_CLOCK_BREAKOUT)
+		.set_horz_params((H_TOTAL_BREAKOUT-176),(H_TOTAL_BREAKOUT-144),(H_TOTAL_BREAKOUT-80),  (H_TOTAL_BREAKOUT))
+		.set_vert_params(V_TOTAL_BREAKOUT-24,V_TOTAL_BREAKOUT-24,V_TOTAL_BREAKOUT-20, V_TOTAL_BREAKOUT)
+		.set_fieldcount(1)
+		.set_threshold(1.0)
+		.set_gain(2.66)
+		.set_horz_scale(2)
+		.set_screen("screen");
 
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_16BIT_R2R_TWOS_COMPLEMENT(config, m_dac, 0).add_route(ALL_OUTPUTS, "speaker", 0.5); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 void pong_state::pongf(machine_config &config)
@@ -574,7 +569,7 @@ void pong_state::pongf(machine_config &config)
 void pong_state::pongd(machine_config &config)
 {
 	/* basic machine hardware */
-	NETLIST_CPU(config, "maincpu", NETLIST_CLOCK).set_source(NETLIST_NAME(pongdoubles));
+	NETLIST_CPU(config, "maincpu", netlist::config::DEFAULT_CLOCK()).set_source(NETLIST_NAME(pongdoubles));
 
 	NETLIST_ANALOG_INPUT(config, "maincpu:pot0", "A10_POT.DIAL");
 	NETLIST_ANALOG_INPUT(config, "maincpu:pot1", "B10_POT.DIAL");
@@ -594,25 +589,25 @@ void pong_state::pongd(machine_config &config)
 
 	/* video hardware */
 	SCREEN(config, "screen", SCREEN_TYPE_RASTER);
-	FIXFREQ(config, m_video).set_screen("screen");
-	m_video->set_monitor_clock(MASTER_CLOCK_PONG);
-	m_video->set_horz_params(H_TOTAL_PONG-67,H_TOTAL_PONG-52,H_TOTAL_PONG-8,H_TOTAL_PONG);
-	m_video->set_vert_params(V_TOTAL_PONG-22,V_TOTAL_PONG-19,V_TOTAL_PONG-12,V_TOTAL_PONG);
-	m_video->set_fieldcount(1);
-	m_video->set_threshold(0.11);
+	FIXFREQ(config, m_video)
+		.set_monitor_clock(MASTER_CLOCK_PONG)
+		.set_horz_params(H_TOTAL_PONG-76,H_TOTAL_PONG-56,H_TOTAL_PONG-8,H_TOTAL_PONG)
+		.set_vert_params(V_TOTAL_PONG-22,V_TOTAL_PONG-10,V_TOTAL_PONG-8,V_TOTAL_PONG)
+		.set_fieldcount(1)
+		.set_threshold(0.11)
+		.set_gain(2.7)
+		.set_horz_scale(2)
+		.set_screen("screen");
 
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_16BIT_R2R_TWOS_COMPLEMENT(config, m_dac, 0).add_route(ALL_OUTPUTS, "speaker", 0.5); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 void rebound_state::rebound(machine_config &config)
 {
 	/* basic machine hardware */
-	NETLIST_CPU(config, "maincpu", NETLIST_CLOCK).set_source(NETLIST_NAME(rebound));
+	NETLIST_CPU(config, "maincpu", netlist::config::DEFAULT_CLOCK()).set_source(NETLIST_NAME(rebound));
 
 	// FIXME: Later
 	NETLIST_ANALOG_INPUT(config, "maincpu:pot1", "POTP1.DIAL");
@@ -633,23 +628,20 @@ void rebound_state::rebound(machine_config &config)
 
 	/* video hardware */
 	SCREEN(config, "screen", SCREEN_TYPE_RASTER);
-	FIXFREQ(config, m_video).set_screen("screen");
-	m_video->set_monitor_clock(MASTER_CLOCK_PONG);
-	//m_video->set_horz_params(H_TOTAL_PONG-67,H_TOTAL_PONG-40,H_TOTAL_PONG-8,H_TOTAL_PONG);
-	m_video->set_horz_params(H_TOTAL_PONG-51,H_TOTAL_PONG-40,H_TOTAL_PONG-8,H_TOTAL_PONG);
-	m_video->set_vert_params(V_TOTAL_PONG-22,V_TOTAL_PONG-19,V_TOTAL_PONG-12,V_TOTAL_PONG);
-	m_video->set_fieldcount(1);
-	m_video->set_threshold(1.0);
-	m_video->set_gain(0.6);
-	m_video->set_horz_scale(2);
+	FIXFREQ(config, m_video)
+		.set_monitor_clock(MASTER_CLOCK_PONG)
+		.set_horz_params(H_TOTAL_PONG-66,H_TOTAL_PONG-56,H_TOTAL_PONG-8,H_TOTAL_PONG)
+		.set_vert_params(V_TOTAL_PONG-22,V_TOTAL_PONG-12,V_TOTAL_PONG-8,V_TOTAL_PONG)
+		.set_fieldcount(1)
+		.set_threshold(1.0)
+		.set_gain(1.8)
+		.set_horz_scale(2)
+		.set_screen("screen");
 
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	//FIXME: this is not related to reality at all.
 	DAC_16BIT_R2R_TWOS_COMPLEMENT(config, m_dac, 0).add_route(ALL_OUTPUTS, "speaker", 0.5); // unknown DAC
-	voltage_regulator_device &vref(VOLTAGE_REGULATOR(config, "vref"));
-	vref.add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
-	vref.add_route(0, "dac", -1.0, DAC_VREF_NEG_INPUT);
 }
 
 
@@ -661,7 +653,7 @@ void rebound_state::rebound(machine_config &config)
 
 ROM_START( pong ) /* dummy to satisfy game entry*/
 	ROM_REGION( 0x10000, "maincpu", 0 ) /* enough for netlist */
-	ROM_LOAD( "pong.netlist", 0x000000, 0x00473b, CRC(eadaf087) SHA1(4cb9a79f5cb53502105974be61b99ff16ee930e9) )
+	ROM_LOAD( "pong.netlist", 0x000000, 18273, CRC(d249ce49) SHA1(e1d2cfca74b75f0520965639e6947a351650fc3e) )
 ROM_END
 
 ROM_START( breakout )
@@ -721,7 +713,7 @@ ROM_END
 */
 
 GAME(  1972, pong,      0, pong,     pong,      pong_state,     empty_init, ROT0,  "Atari", "Pong (Rev E) external [TTL]", MACHINE_SUPPORTS_SAVE)
-GAME(  1972, pongf,     0, pongf,    pong,      pong_state,     empty_init, ROT0,  "Atari", "Pong (Rev E) [TTL]", MACHINE_SUPPORTS_SAVE)
+GAME(  1972, pongf,    pong, pongf,    pong,      pong_state,     empty_init, ROT0,  "Atari", "Pong (Rev E) [TTL]", MACHINE_SUPPORTS_SAVE)
 GAME(  1973, pongd,     0, pongd,    pongd,     pong_state,     empty_init, ROT0,  "Atari", "Pong Doubles [TTL]", MACHINE_SUPPORTS_SAVE)
 GAMEL( 1974, rebound,   0, rebound,  rebound,   rebound_state,  empty_init, ROT0,  "Atari", "Rebound (Rev B) [TTL]", MACHINE_SUPPORTS_SAVE, layout_rebound)
 GAMEL( 1976, breakout,  0, breakout, breakout,  breakout_state, empty_init, ROT90, "Atari", "Breakout [TTL]", MACHINE_SUPPORTS_SAVE, layout_breakout)

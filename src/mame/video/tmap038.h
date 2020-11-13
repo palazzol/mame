@@ -23,10 +23,12 @@ public:
 	template <typename T> void set_gfxdecode_tag(T &&tag) { m_gfxdecode.set_tag(std::forward<T>(tag)); }
 	template <typename... T> void set_tile_callback(T &&... args) { m_038_cb.set(std::forward<T>(args)...); }
 	void set_gfx(u16 no) { m_gfxno = no; }
+	void set_xoffs(int xoffs, int flipped_xoffs) { m_xoffs = xoffs; m_flipped_xoffs = flipped_xoffs; }
+	void set_yoffs(int yoffs, int flipped_yoffs) { m_yoffs = yoffs; m_flipped_yoffs = flipped_yoffs; }
 
 	// call to do the rendering etc.
-	template<class _BitmapClass>
-	void draw_common(screen_device &screen, _BitmapClass &bitmap, const rectangle &cliprect, u32 flags, u8 pri = 0, u8 pri_mask = ~0);
+	template<class BitmapClass>
+	void draw_common(screen_device &screen, BitmapClass &bitmap, const rectangle &cliprect, u32 flags, u8 pri = 0, u8 pri_mask = ~0);
 
 	void prepare();
 	void draw(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect, u32 flags, u8 pri = 0, u8 pri_mask = ~0);
@@ -71,12 +73,12 @@ public:
 	// vregs
 	bool flipx() const         { return BIT(~m_vregs[0], 15); }
 	bool rowscroll_en() const  { return BIT(m_vregs[0], 14) && (m_lineram != nullptr); }
-	u16 scrollx() const        { return m_vregs[0] & 0x1ff; }
+	int scrollx() const        { return (m_vregs[0] & 0x1ff) + (flipx() ? m_flipped_xoffs : m_xoffs); }
 
 	bool flipy() const         { return BIT(~m_vregs[1], 15); }
 	bool rowselect_en() const  { return BIT(m_vregs[1], 14) && (m_lineram != nullptr); }
 	bool tiledim() const       { return m_tiledim; }
-	u16 scrolly() const        { return m_vregs[1] & 0x1ff; }
+	int scrolly() const        { return (m_vregs[1] & 0x1ff) + (flipy() ? m_flipped_yoffs : m_yoffs); }
 
 	bool enable() const        { return BIT(~m_vregs[2], 4); }
 	u16 external() const       { return m_vregs[2] & 0xf; }
@@ -101,6 +103,9 @@ private:
 
 	tmap038_cb_delegate m_038_cb;
 	tilemap_t* m_tmap;
+
+	int m_xoffs, m_flipped_xoffs;
+	int m_yoffs, m_flipped_yoffs;
 };
 
 

@@ -46,6 +46,7 @@ public:
 	accomm_state(const machine_config &mconfig, device_type type, const char *tag) :
 		driver_device(mconfig, type, tag),
 		m_maincpu(*this, "maincpu"),
+		m_maincpu_region(*this, "maincpu"),
 		m_beeper(*this, "beeper"),
 		m_ram(*this, RAM_TAG),
 		m_via(*this, "via6522"),
@@ -55,31 +56,40 @@ public:
 		m_vram(*this, "vram"),
 		m_keybd1(*this, "LINE1.%u", 0),
 		m_keybd2(*this, "LINE2.%u", 0),
+		m_shiftlock_led(*this, "shiftlock_led"),
+		m_capslock_led(*this, "capslock_led"),
 		m_ch00rom_enabled(true)
 	{ }
 
 	void accomm(machine_config &config);
 
+	DECLARE_INPUT_CHANGED_MEMBER(trigger_reset);
+
+protected:
+	// driver_device overrides
+	virtual void machine_reset() override;
+	virtual void machine_start() override;
+	virtual void video_start() override;
+
 private:
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
-	DECLARE_WRITE8_MEMBER(ch00switch_w);
-	DECLARE_READ8_MEMBER(read_keyboard1);
-	DECLARE_READ8_MEMBER(read_keyboard2);
-	DECLARE_READ8_MEMBER(ram_r);
-	DECLARE_WRITE8_MEMBER(ram_w);
-	DECLARE_READ8_MEMBER(sheila_r);
-	DECLARE_WRITE8_MEMBER(sheila_w);
+	void ch00switch_w(offs_t offset, uint8_t data);
+	uint8_t read_keyboard1(offs_t offset);
+	uint8_t read_keyboard2(offs_t offset);
+	uint8_t ram_r(offs_t offset);
+	void ram_w(offs_t offset, uint8_t data);
+	uint8_t sheila_r(offs_t offset);
+	void sheila_w(offs_t offset, uint8_t data);
 
 	void accomm_palette(palette_device &palette) const;
 	INTERRUPT_GEN_MEMBER(vbl_int);
 
-	virtual void machine_reset() override;
-	virtual void machine_start() override;
 	void main_map(address_map &map);
 
 	// devices
 	required_device<g65816_device> m_maincpu;
+	required_memory_region m_maincpu_region;
 	required_device<beep_device> m_beeper;
 	required_device<ram_device> m_ram;
 	required_device<via6522_device> m_via;
@@ -88,9 +98,8 @@ private:
 	required_device<mc6854_device> m_adlc;
 	required_shared_ptr<uint8_t> m_vram;
 	required_ioport_array<14> m_keybd1, m_keybd2;
-
-	// driver_device overrides
-	virtual void video_start() override;
+	output_finder<> m_shiftlock_led;
+	output_finder<> m_capslock_led;
 
 	void interrupt_handler(int mode, int interrupt);
 	inline uint8_t read_vram( uint16_t addr );
@@ -150,7 +159,7 @@ void accomm_state::accomm_palette(palette_device &palette) const
 	palette.set_pen_colors(0, electron_palette);
 }
 
-READ8_MEMBER(accomm_state::read_keyboard1)
+uint8_t accomm_state::read_keyboard1(offs_t offset)
 {
 	uint8_t data = 0;
 
@@ -164,7 +173,7 @@ READ8_MEMBER(accomm_state::read_keyboard1)
 	return data;
 }
 
-READ8_MEMBER(accomm_state::read_keyboard2)
+uint8_t accomm_state::read_keyboard2(offs_t offset)
 {
 	uint8_t data = 0;
 
@@ -203,6 +212,9 @@ void accomm_state::machine_reset()
 
 void accomm_state::machine_start()
 {
+	m_shiftlock_led.resolve();
+	m_capslock_led.resolve();
+
 	m_ula.interrupt_status = 0x82;
 	m_ula.interrupt_control = 0x00;
 }
@@ -216,7 +228,7 @@ void accomm_state::video_start()
 	}
 }
 
-WRITE8_MEMBER(accomm_state::ch00switch_w)
+void accomm_state::ch00switch_w(offs_t offset, uint8_t data)
 {
 	logerror("ch00switch_w: offset %04x, data %02x\n", offset, data);
 	if (!machine().side_effects_disabled())
@@ -230,7 +242,7 @@ inline uint8_t accomm_state::read_vram(uint16_t addr)
 
 inline void accomm_state::plot_pixel(bitmap_ind16 &bitmap, int x, int y, uint32_t color)
 {
-	bitmap.pix16(y, x) = (uint16_t)color;
+	bitmap.pix(y, x) = (uint16_t)color;
 }
 
 uint32_t accomm_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect)
@@ -432,13 +444,13 @@ uint32_t accomm_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap
 }
 
 
-READ8_MEMBER(accomm_state::ram_r)
+uint8_t accomm_state::ram_r(offs_t offset)
 {
 	uint8_t data = 0xff;
 
 	if (m_ch00rom_enabled && (offset < 0x10000))
 	{
-		data = memregion("maincpu")->base()[offset];
+		data = m_maincpu_region->base()[offset];
 	}
 	else
 	{
@@ -456,7 +468,7 @@ READ8_MEMBER(accomm_state::ram_r)
 	return data;
 }
 
-WRITE8_MEMBER(accomm_state::ram_w)
+void accomm_state::ram_w(offs_t offset, uint8_t data)
 {
 	switch (m_ram->size())
 	{
@@ -471,7 +483,7 @@ WRITE8_MEMBER(accomm_state::ram_w)
 }
 
 
-READ8_MEMBER(accomm_state::sheila_r)
+uint8_t accomm_state::sheila_r(offs_t offset)
 {
 	uint8_t data = 0;
 	switch ( offset & 0x0f )
@@ -494,7 +506,7 @@ READ8_MEMBER(accomm_state::sheila_r)
 static const int palette_offset[4] = { 0, 4, 5, 1 };
 static const uint16_t screen_base[8] = { 0x3000, 0x3000, 0x3000, 0x4000, 0x5800, 0x5800, 0x6000, 0x5800 };
 
-WRITE8_MEMBER(accomm_state::sheila_w)
+void accomm_state::sheila_w(offs_t offset, uint8_t data)
 {
 	int i = palette_offset[(( offset >> 1 ) & 0x03)];
 	logerror( "ULA: write offset %02x <- %02x\n", offset & 0x0f, data );
@@ -576,9 +588,9 @@ WRITE8_MEMBER(accomm_state::sheila_w)
 		m_ula.vram = (uint8_t *)m_vram.target() + m_ula.screen_base;
 		logerror( "ULA: screen mode set to %d\n", m_ula.screen_mode );
 		m_ula.shiftlock_mode = !BIT(data, 6);
-		output().set_value("shiftlock_led", m_ula.shiftlock_mode);
+		m_shiftlock_led = m_ula.shiftlock_mode;
 		m_ula.capslock_mode = BIT(data, 7);
-		output().set_value("capslock_led", m_ula.capslock_mode);
+		m_capslock_led = m_ula.capslock_mode;
 		break;
 	case 0x08: case 0x0A: case 0x0C: case 0x0E:
 		// video_update
@@ -644,6 +656,11 @@ void accomm_state::main_map(address_map &map)
 	map(0xfd0000, 0xfdffff).rom().region("maincpu", 0x020000);                                      /* ROM bank 2 (ROM Slot 1) */
 	map(0xfe0000, 0xfeffff).rom().region("maincpu", 0x000000);                                      /* ROM bank 0 (ROM Slot 0) */
 	map(0xff0000, 0xffffff).rom().region("maincpu", 0x010000);                                      /* ROM bank 1 (ROM Slot 0) */
+}
+
+INPUT_CHANGED_MEMBER(accomm_state::trigger_reset)
+{
+	m_maincpu->set_input_line(INPUT_LINE_RESET, newval ? ASSERT_LINE : CLEAR_LINE);
 }
 
 static INPUT_PORTS_START( accomm )
@@ -716,7 +733,7 @@ static INPUT_PORTS_START( accomm )
 	PORT_START("LINE1.11")
 	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_BACKSLASH2) PORT_CHAR('\\') PORT_CHAR('|')
 	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_CLOSEBRACE) PORT_CHAR(']')  PORT_CHAR('}')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F10)        PORT_CHAR(UCHAR_MAMEKEY(F10))       PORT_NAME("Phone")
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F9)         PORT_CHAR(UCHAR_MAMEKEY(F9))        PORT_NAME("Phone")
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_BACKSPACE)  PORT_CHAR(UCHAR_MAMEKEY(ESC))       PORT_NAME("Escape")
 
 	PORT_START("LINE1.12")
@@ -798,9 +815,9 @@ static INPUT_PORTS_START( accomm )
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_7_PAD)      PORT_CHAR(UCHAR_MAMEKEY(7_PAD))
 
 	PORT_START("LINE2.11")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F9)         PORT_CHAR(UCHAR_MAMEKEY(F9))       PORT_NAME("Stop")
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F10)        PORT_CHAR(UCHAR_MAMEKEY(F10))      PORT_NAME("Comp")
 	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_SPACE)      PORT_CHAR(' ')
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F12)        PORT_CHAR(UCHAR_MAMEKEY(F12))      PORT_NAME("Calc")
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F11)        PORT_CHAR(UCHAR_MAMEKEY(F11))      PORT_NAME("Calc")
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_ENTER)      PORT_CHAR(13)
 
 	PORT_START("LINE2.12")
@@ -814,6 +831,9 @@ static INPUT_PORTS_START( accomm )
 	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_UNUSED)
 	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_UNUSED)
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_UNUSED)
+
+	PORT_START("STOP")
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYBOARD) PORT_CODE(KEYCODE_F12)        PORT_CHAR(UCHAR_MAMEKEY(F12))      PORT_NAME("Stop") PORT_CHANGED_MEMBER(DEVICE_SELF, accomm_state, trigger_reset, 0)
 INPUT_PORTS_END
 
 void accomm_state::accomm(machine_config &config)
@@ -847,7 +867,7 @@ void accomm_state::accomm(machine_config &config)
 
 	/* via */
 	VIA6522(config, m_via, 16_MHz_XTAL / 16);
-	m_via->writepa_handler().set("cent_data_out", FUNC(output_latch_device::bus_w));
+	m_via->writepa_handler().set("cent_data_out", FUNC(output_latch_device::write));
 	m_via->ca2_handler().set("centronics", FUNC(centronics_device::write_strobe));
 
 	/* acia */
@@ -969,7 +989,7 @@ ROM_START(accommi)
 	ROM_REGION(0x380000, "ext", ROMREGION_ERASEFF)
 ROM_END
 
-COMP( 1986, accomm,  0,      0, accomm, accomm, accomm_state, empty_init, "Acorn", "Acorn Communicator",             MACHINE_NOT_WORKING )
-COMP( 1985, accommp, accomm, 0, accomm, accomm, accomm_state, empty_init, "Acorn", "Acorn Communicator (prototype)", MACHINE_NOT_WORKING )
-COMP( 1987, accommb, accomm, 0, accomm, accomm, accomm_state, empty_init, "Acorn", "Acorn Briefcase Communicator",   MACHINE_NOT_WORKING )
-COMP( 1988, accommi, accomm, 0, accomm, accomm, accomm_state, empty_init, "Acorn", "Acorn Communicator (Italian)",   MACHINE_NOT_WORKING )
+COMP( 1986, accomm,  0,      0, accomm, accomm, accomm_state, empty_init, "Acorn Computers", "Acorn Communicator",             MACHINE_NOT_WORKING )
+COMP( 1985, accommp, accomm, 0, accomm, accomm, accomm_state, empty_init, "Acorn Computers", "Acorn Communicator (prototype)", MACHINE_NOT_WORKING )
+COMP( 1987, accommb, accomm, 0, accomm, accomm, accomm_state, empty_init, "Acorn Computers", "Acorn Briefcase Communicator",   MACHINE_NOT_WORKING )
+COMP( 1988, accommi, accomm, 0, accomm, accomm, accomm_state, empty_init, "Acorn Computers", "Acorn Communicator (Italian)",   MACHINE_NOT_WORKING )

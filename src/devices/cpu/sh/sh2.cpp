@@ -113,7 +113,7 @@ DEFINE_DEVICE_TYPE(SH2A, sh2a_device, "sh21", "Hitachi SH-2A")
     SH2 internal map
 -------------------------------------------------*/
 
-READ32_MEMBER(sh2_device::sh2_internal_a5)
+uint32_t sh2_device::sh2_internal_a5()
 {
 	return 0xa5a5a5a5;
 }
@@ -269,11 +269,13 @@ sh2_device::sh2_device(const machine_config &mconfig, device_type type, const ch
 sh2a_device::sh2a_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: sh2_device(mconfig, SH2A, tag, owner, clock, CPU_TYPE_SH2, address_map_constructor(FUNC(sh2a_device::sh7021_map), this), 28)
 {
+	std::fill(std::begin(m_sh7021_regs), std::end(m_sh7021_regs), 0);
 }
 
 sh1_device::sh1_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: sh2_device(mconfig, SH1, tag, owner, clock, CPU_TYPE_SH1, address_map_constructor(FUNC(sh1_device::sh7032_map), this), 28)
 {
+	std::fill(std::begin(m_sh7032_regs), std::end(m_sh7032_regs), 0);
 }
 
 device_memory_interface::space_config_vector sh2_device::memory_space_config() const
@@ -530,18 +532,18 @@ void sh2_device::device_start()
 	m_ftcsr_read_cb.resolve();
 
 	m_decrypted_program = has_space(AS_OPCODES) ? &space(AS_OPCODES) : &space(AS_PROGRAM);
-	auto cache = m_decrypted_program->cache<2, 0, ENDIANNESS_BIG>();
-	m_pr16 = [cache](offs_t address) -> u16 { return cache->read_word(address); };
+	m_decrypted_program->cache(m_cache32);
+	m_pr16 = [this](offs_t address) -> u16 { return m_cache32.read_word(address); };
 	if (m_decrypted_program->endianness() != ENDIANNESS_NATIVE)
-		m_prptr = [cache](offs_t address) -> const void * {
-			const u16 *ptr = static_cast<u16 *>(cache->read_ptr(address & ~3));
+		m_prptr = [this](offs_t address) -> const void * {
+			const u16 *ptr = static_cast<u16 *>(m_cache32.read_ptr(address & ~3));
 			if(!(address & 2))
 				ptr++;
 			return ptr;
 		};
 	else
-		m_prptr = [cache](offs_t address) -> const void * {
-			const u16 *ptr = static_cast<u16 *>(cache->read_ptr(address & ~3));
+		m_prptr = [this](offs_t address) -> const void * {
+			const u16 *ptr = static_cast<u16 *>(m_cache32.read_ptr(address & ~3));
 			if(address & 2)
 				ptr++;
 			return ptr;

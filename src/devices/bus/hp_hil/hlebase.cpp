@@ -21,6 +21,8 @@ namespace bus {
 hle_device_base::hle_device_base(machine_config const &mconfig, device_type type, char const *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, type, tag, owner, clock)
 	, device_hp_hil_interface(mconfig, *this)
+	, m_powerup(true)
+	, m_passthru(false)
 { }
 
 
@@ -139,6 +141,12 @@ bool hle_device_base::hil_write(uint16_t *pdata)
 		m_passthru = false;
 		device_reset();
 		return true;
+		break;
+
+	case HPHIL_DKA:
+	case HPHIL_EK1:
+	case HPHIL_EK2:
+		hil_typematic(data);
 		break;
 
 	default:

@@ -200,6 +200,7 @@ VBlank duration: 1/VSYNC * (16/256) = 1017.6 us
 #include "includes/gottlieb.h"
 
 #include "machine/nvram.h"
+#include "machine/rescap.h"
 #include "machine/watchdog.h"
 #include "sound/dac.h"
 #include "speaker.h"
@@ -233,16 +234,16 @@ void gottlieb_state::machine_start()
 	if (m_laserdisc != nullptr)
 	{
 		/* attach to the I/O ports */
-		m_maincpu->space(AS_PROGRAM).install_read_handler(0x05805, 0x05807, 0, 0x07f8, 0, read8_delegate(*this, FUNC(gottlieb_state::laserdisc_status_r)));
-		m_maincpu->space(AS_PROGRAM).install_write_handler(0x05805, 0x05805, 0, 0x07f8, 0, write8_delegate(*this, FUNC(gottlieb_state::laserdisc_command_w)));    /* command for the player */
-		m_maincpu->space(AS_PROGRAM).install_write_handler(0x05806, 0x05806, 0, 0x07f8, 0, write8_delegate(*this, FUNC(gottlieb_state::laserdisc_select_w)));
+		m_maincpu->space(AS_PROGRAM).install_read_handler(0x05805, 0x05807, 0, 0x07f8, 0, read8sm_delegate(*this, FUNC(gottlieb_state::laserdisc_status_r)));
+		m_maincpu->space(AS_PROGRAM).install_write_handler(0x05805, 0x05805, 0, 0x07f8, 0, write8smo_delegate(*this, FUNC(gottlieb_state::laserdisc_command_w)));    /* command for the player */
+		m_maincpu->space(AS_PROGRAM).install_write_handler(0x05806, 0x05806, 0, 0x07f8, 0, write8smo_delegate(*this, FUNC(gottlieb_state::laserdisc_select_w)));
 
 		/* allocate a timer for serial transmission, and one for philips code processing */
 		m_laserdisc_bit_timer = timer_alloc(TIMER_LASERDISC_BIT);
 		m_laserdisc_philips_timer = timer_alloc(TIMER_LASERDISC_PHILIPS);
 
 		/* create some audio RAM */
-		m_laserdisc_audio_buffer = std::make_unique<uint8_t[]>(AUDIORAM_SIZE);
+		m_laserdisc_audio_buffer = std::make_unique<u8[]>(AUDIORAM_SIZE);
 		m_laserdisc_status = 0x38;
 
 		/* more save state registration */
@@ -284,7 +285,7 @@ CUSTOM_INPUT_MEMBER(gottlieb_state::track_delta_r)
 }
 
 
-WRITE8_MEMBER(gottlieb_state::analog_reset_w)
+void gottlieb_state::analog_reset_w(u8 data)
 {
 	/* reset the trackball counters */
 	m_track[0] = m_track_x.read_safe(0);
@@ -323,7 +324,7 @@ void gottlieb_state::general_output_w(u8 data)
 }
 
 // custom overrides
-WRITE8_MEMBER(gottlieb_state::reactor_output_w)
+void gottlieb_state::reactor_output_w(u8 data)
 {
 	general_output_w(data & ~0xe0);
 
@@ -332,7 +333,7 @@ WRITE8_MEMBER(gottlieb_state::reactor_output_w)
 	m_leds[2] = BIT(data, 7);
 }
 
-WRITE8_MEMBER(gottlieb_state::qbert_output_w)
+void gottlieb_state::qbert_output_w(u8 data)
 {
 	general_output_w(data & ~0x20);
 
@@ -340,7 +341,7 @@ WRITE8_MEMBER(gottlieb_state::qbert_output_w)
 	qbert_knocker(data >> 5 & 1);
 }
 
-WRITE8_MEMBER(gottlieb_state::qbertqub_output_w)
+void gottlieb_state::qbertqub_output_w(u8 data)
 {
 	// coincounter is on bit 5 instead
 	general_output_w((data >> 1 & 0x10) | (data & ~0x30));
@@ -349,7 +350,7 @@ WRITE8_MEMBER(gottlieb_state::qbertqub_output_w)
 	m_spritebank = (data & 0x10) >> 4;
 }
 
-WRITE8_MEMBER(gottlieb_state::stooges_output_w)
+void gottlieb_state::stooges_output_w(u8 data)
 {
 	general_output_w(data & ~0x60);
 
@@ -365,7 +366,7 @@ WRITE8_MEMBER(gottlieb_state::stooges_output_w)
  *
  *************************************/
 
-READ8_MEMBER(gottlieb_state::laserdisc_status_r)
+uint8_t gottlieb_state::laserdisc_status_r(offs_t offset)
 {
 	/* IP5 reads low 8 bits of Philips code */
 	if (offset == 0)
@@ -388,21 +389,21 @@ READ8_MEMBER(gottlieb_state::laserdisc_status_r)
 	}
 	else
 	{
-		uint8_t result = m_laserdisc_audio_buffer[m_laserdisc_audio_address++];
+		u8 result = m_laserdisc_audio_buffer[m_laserdisc_audio_address++];
 		m_laserdisc_audio_address %= AUDIORAM_SIZE;
 		return result;
 	}
 }
 
 
-WRITE8_MEMBER(gottlieb_state::laserdisc_select_w)
+void gottlieb_state::laserdisc_select_w(u8 data)
 {
 	/* selects between reading audio data and reading status */
 	m_laserdisc_select = data & 1;
 }
 
 
-WRITE8_MEMBER(gottlieb_state::laserdisc_command_w)
+void gottlieb_state::laserdisc_command_w(u8 data)
 {
 	/* a write here latches data into a 8-bit register and starts
 	   a sequence of events that sends serial data to the player */
@@ -451,8 +452,8 @@ TIMER_CALLBACK_MEMBER(gottlieb_state::laserdisc_bit_off_callback)
 
 TIMER_CALLBACK_MEMBER(gottlieb_state::laserdisc_bit_callback)
 {
-	uint8_t bitsleft = param >> 16;
-	uint8_t data = param;
+	u8 bitsleft = param >> 16;
+	u8 data = param;
 	attotime duration;
 
 	/* assert the line and set a timer for deassertion */
@@ -655,7 +656,7 @@ void gottlieb_state::laserdisc_audio_process(int samplerate, int samples, const 
 //   a real kicker/knocker, hook it up via output "knocker0")
 //-------------------------------------------------
 
-void gottlieb_state::qbert_knocker(uint8_t knock)
+void gottlieb_state::qbert_knocker(u8 knock)
 {
 	output().set_value("knocker0", knock);
 
@@ -775,9 +776,7 @@ void gottlieb_state::reactor_map(address_map &map)
 void gottlieb_state::gottlieb_map(address_map &map)
 {
 	map.global_mask(0xffff);
-	map(0x0000, 0x0fff).ram().share("nvram");
-	map(0x1000, 0x1fff).ram().region("maincpu", 0x1000);    /* or ROM */
-	map(0x2000, 0x2fff).ram().region("maincpu", 0x2000);    /* or ROM */
+	map(0x0000, 0x2fff).ram().share("nvram");
 	map(0x3000, 0x30ff).mirror(0x0700).writeonly().share("spriteram");                           /* FRSEL */
 	map(0x3800, 0x3bff).mirror(0x0400).ram().w(FUNC(gottlieb_state::videoram_w)).share("videoram");       /* BRSEL */
 	map(0x4000, 0x4fff).ram().w(FUNC(gottlieb_state::charram_w)).share("charram");               /* BOJRSEL1 */
@@ -2160,9 +2159,11 @@ ROM_END
 
 
 ROM_START( krull )
-	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_REGION( 0x3000, "nvram", ROMREGION_ERASEFF)
 	ROM_LOAD( "gv-105_ram_2.c7",      0x1000, 0x1000, CRC(302feadf) SHA1(9d70de35e4f0490dc4e601070993ad146f250dea) )
 	ROM_LOAD( "gv-105_ram_4.c9-10",   0x2000, 0x1000, CRC(79355a60) SHA1(57ad5c904b9ac4bf7c7d828bf755bbcbba6a4fd7) )
+
+	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROM_LOAD( "gv-105_rom_4.c16",     0x6000, 0x2000, CRC(2b696394) SHA1(b18270f4ad97743f6ff8c4cbc93e523c77a8e794) )
 	ROM_LOAD( "gv-105_rom_3.c14-15",  0x8000, 0x2000, CRC(14b0ee42) SHA1(276c4008a013806b3989c529f41cbc358ec49fd6) )
 	ROM_LOAD( "gv-105_rom_2.c13-14",  0xa000, 0x2000, CRC(b5fad94a) SHA1(1bae895fbdd658cfb56c53cc2139282cc1e778de) )
@@ -2470,8 +2471,10 @@ ROM_END
 
 
 ROM_START( 3stooges )
-	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_REGION( 0x3000, "nvram", ROMREGION_ERASEFF)
 	ROM_LOAD( "gv113ram.4",   0x2000, 0x1000, CRC(533bff2a) SHA1(58d0be8add4b02dc3e27cf6b17a05baf4304f3ce) )
+
+	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROM_LOAD( "gv113rom.4",   0x6000, 0x2000, CRC(8b6e52b8) SHA1(6e17e11afce92a7fa1735a724f0c0faf9375ac89) )
 	ROM_LOAD( "gv113rom.3",   0x8000, 0x2000, CRC(b816d8c4) SHA1(86e16888492390034ac04e3f6a9f56422575c778) )
 	ROM_LOAD( "gv113rom.2",   0xa000, 0x2000, CRC(b45b2a79) SHA1(7d0b19bec462ab67f518361afdf4b6982829ed07) )
@@ -2497,8 +2500,10 @@ ROM_END
 
 
 ROM_START( 3stoogesa )
-	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_REGION( 0x3000, "nvram", ROMREGION_ERASEFF)
 	ROM_LOAD( "gv113ram4.bin",   0x2000, 0x1000, CRC(a00365be) SHA1(a151e1dfd8a251e6558968ea1df5a8516286d2c1) ) /* Came from PCB with low serial # */
+
+	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROM_LOAD( "gv113rom4.bin",   0x6000, 0x2000, CRC(a8f9d51d) SHA1(c9b18e31fea6fd01171528dd583b4d4f9b9078ed) )
 	ROM_LOAD( "gv113rom3.bin",   0x8000, 0x2000, CRC(60bda7b6) SHA1(7dd7633397d3ccdbd7885a5436f422f575ecd0cc) )
 	ROM_LOAD( "gv113rom2.bin",   0xa000, 0x2000, CRC(9bb95798) SHA1(91cf203cf59c5a96ed5de8f4c5743bd91350c16f) )
@@ -2524,8 +2529,10 @@ ROM_END
 
 
 ROM_START( vidvince )
-	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_REGION( 0x3000, "nvram", ROMREGION_ERASEFF)
 	ROM_LOAD( "gv132_ram4_2732.c9c10",   0x2000, 0x1000, CRC(67a4927b) SHA1(41dfd13ea24bb3b0f8f917f4af5f6b33af1bc2e7) )
+
+	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROM_LOAD( "gv132_rom4_2764.c16",     0x6000, 0x2000, CRC(3c5f39f5) SHA1(3722c30bcd60fc0c1c4ca4dd800a3654fba67599) )
 	ROM_LOAD( "gv132_rom3_2764.c14c15",  0x8000, 0x2000, CRC(3983cb79) SHA1(3c527ed2428b8cb86a6896a74c873317a9f7b411) )
 	ROM_LOAD( "gv132_rom2_2764.c13c14",  0xa000, 0x2000, CRC(0f5ebab9) SHA1(680874b9857565857375096d05203997669a7215) )
@@ -2599,21 +2606,21 @@ void gottlieb_state::init_romtiles()
 void gottlieb_state::init_qbert()
 {
 	init_romtiles();
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x5803, 0x5803, 0, 0x07f8, 0, write8_delegate(*this, FUNC(gottlieb_state::qbert_output_w)));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x5803, 0x5803, 0, 0x07f8, 0, write8smo_delegate(*this, FUNC(gottlieb_state::qbert_output_w)));
 }
 
 
 void gottlieb_state::init_qbertqub()
 {
 	init_romtiles();
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x5803, 0x5803, 0, 0x07f8, 0, write8_delegate(*this, FUNC(gottlieb_state::qbertqub_output_w)));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x5803, 0x5803, 0, 0x07f8, 0, write8smo_delegate(*this, FUNC(gottlieb_state::qbertqub_output_w)));
 }
 
 
 void gottlieb_state::init_stooges()
 {
 	init_ramtiles();
-	m_maincpu->space(AS_PROGRAM).install_write_handler(0x5803, 0x5803, 0, 0x07f8, 0, write8_delegate(*this, FUNC(gottlieb_state::stooges_output_w)));
+	m_maincpu->space(AS_PROGRAM).install_write_handler(0x5803, 0x5803, 0, 0x07f8, 0, write8smo_delegate(*this, FUNC(gottlieb_state::stooges_output_w)));
 }
 
 

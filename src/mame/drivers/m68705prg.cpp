@@ -107,11 +107,14 @@ protected:
 		m_addr = 0x0000;
 		m_pb_val = 0xff;
 
+		m_input_poll_timer->adjust(attotime::from_hz(120), 0, attotime::from_hz(120));
+	}
+
+	virtual void machine_reset() override
+	{
 		m_digits[0] = s_7seg[(m_addr >> 0) & 0x0f];
 		m_digits[1] = s_7seg[(m_addr >> 4) & 0x0f];
 		m_digits[2] = s_7seg[(m_addr >> 8) & 0x0f];
-
-		m_input_poll_timer->adjust(attotime::from_hz(120), 0, attotime::from_hz(120));
 	}
 
 	required_ioport                         m_sw;
@@ -145,7 +148,7 @@ public:
 	void prg(machine_config &config);
 
 protected:
-	DECLARE_WRITE8_MEMBER(pb_w)
+	void pb_w(u8 data)
 	{
 		// PB4: address counter reset (active high)
 		// PB3: address counter clock (falling edge)
@@ -165,7 +168,7 @@ protected:
 		m_pb_val = data;
 
 		u8 const *const ptr(m_eprom_image->get_rom_base());
-		m_mcu->pa_w(space, 0, ptr ? ptr[m_addr & m_mcu_region.mask()] : 0xff);
+		m_mcu->pa_w(ptr ? ptr[m_addr & m_mcu_region.mask()] : 0xff);
 
 		m_digits[0] = s_7seg[(m_addr >> 0) & 0x0f];
 		m_digits[1] = s_7seg[(m_addr >> 4) & 0x0f];
@@ -174,6 +177,8 @@ protected:
 
 	virtual void machine_reset() override
 	{
+		m68705prg_state_base::machine_reset();
+
 		m_sw->field(0x01)->live().value = 0;
 		m_sw->field(0x02)->live().value = 0;
 

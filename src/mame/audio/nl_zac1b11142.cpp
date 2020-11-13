@@ -1,4 +1,4 @@
-// license:BSD-3-Clause
+// license:CC0
 // copyright-holders:Vas Crabb, Couriersud
 
 #include "netlist/devices/net_lib.h"
@@ -16,11 +16,10 @@ NETLIST_START(zac1b11142_schematics)
 	TTL_7474_DIP(U3A) // FIXME: need 74LS family model (higher input impedance, half the sink capability)
 	CD4016_DIP(U5D)
 
-	NET_C(VCC, /*U3A.14,*/ U5D.14) // 7474 model doesn't have Vcc pin
-	NET_C(GND, /*U3A.7,*/ U5D.7) // 7474 model doesn't have GND pin
+	NET_C(VCC, U3A.14, U5D.14)
+	NET_C(GND, U3A.7, U5D.7)
 
 	NET_C(VCC, U3A.10, U3A.11, U3A.12, U3A.13) // only half of this chip is used in this audio section - tie up the other inputs
-
 
 	// ANAL1/IOA3/IOA4 -> RULLANTE/CASSA
 
@@ -358,7 +357,7 @@ NETLIST_START(zac1b11142)
 	ALIAS(VCC, I_P5.Q)
 	ALIAS(I_V0.Q, GND)
 
-	NET_MODEL("AY8910PORT FAMILY(OVL=0.05 OVH=0.05 ORL=100.0 ORH=0.5k)")
+	NET_MODEL("AY8910PORT FAMILY(TYPE=NMOS OVL=0.05 OVH=0.05 ORL=100.0 ORH=0.5k)")
 
 	// AY-3-8910 4G/4H digital outputs
 	LOGIC_INPUT(I_IOA0,   1, "AY8910PORT")
@@ -426,9 +425,6 @@ NETLIST_START(zac1b11142)
 	/* -----------------------------------------------------------------------
 	 * Power terminals
 	 * -----------------------------------------------------------------------*/
-
-	NET_C(VCC, U3A.14)
-	NET_C(GND, U3A.7)
 
 	// Reverse so that volume raises with raising percentage in ui
 	PARAM(P1.REVERSE, 1)

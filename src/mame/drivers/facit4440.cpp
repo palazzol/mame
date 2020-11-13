@@ -32,7 +32,7 @@
 #include "machine/clock.h"
 #include "machine/er1400.h"
 #include "machine/z80ctc.h"
-#include "machine/z80dart.h"
+#include "machine/z80sio.h"
 #include "video/mc6845.h"
 #include "screen.h"
 
@@ -148,7 +148,7 @@ WRITE_LINE_MEMBER(facit4440_state::vsync_w)
 MC6845_UPDATE_ROW(facit4440_state::update_row)
 {
 	offs_t base = ma / 5 * 6;
-	u32 *px = &bitmap.pix32(y);
+	u32 *px = &bitmap.pix(y);
 
 	for (int i = 0; i < x_count; i++)
 	{

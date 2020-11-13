@@ -46,7 +46,6 @@ D0-D3: keypad row
 #include "emu.h"
 #include "cpu/z80/z80.h"
 #include "sound/dac.h"
-#include "sound/volt_reg.h"
 #include "video/pwm.h"
 #include "speaker.h"
 
@@ -68,7 +67,7 @@ public:
 		m_inputs(*this, "IN.%u", 0)
 	{ }
 
-	// machine drivers
+	// machine configs
 	void bcc(machine_config &config);
 	void bkc(machine_config &config);
 
@@ -87,8 +86,8 @@ private:
 	void main_io(address_map &map);
 
 	// I/O handlers
-	DECLARE_READ8_MEMBER(input_r);
-	DECLARE_WRITE8_MEMBER(control_w);
+	u8 input_r();
+	void control_w(offs_t offset, u8 data);
 
 	u8 m_inp_mux = 0;
 	u8 m_7seg_data = 0;
@@ -109,7 +108,7 @@ void bcc_state::machine_start()
 
 // TTL
 
-WRITE8_MEMBER(bcc_state::control_w)
+void bcc_state::control_w(offs_t offset, u8 data)
 {
 	// a0-a2,d7: digit segment data via NE591
 	u8 mask = 1 << (offset & 7);
@@ -125,7 +124,7 @@ WRITE8_MEMBER(bcc_state::control_w)
 	m_inp_mux = data & 0xf;
 }
 
-READ8_MEMBER(bcc_state::input_r)
+u8 bcc_state::input_r()
 {
 	u8 data = 0;
 
@@ -218,7 +217,7 @@ INPUT_PORTS_END
 
 
 /******************************************************************************
-    Machine Drivers
+    Machine Configs
 ******************************************************************************/
 
 void bcc_state::bkc(machine_config &config)
@@ -242,7 +241,6 @@ void bcc_state::bcc(machine_config &config)
 	/* sound hardware */
 	SPEAKER(config, "speaker").front_center();
 	DAC_1BIT(config, m_dac).add_route(ALL_OUTPUTS, "speaker", 0.25);
-	VOLTAGE_REGULATOR(config, "vref").add_route(0, "dac", 1.0, DAC_VREF_POS_INPUT);
 }
 
 
@@ -276,7 +274,7 @@ ROM_END
 ******************************************************************************/
 
 //    YEAR  NAME      PARENT CMP MACHINE  INPUT  STATE      INIT        COMPANY, FULLNAME, FLAGS
-CONS( 1979, cc7,      0,      0, bcc,     bcc,   bcc_state, empty_init, "Fidelity Electronics", "Chess Challenger 7 (model BCC, rev. B)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1979, cc7o,     cc7,    0, bcc,     bcc,   bcc_state, empty_init, "Fidelity Electronics", "Chess Challenger 7 (model CC7)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK ) // 2nd revision of model CC7?
+CONS( 1979, cc7,      0,      0, bcc,     bcc,   bcc_state, empty_init, "Fidelity Electronics", "Chess Challenger \"7\" (model BCC, rev. B)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1979, cc7o,     cc7,    0, bcc,     bcc,   bcc_state, empty_init, "Fidelity Electronics", "Chess Challenger \"7\" (model CC7)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK ) // 2nd revision of model CC7?
 
 CONS( 1979, backgamc, 0,      0, bkc,     bkc,   bcc_state, empty_init, "Fidelity Electronics", "Backgammon Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_NO_SOUND_HW )

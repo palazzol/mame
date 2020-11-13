@@ -108,8 +108,8 @@ renderer_bgfx::renderer_bgfx(std::shared_ptr<osd_window> w)
 renderer_bgfx::~renderer_bgfx()
 {
 	bgfx::reset(0, 0, BGFX_RESET_NONE);
-	bgfx::touch(0);
-	bgfx::frame();
+	//bgfx::touch(0);
+	//bgfx::frame();
 	if (m_avi_writer != nullptr && m_avi_writer->recording())
 	{
 		m_avi_writer->stop();
@@ -454,7 +454,7 @@ bgfx::VertexLayout ScreenVertex::ms_decl;
 void renderer_bgfx::put_packed_quad(render_primitive *prim, uint32_t hash, ScreenVertex* vertices)
 {
 	rectangle_packer::packed_rectangle& rect = m_hash_to_entry[hash];
-	float size = float(CACHE_SIZE);
+	auto size = float(CACHE_SIZE);
 	float u0 = (float(rect.x()) + 0.5f) / size;
 	float v0 = (float(rect.y()) + 0.5f) / size;
 	float u1 = u0 + (float(rect.width()) - 1.0f) / size;
@@ -517,7 +517,7 @@ void renderer_bgfx::vertex(ScreenVertex* vertex, float x, float y, float z, uint
 
 void renderer_bgfx::render_post_screen_quad(int view, render_primitive* prim, bgfx::TransientVertexBuffer* buffer, int32_t screen)
 {
-	ScreenVertex* vertices = reinterpret_cast<ScreenVertex*>(buffer->data);
+	auto* vertices = reinterpret_cast<ScreenVertex*>(buffer->data);
 
 	float x[4] = { prim->bounds.x0, prim->bounds.x1, prim->bounds.x0, prim->bounds.x1 };
 	float y[4] = { prim->bounds.y0, prim->bounds.y0, prim->bounds.y1, prim->bounds.y1 };
@@ -553,7 +553,7 @@ void renderer_bgfx::render_avi_quad()
 
 	bgfx::TransientVertexBuffer buffer;
 	bgfx::allocTransientVertexBuffer(&buffer, 6, ScreenVertex::ms_decl);
-	ScreenVertex* vertices = reinterpret_cast<ScreenVertex*>(buffer.data);
+	auto* vertices = reinterpret_cast<ScreenVertex*>(buffer.data);
 
 	float x[4] = { 0.0f, float(m_width[0]), 0.0f, float(m_width[0]) };
 	float y[4] = { 0.0f, 0.0f, float(m_height[0]), float(m_height[0]) };
@@ -576,7 +576,7 @@ void renderer_bgfx::render_avi_quad()
 
 void renderer_bgfx::render_textured_quad(render_primitive* prim, bgfx::TransientVertexBuffer* buffer)
 {
-	ScreenVertex* vertices = reinterpret_cast<ScreenVertex*>(buffer->data);
+	auto* vertices = reinterpret_cast<ScreenVertex*>(buffer->data);
 	uint32_t rgba = u32Color(prim->color.r * 255, prim->color.g * 255, prim->color.b * 255, prim->color.a * 255);
 
 	float x[4] = { prim->bounds.x0, prim->bounds.x1, prim->bounds.x0, prim->bounds.x1 };
@@ -957,7 +957,7 @@ void renderer_bgfx::update_recording()
 	int i = 0;
 	for (int y = 0; y < m_avi_bitmap.height(); y++)
 	{
-		uint32_t *dst = &m_avi_bitmap.pix32(y);
+		uint32_t *dst = &m_avi_bitmap.pix(y);
 
 		for (int x = 0; x < m_avi_bitmap.width(); x++)
 		{
@@ -1171,7 +1171,7 @@ void renderer_bgfx::process_atlas_packs(std::vector<std::vector<rectangle_packer
 			m_hash_to_entry[rect.hash()] = rect;
 			bgfx::TextureFormat::Enum dst_format = bgfx::TextureFormat::RGBA8;
 			uint16_t pitch = rect.width();
-			const bgfx::Memory* mem = bgfx_util::mame_texture_data_to_bgfx_texture_data(dst_format, rect.format(), rect.width(), rect.height(), rect.rowpixels(), rect.palette(), rect.base(), &pitch);
+			const bgfx::Memory* mem = bgfx_util::mame_texture_data_to_bgfx_texture_data(dst_format, rect.format(), rect.rowpixels(), rect.height(), rect.palette(), rect.base(), &pitch);
 			bgfx::updateTexture2D(m_texture_cache->texture(), 0, 0, rect.x(), rect.y(), rect.width(), rect.height(), mem, pitch);
 		}
 	}

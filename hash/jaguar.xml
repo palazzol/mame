@@ -1,6 +1,8 @@
 <?xml version="1.0"?>
 <!DOCTYPE softwarelist SYSTEM "softwarelist.dtd">
 <!--
+license:CC0
+
 Undumped:
   CD Diagnostic Cartridge
   Cybermorph (Rev. 0)(serial "J9000 700700")
@@ -166,7 +168,7 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- black screen -->
+	<!-- boot OK, gameplay graphics have clipping/alignment issues, eventually throws an exception, no sound -->
 	<software name="atarikrt" supported="no">
 		<description>Atari Karts</description>
 		<year>1995</year>
@@ -179,8 +181,8 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- black screen -->
-	<software name="mutntpng" supported="no">
+	<!-- boot OK, title screen foreground layer not drawn properly, no sound -->
+	<software name="mutntpng" supported="partial">
 		<description>Attack of the Mutant Penguins</description>
 		<year>1996</year>
 		<publisher>Atari</publisher>
@@ -257,7 +259,7 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- throws an exception if the Telegames logo isn't skipped, switching items in main menu causes a glitch on the text -->
+	<!-- switching items in main menu causes a glitch on the text -->
 	<!-- rightmost column of gameplay has odd "overscan" area -->
 	<software name="brutalsp" supported="no">
 		<description>Brutal Sports Football</description>
@@ -272,7 +274,7 @@ Unreleased (possibly no prototypes exist):
 	</software>
 
 	<!-- boot OK -->
-	<software name="bubsy" supported="yes">
+	<software name="bubsy">
 		<description>Bubsy in Fractured Furry Tales</description>
 		<year>1994</year>
 		<publisher>Atari</publisher>
@@ -285,7 +287,7 @@ Unreleased (possibly no prototypes exist):
 	</software>
 
 	<!-- boot OK -->
-	<software name="cfodder" supported="yes">
+	<software name="cfodder">
 		<description>Cannon Fodder</description>
 		<year>1995</year>
 		<publisher>Virgin Interactive</publisher>
@@ -478,9 +480,9 @@ Unreleased (possibly no prototypes exist):
 		<part name="cart" interface="jaguar_cart">
 			<dataarea name="rom" size="2097152" width="32" endianness="big">
 				<!-- below dump was mirrored
-				<rom name="flip out! (world).j64" size="4194304" crc="fae31dd0" sha1="61d4db841c090ae3104eb20b6087160ff80e7a12" offset="000000" />
+				<rom name="flip out (world).j64" size="4194304" crc="fae31dd0" sha1="61d4db841c090ae3104eb20b6087160ff80e7a12" offset="000000" />
 				-->
-				<rom name="flip out! (world).j64" size="2097152" crc="892bc67c" sha1="886cbbaa434d6e1e7fc4401bb6d176c2788c4d19" offset="000000" />
+				<rom name="flip out (world).j64" size="2097152" crc="892bc67c" sha1="886cbbaa434d6e1e7fc4401bb6d176c2788c4d19" offset="000000" />
 			</dataarea>
 		</part>
 	</software>
@@ -590,7 +592,8 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- hangs at the NBA Jam TE logo -->
+	<!-- exception on non-debug, on debug gameplay sports no sprite GFXs -->
+	<!-- minor glitch on team box when selecting one (blitter not filling properly) -->
 	<software name="nbajamte" supported="no">
 		<description>NBA Jam T.E. - Tournament Edition</description>
 		<year>1996</year>
@@ -719,7 +722,7 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- throws an exception off the bat -->
+	<!-- black screen -->
 	<software name="ruinerp" supported="no">
 		<description>Ruiner Pinball</description>
 		<year>1995</year>
@@ -760,7 +763,7 @@ Unreleased (possibly no prototypes exist):
 	</software>
 
 	<!-- boot OK -->
-	<software name="soccerkd" supported="yes">
+	<software name="soccerkd">
 		<description>Soccer Kid</description>
 		<year>1996</year>
 		<publisher>ReadySoft</publisher>
@@ -790,7 +793,7 @@ Unreleased (possibly no prototypes exist):
 	</software>
 
 	<!-- boot OK -->
-	<software name="soccerkd1h" cloneof="soccerkd" supported="yes">
+	<software name="soccerkd1h" cloneof="soccerkd">
 		<!-- uses universal header, only way to boot this at moment -->
 		<description>Soccer Kid (Re-release, Hacked)</description>
 		<year>2000</year>
@@ -803,7 +806,7 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- throws an exception off the bat -->
+	<!-- gets to title screen (with wrong GFX width) then hangs -->
 	<software name="spacewar" supported="no">
 		<description>Space War 2000</description>
 		<year>2001</year>
@@ -815,7 +818,7 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- throws an exception off the bat -->
+	<!-- gets to title screen (with wrong GFX width) then hangs -->
 	<software name="spacewarp" cloneof="spacewar" supported="no">
 		<description>Space War 2000 (Prototype)</description>
 		<year>19??</year>
@@ -868,8 +871,8 @@ Unreleased (possibly no prototypes exist):
 			</dataarea>
 		</part>
 	</software>
-	
-	<!-- throws exception after few seconds on title screen -->
+
+	<!-- boot OK -->
 	<software name="tempst2k" supported="no">
 		<description>Tempest 2000</description>
 		<year>1994</year>
@@ -964,7 +967,7 @@ Unreleased (possibly no prototypes exist):
 	</software>
 
 	<!-- boot OK, no BGMs, has minor GFX pitch issue when action summary message pops up after a play -->
-	<software name="troyaik" supported="no">
+	<software name="troyaik" supported="partial">
 		<description>Troy Aikman NFL Football</description>
 		<year>1995</year>
 		<publisher>Williams Entertainment</publisher>
@@ -1028,7 +1031,7 @@ Unreleased (possibly no prototypes exist):
 		</part>
 	</software>
 
-	<!-- boot OK, sound buzz when selecting new game, can eventually black screen or throw an exception --> 
+	<!-- boot OK, sound buzz when selecting new game, can eventually black screen or throw an exception -->
 	<software name="wolfn3d" supported="no">
 		<description>Wolfenstein 3D</description>
 		<year>1994</year>
@@ -1068,7 +1071,7 @@ Unreleased (possibly no prototypes exist):
 	</software>
 
 	<!-- boot OK, sound metrics menu has glitchy bars (pause menu then press 'B') -->
-	<software name="zool2" supported="yes">
+	<software name="zool2">
 		<description>Zool 2</description>
 		<year>1994</year>
 		<publisher>Atari</publisher>
@@ -1088,7 +1091,7 @@ Unreleased (possibly no prototypes exist):
 		<info name="serial" value="J9109E 705109-002"/>
 		<part name="cart" interface="jaguar_cart">
 			<dataarea name="rom" size="1048576" width="32" endianness="big">
-				<rom name="zoop! (world).j64" size="1048576" crc="c5562581" sha1="52ec786f7536ab043dc24725af94068cad2b0ec3" offset="000000" />
+				<rom name="zoop (world).j64" size="1048576" crc="c5562581" sha1="52ec786f7536ab043dc24725af94068cad2b0ec3" offset="000000" />
 			</dataarea>
 		</part>
 	</software>

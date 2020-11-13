@@ -2,12 +2,12 @@
 // copyright-holders:R. Belmont, Parduz
 /***************************************************************************
 
-    esq5505.c - Ensoniq ES5505 + ES5510 based synthesizers and samplers
+    esq5505.cpp - Ensoniq ES5505 + ES5510 based synthesizers and samplers
 
     Ensoniq VFX, VFX-SD, EPS, EPS-16 Plus, SD-1, SD-1 32, SQ-1 and SQ-R (SQ-1 Plus,
     SQ-2, and KS-32 are known to also be this architecture).
 
-    The Taito sound system in taito_en.c is directly derived from the 32-voice version
+    The Taito sound system in taito_en.cpp is directly derived from the 32-voice version
     of the SD-1.
 
     Driver by R. Belmont and Parduz with thanks to Christian Brunschen, and Phil Bennett
@@ -124,6 +124,40 @@
     22 = second digit of patch # becomes 6
     23 = first digit of patch # becomes 6
 
+    Ensoniq SQ-2 MIDI keyboard
+    Ensoniq 1992
+    PCB Layout by Guru
+
+
+    PART NO.: 4001018001 REV B
+
+       |--|  |--|  |--|    |--|                       |--|     |--|   |--|   |--|
+    |--|J1|--|J2|--|J3|----|J4|-----------------------|J7|-----|J8|---|J9|---|J10--|
+    | PHONE  RAUD  LAUD    PEDAL      3V_BATT         FOOT     MIDI   MIDI   MIDI  |
+    |                      CV   74LS244 74LS244 74LS245        IN     OUT    THRU  |
+    |                                                                              |
+    |    TL072                  J5                                HP6N138   |---|  |
+    |            7912       4051      CARTRIDGE       LOWER.U27  UPPER.U32  | 6 |LM2926
+    |                 J15         |-------J6------|       62256       62256 | 8 |  |
+    |                             |---------------|   74HC4053              | 0 |7805
+    |            7812           7407                          ENSONIQ       | 0 |  |
+    |    TL072            TL072               ENSONIQ         GLU           | 0 |  |
+    |                                         SUPERGLU                      |---|  |
+    |                                                                              |
+    |                                            16MHz  30.47618MHz                |
+    |                                                                         POWER|
+    |TDA1541A        ROM3.U38   ROM1.U26    74HC74                LM339         J12|
+    |                                                                              |
+    |                    ROM2.U39   ROM0.U25              NCR6500/11  J13          |
+    |                                                                              |
+    |        OTISR2             74LS373      ESP        68681                      |
+    |                                                                              |
+    |7805    74HC74 74F139  6264      6264   ADJ-POT  ESPR6       LM339            |
+    |                                                                              |
+    |7915    74LS174 74HC161    74LS373    LM317T                 J11 J14          |
+    |------------------------------------------------------------------------------|
+    Note: All parts shown.
+
 ***************************************************************************/
 
 #include "emu.h"
@@ -211,16 +245,16 @@ private:
 	virtual void machine_start() override;
 	virtual void machine_reset() override;
 
-	DECLARE_READ16_MEMBER(lower_r);
-	DECLARE_WRITE16_MEMBER(lower_w);
+	uint16_t lower_r(offs_t offset);
+	void lower_w(offs_t offset, uint16_t data, uint16_t mem_mask = ~0);
 
-	DECLARE_READ16_MEMBER(analog_r);
-	DECLARE_WRITE16_MEMBER(analog_w);
+	uint16_t analog_r();
+	void analog_w(offs_t offset, uint16_t data);
 
 	DECLARE_WRITE_LINE_MEMBER(duart_irq_handler);
 	DECLARE_WRITE_LINE_MEMBER(duart_tx_a);
 	DECLARE_WRITE_LINE_MEMBER(duart_tx_b);
-	DECLARE_WRITE8_MEMBER(duart_output);
+	void duart_output(uint8_t data);
 
 	void es5505_clock_changed(u32 data);
 
@@ -338,7 +372,7 @@ void esq5505_state::update_irq_to_maincpu()
 	}
 }
 
-READ16_MEMBER(esq5505_state::lower_r)
+uint16_t esq5505_state::lower_r(offs_t offset)
 {
 	offset &= 0x7fff;
 
@@ -359,7 +393,7 @@ READ16_MEMBER(esq5505_state::lower_r)
 	}
 }
 
-WRITE16_MEMBER(esq5505_state::lower_w)
+void esq5505_state::lower_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	offset &= 0x7fff;
 
@@ -436,13 +470,13 @@ void esq5505_state::es5505_clock_changed(u32 data)
 	m_pump->set_unscaled_clock(data);
 }
 
-WRITE16_MEMBER(esq5505_state::analog_w)
+void esq5505_state::analog_w(offs_t offset, uint16_t data)
 {
 	offset &= 0x7;
 	m_analog_values[offset] = data;
 }
 
-READ16_MEMBER(esq5505_state::analog_r)
+uint16_t esq5505_state::analog_r()
 {
 	return m_analog_values[m_duart_io & 7];
 }
@@ -461,7 +495,7 @@ WRITE_LINE_MEMBER(esq5505_state::duart_irq_handler)
 	update_irq_to_maincpu();
 }
 
-WRITE8_MEMBER(esq5505_state::duart_output)
+void esq5505_state::duart_output(uint8_t data)
 {
 	floppy_image_device *floppy = m_floppy_connector ? m_floppy_connector->get_device() : nullptr;
 

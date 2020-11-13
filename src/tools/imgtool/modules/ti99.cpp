@@ -18,11 +18,11 @@
     - check allocation bitmap against corruption when an image is opened
 */
 
-#include <limits.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
+#include <climits>
+#include <cstdio>
+#include <cstring>
+#include <cstdlib>
+#include <ctime>
 #include "imgtool.h"
 #include "harddisk.h"
 #include "imghd.h"
@@ -4948,7 +4948,7 @@ static imgtoolerr_t dsk_image_deletefile(imgtool::partition &partition, const ch
 
 		/* free data AUs */
 //      fphysrecs =
-			get_UINT16BE(fdr.fphysrecs);
+		get_UINT16BE(fdr.fphysrecs);
 
 		i = 0;
 		cluster_index = 0;

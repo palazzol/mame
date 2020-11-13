@@ -8,12 +8,16 @@ DEFINE_DEVICE_TYPE(ELAN_EU3A05_VID, elan_eu3a05vid_device, "elan_eu3a05vid", "El
 
 // tilemaps start at 0x0600 in mainram, sprites at 0x3e00, unlike eu3a14 these could be fixed addresses
 
-elan_eu3a05vid_device::elan_eu3a05vid_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: elan_eu3a05commonvid_device(mconfig, ELAN_EU3A05_VID, tag, owner, clock),
+elan_eu3a05vid_device::elan_eu3a05vid_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
+	elan_eu3a05commonvid_device(mconfig, ELAN_EU3A05_VID, tag, owner, clock),
 	device_memory_interface(mconfig, *this),
 	m_cpu(*this, finder_base::DUMMY_TAG),
 	m_bank(*this, finder_base::DUMMY_TAG),
-	m_space_config("regs", ENDIANNESS_NATIVE, 8, 5, 0, address_map_constructor(FUNC(elan_eu3a05vid_device::map), this))
+	m_space_config("regs", ENDIANNESS_NATIVE, 8, 5, 0, address_map_constructor(FUNC(elan_eu3a05vid_device::map), this)),
+	m_bytes_per_tile_entry(4),
+	m_vrambase(0x600),
+	m_spritebase(0x3e00),
+	m_use_spritepages(false)
 {
 }
 
@@ -72,12 +76,27 @@ void elan_eu3a05vid_device::device_reset()
 
 	for (int i=0;i<2;i++)
 		m_splitpos[i] = 0x00;
+
+}
+
+void elan_eu3a05vid_device::set_is_sudoku()
+{
+	m_bytes_per_tile_entry = 2;
+	m_vrambase = 0x200;
+	m_spritebase = 0x1000;
+}
+
+void elan_eu3a05vid_device::set_is_pvmilfin()
+{
+	m_bytes_per_tile_entry = 4;
+	m_vrambase = 0x200;
+	m_spritebase = 0x1000; // not verified
 }
 
 uint8_t elan_eu3a05vid_device::read_spriteram(int offset)
 {
 	address_space& cpuspace = m_cpu->space(AS_PROGRAM);
-	int realoffset = offset+0x3e00;
+	int realoffset = offset+m_spritebase;
 	if (realoffset < 0x4000)
 	{
 		return cpuspace.read_byte(realoffset);
@@ -90,7 +109,7 @@ uint8_t elan_eu3a05vid_device::read_spriteram(int offset)
 uint8_t elan_eu3a05vid_device::read_vram(int offset)
 {
 	address_space& cpuspace = m_cpu->space(AS_PROGRAM);
-	int realoffset = offset+0x0600;
+	int realoffset = offset+m_vrambase;
 	if (realoffset < 0x4000)
 	{
 		return cpuspace.read_byte(realoffset);
@@ -119,9 +138,12 @@ void elan_eu3a05vid_device::draw_sprites(screen_device &screen, bitmap_ind16 &bi
 	    xx = x position
 	    XX = texture x start
 	    YY = texture y start
-	    aa = same as unk2 on tiles
 	    bb = sometimes set in invaders
 	    AA = same as attr on tiles (colour / priority?)
+
+
+	    aa = same as unk2 on tiles? ( --pp ---- )
+	    p = page
 
 	    FF = flags  ( e-dD fFsS )
 	    e = enable
@@ -203,6 +225,13 @@ void elan_eu3a05vid_device::draw_sprites(screen_device &screen, bitmap_ind16 &bi
 		}
 
 		int base = (m_sprite_gfxbase_lo_data | (m_sprite_gfxbase_hi_data << 8)) * 0x100;
+		int page = (unk2 & 0x30) >> 4;
+
+		// rad_sinv menu screen and phoenix don't agree with this, but carlecfg needs it
+		if (m_use_spritepages)
+		{
+			base += 0x10000 * page;
+		}
 
 		if (doubleX)
 			sizex = sizex * 2;
@@ -216,11 +245,11 @@ void elan_eu3a05vid_device::draw_sprites(screen_device &screen, bitmap_ind16 &bi
 
 			if (flags & 0x08) // guess flipy
 			{
-				row = &bitmap.pix16((y + (sizey - 1 - yy)) & 0xff);
+				row = &bitmap.pix((y + (sizey - 1 - yy)) & 0xff);
 			}
 			else
 			{
-				row = &bitmap.pix16((y + yy) & 0xff);
+				row = &bitmap.pix((y + yy) & 0xff);
 			}
 
 			for (int xx = 0; xx < sizex; xx++)
@@ -259,12 +288,20 @@ void elan_eu3a05vid_device::draw_sprites(screen_device &screen, bitmap_ind16 &bi
 // a hacky mess for now
 bool elan_eu3a05vid_device::get_tile_data(int base, int drawpri, int& tile, int &attr, int &unk2)
 {
-	tile = read_vram(base * 4) + (read_vram((base * 4) + 1) << 8);
+	tile = read_vram(base * m_bytes_per_tile_entry) + (read_vram((base * m_bytes_per_tile_entry) + 1) << 8);
 
 	// these seem to be the basically the same as attr/unk2 in the sprites, which also make
 	// very little sense.
-	attr = read_vram((base * 4) + 2);
-	unk2 = read_vram((base * 4) + 3);
+	if (m_bytes_per_tile_entry == 4)
+	{
+		attr = read_vram((base * m_bytes_per_tile_entry) + 2);
+		unk2 = read_vram((base * m_bytes_per_tile_entry) + 3);
+	}
+	else
+	{
+		attr = 0;
+		unk2 = 0;
+	}
 
 	/* hack for phoenix title screens.. the have attr set to 0x3f which change the colour bank in ways we don't want
 	   and also by our interpretation of 0x0f bits sets the tiles to priority over sprites (although in this case
@@ -420,7 +457,7 @@ void elan_eu3a05vid_device::draw_tilemaps(screen_device& screen, bitmap_ind16& b
 
 					tile += ((m_tile_gfxbase_lo_data | m_tile_gfxbase_hi_data << 8) << 5);
 
-					uint16_t* row = &bitmap.pix16(drawline);
+					uint16_t *const row = &bitmap.pix(drawline);
 
 					if (m_vidctrl & 0x20) // 4bpp
 					{
@@ -474,25 +511,25 @@ uint32_t elan_eu3a05vid_device::screen_update(screen_device &screen, bitmap_ind1
 
 // Tile bases
 
-WRITE8_MEMBER(elan_eu3a05vid_device::tile_gfxbase_lo_w)
+void elan_eu3a05vid_device::tile_gfxbase_lo_w(uint8_t data)
 {
 	//logerror("%s: tile_gfxbase_lo_w (select GFX base lower) %02x\n", machine().describe_context(), data);
 	m_tile_gfxbase_lo_data = data;
 }
 
-WRITE8_MEMBER(elan_eu3a05vid_device::tile_gfxbase_hi_w)
+void elan_eu3a05vid_device::tile_gfxbase_hi_w(uint8_t data)
 {
 	//logerror("%s: tile_gfxbase_hi_w (select GFX base upper) %02x\n", machine().describe_context(), data);
 	m_tile_gfxbase_hi_data = data;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::tile_gfxbase_lo_r)
+uint8_t elan_eu3a05vid_device::tile_gfxbase_lo_r()
 {
 	//logerror("%s: tile_gfxbase_lo_r (GFX base lower)\n", machine().describe_context());
 	return m_tile_gfxbase_lo_data;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::tile_gfxbase_hi_r)
+uint8_t elan_eu3a05vid_device::tile_gfxbase_hi_r()
 {
 	//logerror("%s: tile_gfxbase_hi_r (GFX base upper)\n", machine().describe_context());
 	return m_tile_gfxbase_hi_data;
@@ -502,25 +539,25 @@ READ8_MEMBER(elan_eu3a05vid_device::tile_gfxbase_hi_r)
 
 // Sprite Tile bases
 
-WRITE8_MEMBER(elan_eu3a05vid_device::sprite_gfxbase_lo_w)
+void elan_eu3a05vid_device::sprite_gfxbase_lo_w(uint8_t data)
 {
 	//logerror("%s: sprite_gfxbase_lo_w (select Sprite GFX base lower) %02x\n", machine().describe_context(), data);
 	m_sprite_gfxbase_lo_data = data;
 }
 
-WRITE8_MEMBER(elan_eu3a05vid_device::sprite_gfxbase_hi_w)
+void elan_eu3a05vid_device::sprite_gfxbase_hi_w(uint8_t data)
 {
 	//logerror("%s: sprite_gfxbase_hi_w (select Sprite GFX base upper) %02x\n", machine().describe_context(), data);
 	m_sprite_gfxbase_hi_data = data;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::sprite_gfxbase_lo_r)
+uint8_t elan_eu3a05vid_device::sprite_gfxbase_lo_r()
 {
 	//logerror("%s: sprite_gfxbase_lo_r (Sprite GFX base lower)\n", machine().describe_context());
 	return m_sprite_gfxbase_lo_data;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::sprite_gfxbase_hi_r)
+uint8_t elan_eu3a05vid_device::sprite_gfxbase_hi_r()
 {
 	//logerror("%s: sprite_gfxbase_hi_r (Sprite GFX base upper)\n", machine().describe_context());
 	return m_sprite_gfxbase_hi_data;
@@ -528,22 +565,22 @@ READ8_MEMBER(elan_eu3a05vid_device::sprite_gfxbase_hi_r)
 
 
 
-READ8_MEMBER(elan_eu3a05vid_device::tile_scroll_r)
+uint8_t elan_eu3a05vid_device::tile_scroll_r(offs_t offset)
 {
 	return m_tile_scroll[offset];
 }
 
-WRITE8_MEMBER(elan_eu3a05vid_device::tile_scroll_w)
+void elan_eu3a05vid_device::tile_scroll_w(offs_t offset, uint8_t data)
 {
 	m_tile_scroll[offset] = data;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::splitpos_r)
+uint8_t elan_eu3a05vid_device::splitpos_r(offs_t offset)
 {
 	return m_splitpos[offset];
 }
 
-WRITE8_MEMBER(elan_eu3a05vid_device::splitpos_w)
+void elan_eu3a05vid_device::splitpos_w(offs_t offset, uint8_t data)
 {
 	m_splitpos[offset] = data;
 }
@@ -561,12 +598,12 @@ uint16_t elan_eu3a05vid_device::get_scroll(int which)
 	return 0x0000;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::elan_eu3a05_vidctrl_r)
+uint8_t elan_eu3a05vid_device::elan_eu3a05_vidctrl_r()
 {
 	return m_vidctrl;
 }
 
-WRITE8_MEMBER(elan_eu3a05vid_device::elan_eu3a05_vidctrl_w)
+void elan_eu3a05vid_device::elan_eu3a05_vidctrl_w(uint8_t data)
 {
 	logerror("%s: elan_eu3a05_vidctrl_w %02x (video control?)\n", machine().describe_context(), data);
 	/*
@@ -592,13 +629,13 @@ WRITE8_MEMBER(elan_eu3a05vid_device::elan_eu3a05_vidctrl_w)
 	m_vidctrl = data;
 }
 
-READ8_MEMBER(elan_eu3a05vid_device::read_unmapped)
+uint8_t elan_eu3a05vid_device::read_unmapped(offs_t offset)
 {
 	logerror("%s: elan_eu3a05vid_device::read_unmapped (offset %02x)\n", machine().describe_context(), offset);
 	return 0x00;
 }
 
-WRITE8_MEMBER(elan_eu3a05vid_device::write_unmapped)
+void elan_eu3a05vid_device::write_unmapped(offs_t offset, uint8_t data)
 {
 	logerror("%s: elan_eu3a05vid_device::write_unmapped (offset %02x) (data %02x)\n", machine().describe_context(), offset, data);
 }

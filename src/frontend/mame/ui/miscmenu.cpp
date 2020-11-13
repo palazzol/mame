@@ -23,7 +23,6 @@
 #include "mameopts.h"
 #include "pluginopts.h"
 #include "drivenum.h"
-#include "natkeyboard.h"
 #include "romload.h"
 
 #include "uiinput.h"
@@ -41,42 +40,6 @@ namespace ui {
 ***************************************************************************/
 
 /*-------------------------------------------------
-    menu_keyboard_mode - menu that
--------------------------------------------------*/
-
-menu_keyboard_mode::menu_keyboard_mode(mame_ui_manager &mui, render_container &container) : menu(mui, container)
-{
-}
-
-void menu_keyboard_mode::populate(float &customtop, float &custombottom)
-{
-	bool natural = machine().ioport().natkeyboard().in_use();
-	item_append(_("Keyboard Mode:"), natural ? _("Natural") : _("Emulated"), natural ? FLAG_LEFT_ARROW : FLAG_RIGHT_ARROW, nullptr);
-}
-
-menu_keyboard_mode::~menu_keyboard_mode()
-{
-}
-
-void menu_keyboard_mode::handle()
-{
-	bool natural = machine().ioport().natkeyboard().in_use();
-
-	/* process the menu */
-	const event *menu_event = process(0);
-
-	if (menu_event != nullptr)
-	{
-		if (menu_event->iptkey == IPT_UI_LEFT || menu_event->iptkey == IPT_UI_RIGHT)
-		{
-			machine().ioport().natkeyboard().set_in_use(!natural);
-			reset(reset_options::REMEMBER_REF);
-		}
-	}
-}
-
-
-/*-------------------------------------------------
     menu_bios_selection - populates the main
     bios selection menu
 -------------------------------------------------*/
@@ -87,19 +50,25 @@ menu_bios_selection::menu_bios_selection(mame_ui_manager &mui, render_container 
 
 void menu_bios_selection::populate(float &customtop, float &custombottom)
 {
-	/* cycle through all devices for this system */
+	// cycle through all devices for this system
 	for (device_t &device : device_iterator(machine().root_device()))
 	{
-		tiny_rom_entry const *rom(device.rom_region());
-		if (rom && !ROMENTRY_ISEND(rom))
+		device_t const *const parent(device.owner());
+		device_slot_interface const *const slot(dynamic_cast<device_slot_interface const *>(parent));
+		if (!parent || (slot && (slot->get_card_device() == &device)))
 		{
-			const char *val = "default";
-			for ( ; !ROMENTRY_ISEND(rom); rom++)
+			tiny_rom_entry const *rom(device.rom_region());
+			if (rom && !ROMENTRY_ISEND(rom))
 			{
-				if (ROMENTRY_ISSYSTEM_BIOS(rom) && ROM_GETBIOSFLAGS(rom) == device.system_bios())
-					val = rom->hashdata;
+				char const *val = nullptr;
+				for ( ; !ROMENTRY_ISEND(rom) && !val; rom++)
+				{
+					if (ROMENTRY_ISSYSTEM_BIOS(rom) && ROM_GETBIOSFLAGS(rom) == device.system_bios())
+						val = rom->hashdata;
+				}
+				if (val)
+					item_append(!parent ? "driver" : (device.tag() + 1), val, FLAG_LEFT_ARROW | FLAG_RIGHT_ARROW, (void *)&device);
 			}
-			item_append(!device.owner() ? "driver" : (device.tag() + 1), val, FLAG_LEFT_ARROW | FLAG_RIGHT_ARROW, (void *)&device);
 		}
 	}
 
@@ -598,8 +567,8 @@ void menu_export::handle()
 {
 	// process the menu
 	process_parent();
-	const event *menu_event = process(PROCESS_NOIMAGE);
-	if (menu_event != nullptr && menu_event->itemref != nullptr)
+	const event *const menu_event = process(PROCESS_NOIMAGE);
+	if (menu_event && menu_event->itemref)
 	{
 		switch (uintptr_t(menu_event->itemref))
 		{
@@ -609,11 +578,11 @@ void menu_export::handle()
 			{
 				std::string filename("exported");
 				emu_file infile(ui().options().ui_path(), OPEN_FLAG_READ);
-				if (infile.open(filename.c_str(), ".xml") == osd_file::error::NONE)
+				if (infile.open(filename + ".xml") == osd_file::error::NONE)
 					for (int seq = 0; ; ++seq)
 					{
-						std::string seqtext = string_format("%s_%04d", filename, seq);
-						if (infile.open(seqtext.c_str(), ".xml") != osd_file::error::NONE)
+						const std::string seqtext = string_format("%s_%04d", filename, seq);
+						if (infile.open(seqtext + ".xml") != osd_file::error::NONE)
 						{
 							filename = seqtext;
 							break;
@@ -622,9 +591,9 @@ void menu_export::handle()
 
 				// attempt to open the output file
 				emu_file file(ui().options().ui_path(), OPEN_FLAG_WRITE | OPEN_FLAG_CREATE | OPEN_FLAG_CREATE_PATHS);
-				if (file.open(filename.c_str(), ".xml") == osd_file::error::NONE)
+				if (file.open(filename + ".xml") == osd_file::error::NONE)
 				{
-					std::string fullpath(file.fullpath());
+					const std::string fullpath(file.fullpath());
 					file.close();
 					std::ofstream pfile(fullpath);
 
@@ -654,11 +623,11 @@ void menu_export::handle()
 			{
 				std::string filename("exported");
 				emu_file infile(ui().options().ui_path(), OPEN_FLAG_READ);
-				if (infile.open(filename.c_str(), ".txt") == osd_file::error::NONE)
+				if (infile.open(filename + ".txt") == osd_file::error::NONE)
 					for (int seq = 0; ; ++seq)
 					{
-						std::string seqtext = string_format("%s_%04d", filename, seq);
-						if (infile.open(seqtext.c_str(), ".txt") != osd_file::error::NONE)
+						const std::string seqtext = string_format("%s_%04d", filename, seq);
+						if (infile.open(seqtext + ".txt") != osd_file::error::NONE)
 						{
 							filename = seqtext;
 							break;
@@ -667,7 +636,7 @@ void menu_export::handle()
 
 				// attempt to open the output file
 				emu_file file(ui().options().ui_path(), OPEN_FLAG_WRITE | OPEN_FLAG_CREATE | OPEN_FLAG_CREATE_PATHS);
-				if (file.open(filename.c_str(), ".txt") == osd_file::error::NONE)
+				if (file.open(filename + ".txt") == osd_file::error::NONE)
 				{
 					// print the header
 					std::ostringstream buffer;
@@ -762,9 +731,9 @@ void menu_machine_configure::handle()
 			{
 			case SAVE:
 				{
-					std::string filename(m_drv.name);
+					const std::string filename(m_drv.name);
 					emu_file file(machine().options().ini_path(), OPEN_FLAG_WRITE | OPEN_FLAG_CREATE);
-					osd_file::error filerr = file.open(filename.c_str(), ".ini");
+					osd_file::error filerr = file.open(filename + ".ini");
 					if (filerr == osd_file::error::NONE)
 					{
 						std::string inistring = m_opts.output_ini();

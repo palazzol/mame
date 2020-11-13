@@ -450,35 +450,35 @@ or Fatal Fury for example).
 #define VERBOSE 1
 #include "logmacro.h"
 
-READ32_MEMBER(hng64_state::hng64_com_r)
+uint32_t hng64_state::hng64_com_r(offs_t offset)
 {
 	//LOG("com read  (PC=%08x): %08x %08x = %08x\n", m_maincpu->pc(), (offset*4)+0xc0000000, mem_mask, m_idt7133_dpram[offset]);
 	return m_idt7133_dpram[offset];
 }
 
-WRITE32_MEMBER(hng64_state::hng64_com_w)
+void hng64_state::hng64_com_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	//LOG("com write (PC=%08x): %08x %08x = %08x\n", m_maincpu->pc(), (offset*4)+0xc0000000, mem_mask, data);
 	COMBINE_DATA(&m_idt7133_dpram[offset]);
 }
 
 /* TODO: fully understand this */
-WRITE8_MEMBER(hng64_state::hng64_com_share_mips_w)
+void hng64_state::hng64_com_share_mips_w(offs_t offset, uint8_t data)
 {
 	m_com_shared[offset ^ 3] = data;
 }
 
-READ8_MEMBER(hng64_state::hng64_com_share_mips_r)
+uint8_t hng64_state::hng64_com_share_mips_r(offs_t offset)
 {
 	return m_com_shared[offset];
 }
 
-WRITE8_MEMBER(hng64_state::hng64_com_share_w)
+void hng64_state::hng64_com_share_w(offs_t offset, uint8_t data)
 {
 	m_com_shared[offset] = data;
 }
 
-READ8_MEMBER(hng64_state::hng64_com_share_r)
+uint8_t hng64_state::hng64_com_share_r(offs_t offset)
 {
 	if(offset == 4)
 		return m_com_shared[offset] | 1; // some busy flag?
@@ -487,7 +487,7 @@ READ8_MEMBER(hng64_state::hng64_com_share_r)
 }
 
 
-READ32_MEMBER(hng64_state::hng64_rtc_r)
+uint32_t hng64_state::hng64_rtc_r(offs_t offset, uint32_t mem_mask)
 {
 	if (offset & 1)
 	{
@@ -496,9 +496,9 @@ READ32_MEMBER(hng64_state::hng64_rtc_r)
 
 		// bit 4 disables "system log reader" (the device is 4-bit? so this bit is not from the device?)
 		if ((rtc_addr & 0xf) == 0xd)
-			return m_rtc->read(space, (rtc_addr) & 0xf) | 0x10;
+			return m_rtc->read((rtc_addr) & 0xf) | 0x10;
 
-		return m_rtc->read(space, (rtc_addr) & 0xf);
+		return m_rtc->read((rtc_addr) & 0xf);
 	}
 	else
 	{
@@ -526,7 +526,7 @@ void hng64_state::do_dma(address_space &space)
 	}
 }
 
-READ32_MEMBER(hng64_state::hng64_dmac_r)
+uint32_t hng64_state::hng64_dmac_r(offs_t offset, uint32_t mem_mask)
 {
 	// DMAC seems to be mapped as 4 bytes in every 8
 	if ((offset * 4) == 0x54)
@@ -537,7 +537,7 @@ READ32_MEMBER(hng64_state::hng64_dmac_r)
 	return 0xffffffff;
 }
 
-WRITE32_MEMBER(hng64_state::hng64_dmac_w)
+void hng64_state::hng64_dmac_w(address_space &space, offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	// DMAC seems to be mapped as 4 bytes in every 8
 	switch (offset * 4)
@@ -561,12 +561,12 @@ WRITE32_MEMBER(hng64_state::hng64_dmac_w)
 	}
 }
 
-WRITE32_MEMBER(hng64_state::hng64_rtc_w)
+void hng64_state::hng64_rtc_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	if (offset & 1)
 	{
 		// RTC is mapped to 1 byte (4-bits used) in every 8 bytes so we can't even install this with a umask
-		m_rtc->write(space, (offset >> 1) & 0xf, data);
+		m_rtc->write((offset >> 1) & 0xf, data);
 	}
 	else
 	{
@@ -575,14 +575,14 @@ WRITE32_MEMBER(hng64_state::hng64_rtc_w)
 	}
 }
 
-WRITE32_MEMBER(hng64_state::hng64_mips_to_iomcu_irq_w)
+void hng64_state::hng64_mips_to_iomcu_irq_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	// guess, written after a write to 0x00 in dpram, which is where the command goes, and the IRQ onthe MCU reads the command
 	LOG("%s: HNG64 writing to SYSTEM Registers %08x (%08x) (IO MCU IRQ TRIGGER?)\n", machine().describe_context(), data, mem_mask);
 	if (mem_mask & 0xffff0000) m_tempio_irqon_timer->adjust(attotime::zero);
 }
 
-READ32_MEMBER(hng64_state::hng64_irqc_r)
+uint32_t hng64_state::hng64_irqc_r(offs_t offset, uint32_t mem_mask)
 {
 	if ((offset * 4) == 0x04)
 	{
@@ -597,7 +597,7 @@ READ32_MEMBER(hng64_state::hng64_irqc_r)
 	return 0xffffffff;
 }
 
-WRITE32_MEMBER(hng64_state::hng64_irqc_w)
+void hng64_state::hng64_irqc_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	switch (offset * 4)
 	{
@@ -644,7 +644,7 @@ WRITE32_MEMBER(hng64_state::hng64_irqc_w)
   ----
 */
 
-READ32_MEMBER(hng64_state::hng64_sysregs_r)
+uint32_t hng64_state::hng64_sysregs_r(offs_t offset, uint32_t mem_mask)
 {
 	//LOG("%s: hng64_sysregs_r (%04x) (%08x)\n", machine().describe_context(), offset * 4, mem_mask);
 
@@ -661,7 +661,7 @@ READ32_MEMBER(hng64_state::hng64_sysregs_r)
 	return m_sysregs[offset];
 }
 
-WRITE32_MEMBER(hng64_state::hng64_sysregs_w)
+void hng64_state::hng64_sysregs_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	COMBINE_DATA (&m_sysregs[offset]);
 
@@ -686,7 +686,7 @@ WRITE32_MEMBER(hng64_state::hng64_sysregs_w)
 * MIPS side Dual Port RAM hookup for MCU
 **************************************/
 
-READ8_MEMBER(hng64_state::hng64_dualport_r)
+uint8_t hng64_state::hng64_dualport_r(offs_t offset)
 {
 	LOG("%s: dualport R %04x\n", machine().describe_context(), offset);
 
@@ -729,7 +729,7 @@ Beast Busters 2 outputs (all at offset == 0x1c):
     it seems correct, see hng64_mips_to_iomcu_irq_w )
 */
 
-WRITE8_MEMBER(hng64_state::hng64_dualport_w)
+void hng64_state::hng64_dualport_w(offs_t offset, uint8_t data)
 {
 	m_dt71321_dpram->right_w(offset, data);
 	LOG("%s: dualport WRITE %04x %02x\n", machine().describe_context(), offset, data);
@@ -738,7 +738,7 @@ WRITE8_MEMBER(hng64_state::hng64_dualport_w)
 /************************************************************************************************************/
 
 /* The following is guesswork, needs confirmation with a test on the real board. */
-WRITE32_MEMBER(hng64_state::hng64_sprite_clear_even_w)
+void hng64_state::hng64_sprite_clear_even_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	auto &mspace = m_maincpu->space(AS_PROGRAM);
 	uint32_t spr_offs;
@@ -761,7 +761,7 @@ WRITE32_MEMBER(hng64_state::hng64_sprite_clear_even_w)
 	}
 }
 
-WRITE32_MEMBER(hng64_state::hng64_sprite_clear_odd_w)
+void hng64_state::hng64_sprite_clear_odd_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 	auto &mspace = m_maincpu->space(AS_PROGRAM);
 	uint32_t spr_offs;
@@ -784,13 +784,13 @@ WRITE32_MEMBER(hng64_state::hng64_sprite_clear_odd_w)
 	}
 }
 
-WRITE32_MEMBER(hng64_state::hng64_vregs_w)
+void hng64_state::hng64_vregs_w(offs_t offset, uint32_t data, uint32_t mem_mask)
 {
 //  printf("hng64_vregs_w %02x, %08x %08x\n", offset * 4, data, mem_mask);
 	COMBINE_DATA(&m_videoregs[offset]);
 }
 
-READ16_MEMBER(hng64_state::main_sound_comms_r)
+uint16_t hng64_state::main_sound_comms_r(offs_t offset)
 {
 	switch(offset *2)
 	{
@@ -805,7 +805,7 @@ READ16_MEMBER(hng64_state::main_sound_comms_r)
 	return 0;
 }
 
-WRITE16_MEMBER(hng64_state::main_sound_comms_w)
+void hng64_state::main_sound_comms_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 {
 	switch(offset * 2)
 	{
@@ -831,7 +831,7 @@ void hng64_state::hng_map(address_map &map)
 {
 	// main RAM / ROM
 	map(0x00000000, 0x00ffffff).ram().share("mainram");
-	map(0x04000000, 0x05ffffff).nopw().rom().region("gameprg", 0).share("cart");
+	map(0x04000000, 0x05ffffff).nopw().rom().region("gameprg", 0);
 
 	// Misc Peripherals
 	map(0x1f700000, 0x1f7010ff).rw(FUNC(hng64_state::hng64_sysregs_r), FUNC(hng64_state::hng64_sysregs_w)).share("sysregs"); // various things
@@ -849,7 +849,7 @@ void hng64_state::hng_map(address_map &map)
 	map(0x1f808000, 0x1f8087ff).rw(FUNC(hng64_state::hng64_dualport_r), FUNC(hng64_state::hng64_dualport_w)).umask32(0xffffffff);
 
 	// BIOS ROM
-	map(0x1fc00000, 0x1fc7ffff).nopw().rom().region("user1", 0).share("rombase");
+	map(0x1fc00000, 0x1fc7ffff).nopw().rom().region("user1", 0);
 
 	// Sprites
 	map(0x20000000, 0x2000bfff).ram().share("spriteram");
@@ -1770,9 +1770,6 @@ void hng64_state::machine_start()
 	m_maincpu->add_fastram(0x04000000, 0x05ffffff, true,  m_cart);
 	m_maincpu->add_fastram(0x1fc00000, 0x1fc7ffff, true,  m_rombase);
 
-	m_comm_rom = memregion("user2")->base();
-	m_comm_ram = std::make_unique<uint8_t[]>(0x10000);
-
 	for (int i = 0; i < 0x38 / 4; i++)
 	{
 		m_videoregs[i] = 0xdeadbeef;
@@ -1819,7 +1816,7 @@ void hng64_state::machine_reset()
 
 ***********************************************/
 
-WRITE8_MEMBER(hng64_state::ioport1_w)
+void hng64_state::ioport1_w(uint8_t data)
 {
 	//LOG("%s: ioport1_w %02x\n", machine().describe_context(), data);
 
@@ -1840,18 +1837,18 @@ WRITE8_MEMBER(hng64_state::ioport1_w)
 }
 
 // it does write 0xff here before each set of reading, but before setting a new output address?
-WRITE8_MEMBER(hng64_state::ioport3_w)
+void hng64_state::ioport3_w(uint8_t data)
 {
 
 	if (m_port1 & 0x08) // 0x08 in port1 enables write? otherwise it writes 0xff to port 7 all the time, when port 7 is also lamps
 	{
 		int addr = (m_port1 & 0xe0) >> 5;
-		m_lamps->lamps_w(space, addr, data);
+		m_lamps->lamps_w(addr, data);
 	}
 }
 
 
-READ8_MEMBER(hng64_state::ioport3_r)
+uint8_t hng64_state::ioport3_r()
 {
 	int addr = (m_port1&0xe0)>>5;
 
@@ -1863,17 +1860,16 @@ DEFINE_DEVICE_TYPE(HNG64_LAMPS, hng64_lamps_device, "hng64_lamps", "HNG64 Lamps"
 
 hng64_lamps_device::hng64_lamps_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
 	: device_t(mconfig, HNG64_LAMPS, tag, owner, clock)
-	, m_lamps_out_cb{{*this}, {*this}, {*this}, {*this}, {*this}, {*this}, {*this}, {*this}}
+	, m_lamps_out_cb(*this)
 {
 }
 
 void hng64_lamps_device::device_start()
 {
-	for (auto &cb : m_lamps_out_cb)
-		cb.resolve_safe();
+	m_lamps_out_cb.resolve_all_safe();
 }
 
-WRITE8_MEMBER(hng64_state::hng64_drive_lamps7_w)
+void hng64_state::hng64_drive_lamps7_w(uint8_t data)
 {
 	/*
 	   0x80 - BGM Select #2 (Active High)
@@ -1887,7 +1883,7 @@ WRITE8_MEMBER(hng64_state::hng64_drive_lamps7_w)
 	*/
 }
 
-WRITE8_MEMBER(hng64_state::hng64_drive_lamps6_w)
+void hng64_state::hng64_drive_lamps6_w(uint8_t data)
 {
 	/*
 	   0x80 - BGM Select #4 (Active High)
@@ -1902,12 +1898,12 @@ WRITE8_MEMBER(hng64_state::hng64_drive_lamps6_w)
 	machine().bookkeeping().coin_counter_w(0, data & 0x01);
 }
 
-WRITE8_MEMBER(hng64_state::hng64_drive_lamps5_w)
+void hng64_state::hng64_drive_lamps5_w(uint8_t data)
 {
 	// force feedback steering position
 }
 
-WRITE8_MEMBER(hng64_state::hng64_shoot_lamps7_w)
+void hng64_state::hng64_shoot_lamps7_w(uint8_t data)
 {
 	/*
 	   0x80
@@ -1931,7 +1927,7 @@ WRITE8_MEMBER(hng64_state::hng64_shoot_lamps7_w)
     0x00004000 gun #3
 */
 
-WRITE8_MEMBER(hng64_state::hng64_shoot_lamps6_w)
+void hng64_state::hng64_shoot_lamps6_w(uint8_t data)
 {
 	// Start Lamp #1 / #2 don't get written to the output port, is this a TLCS870 bug or are they not connected to the 'lamp' outputs, they do get written to the DP ram, see above notes
 	/*
@@ -1946,7 +1942,7 @@ WRITE8_MEMBER(hng64_state::hng64_shoot_lamps6_w)
 	*/
 }
 
-WRITE8_MEMBER(hng64_state::hng64_fight_lamps6_w)
+void hng64_state::hng64_fight_lamps6_w(uint8_t data)
 {
 	/*
 	   0x80
@@ -1969,7 +1965,7 @@ WRITE8_MEMBER(hng64_state::hng64_fight_lamps6_w)
 
 ***********************************************/
 
-WRITE8_MEMBER(hng64_state::ioport7_w)
+void hng64_state::ioport7_w(uint8_t data)
 {
 	/* Port bits
 
@@ -2013,7 +2009,7 @@ WRITE8_MEMBER(hng64_state::ioport7_w)
 	m_port7 = data;
 }
 
-READ8_MEMBER(hng64_state::ioport0_r)
+uint8_t hng64_state::ioport0_r()
 {
 	uint16_t addr = (m_ex_ramaddr | (m_ex_ramaddr_upper<<9)) & 0x7ff;
 	uint8_t ret = m_dt71321_dpram->left_r(addr);
@@ -2022,7 +2018,7 @@ READ8_MEMBER(hng64_state::ioport0_r)
 	return ret;
 }
 
-WRITE8_MEMBER(hng64_state::ioport0_w)
+void hng64_state::ioport0_w(uint8_t data)
 {
 	uint16_t addr = (m_ex_ramaddr | (m_ex_ramaddr_upper<<9)) & 0x7ff;
 	m_dt71321_dpram->left_w(addr, data);
@@ -2040,7 +2036,7 @@ WRITE8_MEMBER(hng64_state::ioport0_w)
 /* This port is dual purpose, with the upper pins being used as a serial input / output / clock etc. and the output latch (written data) being configured appropriately however the lower 2 bits also seem to be used
    maybe these lower 2 bits were intended for serial comms LEDs, although none are documented in the PCB layouts.
 */
-WRITE8_MEMBER(hng64_state::ioport4_w)
+void hng64_state::ioport4_w(uint8_t data)
 {
 	LOG("%s: ioport4_w %02x\n", machine().describe_context(), data);
 }
@@ -2051,14 +2047,14 @@ WRITE8_MEMBER(hng64_state::ioport4_w)
 
 ***********************************************/
 
-READ8_MEMBER(hng64_state::anport0_r) { return m_an_in[0]->read(); }
-READ8_MEMBER(hng64_state::anport1_r) { return m_an_in[1]->read(); }
-READ8_MEMBER(hng64_state::anport2_r) { return m_an_in[2]->read(); }
-READ8_MEMBER(hng64_state::anport3_r) { return m_an_in[3]->read(); }
-READ8_MEMBER(hng64_state::anport4_r) { return m_an_in[4]->read(); }
-READ8_MEMBER(hng64_state::anport5_r) { return m_an_in[5]->read(); }
-READ8_MEMBER(hng64_state::anport6_r) { return m_an_in[6]->read(); }
-READ8_MEMBER(hng64_state::anport7_r) { return m_an_in[7]->read(); }
+uint8_t hng64_state::anport0_r() { return m_an_in[0]->read(); }
+uint8_t hng64_state::anport1_r() { return m_an_in[1]->read(); }
+uint8_t hng64_state::anport2_r() { return m_an_in[2]->read(); }
+uint8_t hng64_state::anport3_r() { return m_an_in[3]->read(); }
+uint8_t hng64_state::anport4_r() { return m_an_in[4]->read(); }
+uint8_t hng64_state::anport5_r() { return m_an_in[5]->read(); }
+uint8_t hng64_state::anport6_r() { return m_an_in[6]->read(); }
+uint8_t hng64_state::anport7_r() { return m_an_in[7]->read(); }
 
 /***********************************************
 
@@ -2196,7 +2192,7 @@ void hng64_state::hng64_shoot(machine_config &config)
 	hng64(config);
 
 	hng64_lamps_device &lamps(HNG64_LAMPS(config, m_lamps, 0));
-	lamps.lamps6_out_cb().set(FUNC(hng64_state::hng64_shoot_lamps6_w)); // start lamps (some misisng?!)
+	lamps.lamps6_out_cb().set(FUNC(hng64_state::hng64_shoot_lamps6_w)); // start lamps (some missing?!)
 	lamps.lamps7_out_cb().set(FUNC(hng64_state::hng64_shoot_lamps7_w)); // gun lamps
 }
 
@@ -2248,7 +2244,7 @@ ROM_START( hng64 )
 	HNG64_BIOS
 
 	/* To placate MAME */
-	ROM_REGION32_LE( 0x2000000, "gameprg", ROMREGION_ERASEFF )
+	ROM_REGION32_BE( 0x2000000, "gameprg", ROMREGION_ERASEFF )
 	ROM_REGION( 0x4000, "scrtile", ROMREGION_ERASEFF )
 	ROM_REGION( 0x4000, "sprtile", ROMREGION_ERASEFF )
 	ROM_REGION( 0x1000000, "textures", ROMREGION_ERASEFF )
@@ -2260,9 +2256,9 @@ ROM_END
 ROM_START( roadedge )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "001pr01b.81", 0x0000000, 0x400000, CRC(effbac30) SHA1(c1bddf3e511a8950f65ac7e452f81dbc4b7fd977) )
-	ROM_LOAD32_WORD( "001pr02b.82", 0x0000002, 0x400000, CRC(b9aa4ad3) SHA1(9ab3c896dbdc45560b7127486e2db6ca3b15a057) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "001pr01b.81", 0x0000002, 0x400000, CRC(effbac30) SHA1(c1bddf3e511a8950f65ac7e452f81dbc4b7fd977) )
+	ROM_LOAD32_WORD_SWAP( "001pr02b.82", 0x0000000, 0x400000, CRC(b9aa4ad3) SHA1(9ab3c896dbdc45560b7127486e2db6ca3b15a057) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x1000000, "scrtile", 0 )
@@ -2313,11 +2309,11 @@ ROM_END
 ROM_START( sams64 )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "002-pro1a.81", 0x0000000, 0x400000, CRC(e5b907c5) SHA1(83637ffaa9031d41a5bed3397a519d1dfa8052cb) )
-	ROM_LOAD32_WORD( "002-pro2a.82", 0x0000002, 0x400000, CRC(803ed2eb) SHA1(666db47886a316e68b911311e5db3bc0f5b8a34d) )
-	ROM_LOAD32_WORD( "002-pro3a.83", 0x0800000, 0x400000, CRC(582156a7) SHA1(a7bbbd472a53072cbfaed5d41d4265123c9e3f3d) )
-	ROM_LOAD32_WORD( "002-pro4a.84", 0x0800002, 0x400000, CRC(5a8291e9) SHA1(ec1e5a5a0ba37393e8b93d78b4ac855109d45ec9) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "002-pro1a.81", 0x0000002, 0x400000, CRC(e5b907c5) SHA1(83637ffaa9031d41a5bed3397a519d1dfa8052cb) )
+	ROM_LOAD32_WORD_SWAP( "002-pro2a.82", 0x0000000, 0x400000, CRC(803ed2eb) SHA1(666db47886a316e68b911311e5db3bc0f5b8a34d) )
+	ROM_LOAD32_WORD_SWAP( "002-pro3a.83", 0x0800002, 0x400000, CRC(582156a7) SHA1(a7bbbd472a53072cbfaed5d41d4265123c9e3f3d) )
+	ROM_LOAD32_WORD_SWAP( "002-pro4a.84", 0x0800000, 0x400000, CRC(5a8291e9) SHA1(ec1e5a5a0ba37393e8b93d78b4ac855109d45ec9) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x2000000, "scrtile", 0 )
@@ -2368,9 +2364,9 @@ ROM_END
 ROM_START( xrally )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "003-pr01a.81", 0x0000000, 0x400000, CRC(4e160388) SHA1(08fba66d0f0dab47f7db5bc7d411f4fc0e8219c8) )
-	ROM_LOAD32_WORD( "003-pr02a.82", 0x0000002, 0x400000, CRC(c4dd4f18) SHA1(4db0e6d5cabd9e4f82d5905556174b9eff8ad4d9) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "003-pr01a.81", 0x0000002, 0x400000, CRC(4e160388) SHA1(08fba66d0f0dab47f7db5bc7d411f4fc0e8219c8) )
+	ROM_LOAD32_WORD_SWAP( "003-pr02a.82", 0x0000000, 0x400000, CRC(c4dd4f18) SHA1(4db0e6d5cabd9e4f82d5905556174b9eff8ad4d9) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x1000000, "scrtile", 0 )
@@ -2410,11 +2406,11 @@ ROM_END
 ROM_START( bbust2 )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "004-pr01a.81", 0x0000000, 0x400000, CRC(7b836ece) SHA1(7a4a08251f1dd66c368ac203f5a006266e77f73d) )
-	ROM_LOAD32_WORD( "004-pr02a.82", 0x0000002, 0x400000, CRC(8c55a988) SHA1(d9a61ac3d8550ce0ee6aab374c9f024912163180) )
-	ROM_LOAD32_WORD( "004-pr03a.83", 0x0800000, 0x400000, CRC(f25a82dd) SHA1(74c0a03021ef424e0b9c3c818be297d2967b3012) )
-	ROM_LOAD32_WORD( "004-pr04a.84", 0x0800002, 0x400000, CRC(9258312b) SHA1(fabac42c8a033e85d503be56f266f9386adff10b) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "004-pr01a.81", 0x0000002, 0x400000, CRC(7b836ece) SHA1(7a4a08251f1dd66c368ac203f5a006266e77f73d) )
+	ROM_LOAD32_WORD_SWAP( "004-pr02a.82", 0x0000000, 0x400000, CRC(8c55a988) SHA1(d9a61ac3d8550ce0ee6aab374c9f024912163180) )
+	ROM_LOAD32_WORD_SWAP( "004-pr03a.83", 0x0800002, 0x400000, CRC(f25a82dd) SHA1(74c0a03021ef424e0b9c3c818be297d2967b3012) )
+	ROM_LOAD32_WORD_SWAP( "004-pr04a.84", 0x0800000, 0x400000, CRC(9258312b) SHA1(fabac42c8a033e85d503be56f266f9386adff10b) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x1000000, "scrtile", 0 )
@@ -2458,15 +2454,15 @@ ROM_END
 ROM_START( sams64_2 )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "005pr01a.81", 0x0000000, 0x400000, CRC(a69d7700) SHA1(a580783a109bc3e24248d70bcd67f62dd7d8a5dd) )
-	ROM_LOAD32_WORD( "005pr02a.82", 0x0000002, 0x400000, CRC(38b9e6b3) SHA1(d1dad8247d920cc66854a0096e1c7845842d2e1c) )
-	ROM_LOAD32_WORD( "005pr03a.83", 0x0800000, 0x400000, CRC(0bc738a8) SHA1(79893b0e1c4a31e02ab385c4382684245975ae8f) )
-	ROM_LOAD32_WORD( "005pr04a.84", 0x0800002, 0x400000, CRC(6b504852) SHA1(fcdcab432162542d249818a6cd15b8f2e8230f97) )
-	ROM_LOAD32_WORD( "005pr05a.85", 0x1000000, 0x400000, CRC(32a743d3) SHA1(4088b930a1a4d6224a0939ef3942af1bf605cdb5) )
-	ROM_LOAD32_WORD( "005pr06a.86", 0x1000002, 0x400000, CRC(c09fa615) SHA1(697d6769c16b3c8f73a6df4a1e268ec40cb30d51) )
-	ROM_LOAD32_WORD( "005pr07a.87", 0x1800000, 0x400000, CRC(44286ad3) SHA1(1f890c74c0da0d34940a880468e68f7fb1417813) )
-	ROM_LOAD32_WORD( "005pr08a.88", 0x1800002, 0x400000, CRC(d094eb67) SHA1(3edc8d608c631a05223e1d05157cd3daf2d6597a) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "005pr01a.81", 0x0000002, 0x400000, CRC(a69d7700) SHA1(a580783a109bc3e24248d70bcd67f62dd7d8a5dd) )
+	ROM_LOAD32_WORD_SWAP( "005pr02a.82", 0x0000000, 0x400000, CRC(38b9e6b3) SHA1(d1dad8247d920cc66854a0096e1c7845842d2e1c) )
+	ROM_LOAD32_WORD_SWAP( "005pr03a.83", 0x0800002, 0x400000, CRC(0bc738a8) SHA1(79893b0e1c4a31e02ab385c4382684245975ae8f) )
+	ROM_LOAD32_WORD_SWAP( "005pr04a.84", 0x0800000, 0x400000, CRC(6b504852) SHA1(fcdcab432162542d249818a6cd15b8f2e8230f97) )
+	ROM_LOAD32_WORD_SWAP( "005pr05a.85", 0x1000002, 0x400000, CRC(32a743d3) SHA1(4088b930a1a4d6224a0939ef3942af1bf605cdb5) )
+	ROM_LOAD32_WORD_SWAP( "005pr06a.86", 0x1000000, 0x400000, CRC(c09fa615) SHA1(697d6769c16b3c8f73a6df4a1e268ec40cb30d51) )
+	ROM_LOAD32_WORD_SWAP( "005pr07a.87", 0x1800002, 0x400000, CRC(44286ad3) SHA1(1f890c74c0da0d34940a880468e68f7fb1417813) )
+	ROM_LOAD32_WORD_SWAP( "005pr08a.88", 0x1800000, 0x400000, CRC(d094eb67) SHA1(3edc8d608c631a05223e1d05157cd3daf2d6597a) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x4000000, "scrtile", 0 )
@@ -2530,11 +2526,11 @@ ROM_END
 ROM_START( fatfurwa )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "006pr01a.81", 0x0000000, 0x400000, CRC(3830efa1) SHA1(9d8c941ccb6cbe8d138499cf9d335db4ac7a9ec0) )
-	ROM_LOAD32_WORD( "006pr02a.82", 0x0000002, 0x400000, CRC(8d5de84e) SHA1(e3ae014263f370c2836f62ab323f1560cb3a9cf0) )
-	ROM_LOAD32_WORD( "006pr03a.83", 0x0800000, 0x400000, CRC(c811b458) SHA1(7d94e0df501fb086b2e5cf08905d7a3adc2c6472) )
-	ROM_LOAD32_WORD( "006pr04a.84", 0x0800002, 0x400000, CRC(de708d6c) SHA1(2c9848e7bbf61c574370f9ecab5f5a6ba63339fd) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "006pr01a.81", 0x0000002, 0x400000, CRC(3830efa1) SHA1(9d8c941ccb6cbe8d138499cf9d335db4ac7a9ec0) )
+	ROM_LOAD32_WORD_SWAP( "006pr02a.82", 0x0000000, 0x400000, CRC(8d5de84e) SHA1(e3ae014263f370c2836f62ab323f1560cb3a9cf0) )
+	ROM_LOAD32_WORD_SWAP( "006pr03a.83", 0x0800002, 0x400000, CRC(c811b458) SHA1(7d94e0df501fb086b2e5cf08905d7a3adc2c6472) )
+	ROM_LOAD32_WORD_SWAP( "006pr04a.84", 0x0800000, 0x400000, CRC(de708d6c) SHA1(2c9848e7bbf61c574370f9ecab5f5a6ba63339fd) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x4000000, "scrtile", 0 )
@@ -2595,13 +2591,13 @@ ROM_END
 ROM_START( buriki )
 	HNG64_BIOS
 
-	ROM_REGION32_LE( 0x2000000, "gameprg", 0 )
-	ROM_LOAD32_WORD( "007pr01b.81", 0x0000000, 0x400000, CRC(a31202f5) SHA1(c657729b292d394ced021a0201a1c5608a7118ba) )
-	ROM_LOAD32_WORD( "007pr02b.82", 0x0000002, 0x400000, CRC(a563fed6) SHA1(9af9a021beb814e35df968abe5a99225a124b5eb) )
-	ROM_LOAD32_WORD( "007pr03a.83", 0x0800000, 0x400000, CRC(da5f6105) SHA1(5424cf5289cef66e301e968b4394e551918fe99b) )
-	ROM_LOAD32_WORD( "007pr04a.84", 0x0800002, 0x400000, CRC(befc7bce) SHA1(83d9ecf944e03a40cf25ee288077c2265d6a588a) )
-	ROM_LOAD32_WORD( "007pr05a.85", 0x1000000, 0x400000, CRC(013e28bc) SHA1(45e5ac45b42b26957c2877ac1042472c4b5ec914) )
-	ROM_LOAD32_WORD( "007pr06a.86", 0x1000002, 0x400000, CRC(0620fccc) SHA1(e0bffc56b019c79276a4ef5ec7354edda15b0889) )
+	ROM_REGION32_BE( 0x2000000, "gameprg", 0 )
+	ROM_LOAD32_WORD_SWAP( "007pr01b.81", 0x0000002, 0x400000, CRC(a31202f5) SHA1(c657729b292d394ced021a0201a1c5608a7118ba) )
+	ROM_LOAD32_WORD_SWAP( "007pr02b.82", 0x0000000, 0x400000, CRC(a563fed6) SHA1(9af9a021beb814e35df968abe5a99225a124b5eb) )
+	ROM_LOAD32_WORD_SWAP( "007pr03a.83", 0x0800002, 0x400000, CRC(da5f6105) SHA1(5424cf5289cef66e301e968b4394e551918fe99b) )
+	ROM_LOAD32_WORD_SWAP( "007pr04a.84", 0x0800000, 0x400000, CRC(befc7bce) SHA1(83d9ecf944e03a40cf25ee288077c2265d6a588a) )
+	ROM_LOAD32_WORD_SWAP( "007pr05a.85", 0x1000002, 0x400000, CRC(013e28bc) SHA1(45e5ac45b42b26957c2877ac1042472c4b5ec914) )
+	ROM_LOAD32_WORD_SWAP( "007pr06a.86", 0x1000000, 0x400000, CRC(0620fccc) SHA1(e0bffc56b019c79276a4ef5ec7354edda15b0889) )
 
 	/* Scroll Characters 8x8x8 / 16x16x8 */
 	ROM_REGION( 0x4000000, "scrtile", 0 )
@@ -2664,7 +2660,7 @@ GAME( 1997, hng64,    0,     hng64_default, hng64,    hng64_state, init_hng64,  
 /* Games */
 GAME( 1997, roadedge, hng64, hng64_drive, hng64_drive,    hng64_state, init_roadedge,    ROT0, "SNK", "Roads Edge / Round Trip (rev.B)", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND )  /* 001 */
 GAME( 1998, sams64,   hng64, hng64_fight, hng64_fight,    hng64_state, init_ss64,        ROT0, "SNK", "Samurai Shodown 64 / Samurai Spirits 64", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND ) /* 002 */
-GAME( 1998, xrally,   hng64, hng64_drive, hng64_drive,    hng64_state, init_hng64_drive,  ROT0, "SNK", "Xtreme Rally / Off Beat Racer!", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND )  /* 003 */
+GAME( 1998, xrally,   hng64, hng64_drive, hng64_drive,    hng64_state, init_hng64_drive, ROT0, "SNK", "Xtreme Rally / Off Beat Racer!", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND )  /* 003 */
 GAME( 1998, bbust2,   hng64, hng64_shoot, hng64_shoot,    hng64_state, init_hng64_shoot, ROT0, "SNK", "Beast Busters 2nd Nightmare", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND )  /* 004 */
 GAME( 1998, sams64_2, hng64, hng64_fight, hng64_fight,    hng64_state, init_ss64,        ROT0, "SNK", "Samurai Shodown: Warrior's Rage / Samurai Spirits 2: Asura Zanmaden", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND ) /* 005 */
 GAME( 1998, fatfurwa, hng64, hng64_fight, hng64_fight,    hng64_state, init_hng64_fght,  ROT0, "SNK", "Fatal Fury: Wild Ambition (rev.A)", MACHINE_NOT_WORKING|MACHINE_IMPERFECT_SOUND )  /* 006 */

@@ -59,10 +59,8 @@ void nes_state::machine_start()
 		space.install_write_handler(0x4100, 0x5fff, write8sm_delegate(*m_cartslot, FUNC(nes_cart_slot_device::write_l)));
 		space.install_read_handler(0x6000, 0x7fff, read8sm_delegate(*m_cartslot, FUNC(nes_cart_slot_device::read_m)));
 		space.install_write_handler(0x6000, 0x7fff, write8sm_delegate(*m_cartslot, FUNC(nes_cart_slot_device::write_m)));
-		space.install_read_bank(0x8000, 0x9fff, "prg0");
-		space.install_read_bank(0xa000, 0xbfff, "prg1");
-		space.install_read_bank(0xc000, 0xdfff, "prg2");
-		space.install_read_bank(0xe000, 0xffff, "prg3");
+		for(int i=0; i<4; i++)
+			space.install_read_bank(0x8000 + 0x2000*i, 0x9fff + 0x2000*i, m_prg_bank[i]);
 		space.install_write_handler(0x8000, 0xffff, write8sm_delegate(*m_cartslot, FUNC(nes_cart_slot_device::write_h)));
 
 		m_ppu->space(AS_PROGRAM).install_readwrite_handler(0, 0x1fff, read8sm_delegate(*m_cartslot->m_cart, FUNC(device_nes_cart_interface::chr_r)), write8sm_delegate(*m_cartslot->m_cart, FUNC(device_nes_cart_interface::chr_w)));
@@ -112,7 +110,7 @@ void nes_state::machine_start()
 //  INPUTS
 //-------------------------------------------------
 
-READ8_MEMBER(nes_base_state::nes_in0_r)
+uint8_t nes_base_state::nes_in0_r()
 {
 	uint8_t ret = 0x40;
 	ret |= m_ctrl1->read_bit0();
@@ -120,7 +118,7 @@ READ8_MEMBER(nes_base_state::nes_in0_r)
 	return ret;
 }
 
-READ8_MEMBER(nes_base_state::nes_in1_r)
+uint8_t nes_base_state::nes_in1_r()
 {
 	uint8_t ret = 0x40;
 	ret |= m_ctrl2->read_bit0();
@@ -128,14 +126,14 @@ READ8_MEMBER(nes_base_state::nes_in1_r)
 	return ret;
 }
 
-WRITE8_MEMBER(nes_base_state::nes_in0_w)
+void nes_base_state::nes_in0_w(uint8_t data)
 {
 	m_ctrl1->write(data);
 	m_ctrl2->write(data);
 }
 
 
-READ8_MEMBER(nes_state::fc_in0_r)
+uint8_t nes_state::fc_in0_r()
 {
 	uint8_t ret = 0x40;
 	// bit 0 to controller port
@@ -156,7 +154,7 @@ READ8_MEMBER(nes_state::fc_in0_r)
 	return ret;
 }
 
-READ8_MEMBER(nes_state::fc_in1_r)
+uint8_t nes_state::fc_in1_r()
 {
 	uint8_t ret = 0x40;
 	// bit 0 to controller port
@@ -174,7 +172,7 @@ READ8_MEMBER(nes_state::fc_in1_r)
 	return ret;
 }
 
-WRITE8_MEMBER(nes_state::fc_in0_w)
+void nes_state::fc_in0_w(uint8_t data)
 {
 	m_ctrl1->write(data);
 	m_ctrl2->write(data);
@@ -186,7 +184,7 @@ void nes_state::init_famicom()
 {
 	// setup alt input handlers for additional FC input devices
 	address_space &space = m_maincpu->space(AS_PROGRAM);
-	space.install_read_handler(0x4016, 0x4016, read8_delegate(*this, FUNC(nes_state::fc_in0_r)));
-	space.install_write_handler(0x4016, 0x4016, write8_delegate(*this, FUNC(nes_state::fc_in0_w)));
-	space.install_read_handler(0x4017, 0x4017, read8_delegate(*this, FUNC(nes_state::fc_in1_r)));
+	space.install_read_handler(0x4016, 0x4016, read8smo_delegate(*this, FUNC(nes_state::fc_in0_r)));
+	space.install_write_handler(0x4016, 0x4016, write8smo_delegate(*this, FUNC(nes_state::fc_in0_w)));
+	space.install_read_handler(0x4017, 0x4017, read8smo_delegate(*this, FUNC(nes_state::fc_in1_r)));
 }

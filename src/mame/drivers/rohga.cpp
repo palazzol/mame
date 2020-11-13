@@ -202,7 +202,7 @@ void rohga_state::wizdfire_map(address_map &map)
 	map(0x208000, 0x208fff).rw("tilegen2", FUNC(deco16ic_device::pf1_data_r), FUNC(deco16ic_device::pf1_data_w));
 	map(0x20a000, 0x20afff).rw("tilegen2", FUNC(deco16ic_device::pf2_data_r), FUNC(deco16ic_device::pf2_data_w));
 
-	map(0x20b000, 0x20b3ff).writeonly(); /* ? Always 0 written */
+	map(0x20b000, 0x20b3ff).nopw(); /* ? Always 0 written */
 	map(0x20c000, 0x20c7ff).ram().share("pf3_rowscroll");
 	map(0x20e000, 0x20e7ff).ram().share("pf4_rowscroll");
 
@@ -893,8 +893,6 @@ void rohga_state::rohga(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[0], 0);
 	m_deco_tilegen[0]->set_pf1_size(DECO_64x64);
 	m_deco_tilegen[0]->set_pf2_size(DECO_64x32);
-	m_deco_tilegen[0]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[0]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[0]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[0]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[0]->set_pf1_col_mask(0x0f);
@@ -908,8 +906,6 @@ void rohga_state::rohga(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[1], 0);
 	m_deco_tilegen[1]->set_pf1_size(DECO_64x32);
 	m_deco_tilegen[1]->set_pf2_size(DECO_64x32);
-	m_deco_tilegen[1]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[1]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[1]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[1]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[1]->set_pf1_col_mask(0x0f);
@@ -983,8 +979,6 @@ void rohga_state::wizdfire(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[0], 0);
 	m_deco_tilegen[0]->set_pf1_size(DECO_64x32);
 	m_deco_tilegen[0]->set_pf2_size(DECO_64x32);
-	m_deco_tilegen[0]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[0]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[0]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[0]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[0]->set_pf1_col_mask(0x0f);
@@ -998,8 +992,6 @@ void rohga_state::wizdfire(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[1], 0);
 	m_deco_tilegen[1]->set_pf1_size(DECO_64x32);
 	m_deco_tilegen[1]->set_pf2_size(DECO_64x32);
-	m_deco_tilegen[1]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[1]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[1]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[1]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[1]->set_pf1_col_mask(0x0f);
@@ -1078,8 +1070,6 @@ void rohga_state::nitrobal(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[0], 0);
 	m_deco_tilegen[0]->set_pf1_size(DECO_64x32);
 	m_deco_tilegen[0]->set_pf2_size(DECO_32x32);
-	m_deco_tilegen[0]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[0]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[0]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[0]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[0]->set_pf1_col_mask(0x0f);
@@ -1093,8 +1083,6 @@ void rohga_state::nitrobal(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[1], 0);
 	m_deco_tilegen[1]->set_pf1_size(DECO_32x32);
 	m_deco_tilegen[1]->set_pf2_size(DECO_32x32);
-	m_deco_tilegen[1]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[1]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[1]->set_pf1_col_bank(0);
 	m_deco_tilegen[1]->set_pf2_col_bank(0);
 	m_deco_tilegen[1]->set_pf1_col_mask(0);
@@ -1174,8 +1162,6 @@ void rohga_state::schmeisr(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[0], 0);
 	m_deco_tilegen[0]->set_pf1_size(DECO_64x64);
 	m_deco_tilegen[0]->set_pf2_size(DECO_64x32);
-	m_deco_tilegen[0]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[0]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[0]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[0]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[0]->set_pf1_col_mask(0x0f);
@@ -1189,8 +1175,6 @@ void rohga_state::schmeisr(machine_config &config)
 	DECO16IC(config, m_deco_tilegen[1], 0);
 	m_deco_tilegen[1]->set_pf1_size(DECO_64x32);
 	m_deco_tilegen[1]->set_pf2_size(DECO_64x32);
-	m_deco_tilegen[1]->set_pf1_trans_mask(0x0f);
-	m_deco_tilegen[1]->set_pf2_trans_mask(0x0f);
 	m_deco_tilegen[1]->set_pf1_col_bank(0x00);
 	m_deco_tilegen[1]->set_pf2_col_bank(0x10);
 	m_deco_tilegen[1]->set_pf1_col_mask(0x0f);
