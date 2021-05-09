@@ -1188,13 +1188,20 @@ void astrocde_state::astrocade_base(machine_config &config)
 	/* each game has its own map */
 
 	/* video hardware */
-	PALETTE(config, m_palette, FUNC(astrocde_state::astrocade_palette), 512);
+	PALETTE(config, m_palette, FUNC(astrocde_state::astrocade_legacy_palette), 512);
+	PALETTE(config, m_palette2, FUNC(astrocde_state::astrocade_palette), 512);
 
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_raw(ASTROCADE_CLOCK, 455, 0, 352, 262, 0, 240);
 	m_screen->set_default_position(1.1, 0.0, 1.18, -0.018);    /* clip out borders */
 	m_screen->set_screen_update(FUNC(astrocde_state::screen_update_astrocde));
 	m_screen->set_palette(m_palette);
+
+	SCREEN(config, m_screen2, SCREEN_TYPE_RASTER);
+	m_screen2->set_raw(ASTROCADE_CLOCK, 455, 0, 352, 262, 0, 240);
+	m_screen2->set_default_position(1.1, 0.0, 1.18, -0.018);    /* clip out borders */
+	m_screen2->set_screen_update(FUNC(astrocde_state::screen_update_astrocde));
+	m_screen2->set_palette(m_palette2);
 }
 
 void astrocde_state::astrocade_16color_base(machine_config &config)
@@ -1350,6 +1357,8 @@ void astrocde_state::wow(machine_config &config)
 	/* video hardware */
 	m_screen->set_default_position(1.0, 0.0, 1.0, 0.0);    /* adjusted to match screenshots */
 //  m_screen->set_default_position(1.066, -0.004, 1.048, -0.026);  /* adjusted to match flyer */
+	m_screen2->set_default_position(1.0, 0.0, 1.0, 0.0);    /* adjusted to match screenshots */
+//  m_screen2->set_default_position(1.066, -0.004, 1.048, -0.026);  /* adjusted to match flyer */
 
 	/* sound hardware */
 	SPEAKER(config, "center").front_center();
@@ -1384,6 +1393,7 @@ void astrocde_state::gorf(machine_config &config)
 	outlatch.q_out_cb<6>().set(FUNC(astrocde_state::gorf_sound_switch_w));
 	outlatch.q_out_cb<7>().set_output("lamp6");
 
+#if 0
 	cd4099_device &lamplatch(CD4099(config, "lamplatch")); // MC14099B on game board at U7
 	lamplatch.q_out_cb<0>().set_output("lamp0");
 	lamplatch.q_out_cb<1>().set_output("lamp1");
@@ -1393,11 +1403,12 @@ void astrocde_state::gorf(machine_config &config)
 	lamplatch.q_out_cb<5>().set_output("lamp5");
 	lamplatch.q_out_cb<6>().set_nop(); // n/c
 	lamplatch.q_out_cb<7>().set_output("lamp7");
-
+#endif
 	WATCHDOG_TIMER(config, "watchdog").set_vblank_count("screen", 128); // MC14024 on CPU board at U18, CLK = VERTDR, Q7 used for RESET
 
 	/* video hardware */
 	m_screen->set_default_position(1.0, 0.0, 1.0, 0.0);    /* adjusted to match flyer */
+	m_screen2->set_default_position(1.0, 0.0, 1.0, 0.0);    /* adjusted to match flyer */
 
 	/* sound hardware */
 	SPEAKER(config, "upper", 0.0, 0.0, 1.0);
@@ -1407,7 +1418,9 @@ void astrocde_state::gorf(machine_config &config)
 	m_astrocade_sound1->si_cb().set(FUNC(astrocde_state::input_mux_r));
 	m_astrocade_sound1->so_cb<0>().set("watchdog", FUNC(watchdog_timer_device::reset_w));
 	m_astrocade_sound1->so_cb<5>().set("outlatch", FUNC(cd4099_device::write_nibble_d0));
+#if 0
 	m_astrocade_sound1->so_cb<6>().set("lamplatch", FUNC(cd4099_device::write_nibble_d0));
+#endif
 	m_astrocade_sound1->so_cb<7>().set(FUNC(astrocde_state::votrax_speech_w));
 	m_astrocade_sound1->add_route(ALL_OUTPUTS, "upper", 1.0);
 
@@ -1827,9 +1840,9 @@ GAME(  1980, wow,       0,    wow,      wow,       astrocde_state, init_wow,    
 GAME(  1980, wowg,      wow,  wow,      wowg,      astrocde_state, init_wow,      ROT0,   "Dave Nutting Associates / Midway", "Wizard of Wor (with German Language ROM)", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )
 
 /* 91354 CPU board + 90708 game board + 91356 RAM board + 91355 pattern board + 91364 ROM/RAM board */
-GAMEL( 1981, gorf,      0,    gorf,     gorf,      astrocde_state, init_gorf,     ROT270, "Dave Nutting Associates / Midway", "Gorf", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE, layout_gorf  )
-GAMEL( 1981, gorfpgm1,  gorf, gorf,     gorf,      astrocde_state, init_gorf,     ROT270, "Dave Nutting Associates / Midway", "Gorf (program 1)", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE, layout_gorf )
-GAMEL( 1981, gorfpgm1g, gorf, gorf,     gorfpgm1g, astrocde_state, init_gorf,     ROT270, "Dave Nutting Associates / Midway", "Gorf (program 1, with German Language ROM)", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE, layout_gorf )
+GAME( 1981, gorf,      0,    gorf,     gorf,      astrocde_state, init_gorf,     ROT270, "Dave Nutting Associates / Midway", "Gorf", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE  )
+GAME( 1981, gorfpgm1,  gorf, gorf,     gorf,      astrocde_state, init_gorf,     ROT270, "Dave Nutting Associates / Midway", "Gorf (program 1)", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )
+GAME( 1981, gorfpgm1g, gorf, gorf,     gorfpgm1g, astrocde_state, init_gorf,     ROT270, "Dave Nutting Associates / Midway", "Gorf (program 1, with German Language ROM)", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )
 
 /* 91354 CPU board + 90708 game board + 91356 RAM board + 91355 pattern board + 91423 memory board */
 GAME(  1981, robby,     0,    robby,    robby,     astrocde_state, init_robby,    ROT0,   "Dave Nutting Associates / Bally Midway", "The Adventures of Robby Roto!", MACHINE_SUPPORTS_SAVE )

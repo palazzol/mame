@@ -12,6 +12,9 @@
 #################   BEGIN USER-CONFIGURABLE OPTIONS   #####################
 ###########################################################################
 
+VERBOSE = 1
+SYMBOLS = 2
+SUBTARGET = smart
 # REGENIE = 1
 # VERBOSE = 1
 # NOWERROR = 1

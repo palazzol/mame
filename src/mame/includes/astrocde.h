@@ -45,7 +45,9 @@ public:
 		m_protected_ram(*this, "protected_ram"),
 		m_nvram(*this, "nvram"),
 		m_screen(*this, "screen"),
+		m_screen2(*this, "screen2"),
 		m_palette(*this, "palette"),
+		m_palette2(*this, "palette2"),
 		m_soundlatch(*this, "soundlatch"),
 		m_bank4000(*this, "bank4000"),
 		m_bank8000(*this, "bank8000"),
@@ -60,7 +62,9 @@ public:
 	optional_shared_ptr<uint8_t> m_protected_ram;
 	optional_shared_ptr<uint8_t> m_nvram;
 	required_device<screen_device> m_screen;
+	required_device<screen_device> m_screen2;
 	required_device<palette_device> m_palette;
+	required_device<palette_device> m_palette2;
 	optional_device<generic_latch_8_device> m_soundlatch;
 	optional_device<address_map_bank_device> m_bank4000;
 	optional_memory_bank m_bank8000;
@@ -144,7 +148,9 @@ public:
 	void init_astrocde();
 	void RGB_converter_PCB(double R_minus_Y, double B_minus_Y, double Y, double Vee,
 		                   double& R, double& G, double& B) const;
+	void astrocade_legacy_palette(palette_device &palette) const;
 	void astrocade_palette(palette_device &palette) const;
+	void astrocade_hardcoded_palette(palette_device &palette) const;
 	DECLARE_VIDEO_START(profpac);
 	void profpac_palette(palette_device &palette) const;
 	uint32_t screen_update_astrocde(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);

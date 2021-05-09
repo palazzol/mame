@@ -207,6 +207,45 @@ void astrocde_state::RGB_converter_PCB(double R_minus_Y, double B_minus_Y, doubl
 	V4 = B * R3 / (R3 + R2);
 }
 
+void astrocde_state::astrocade_legacy_palette(palette_device &palette) const
+{
+	/*
+	    The Astrocade has a 256 color palette: 32 colors with 8 luminance
+	    values for each color. The 32 colors circle around the YUV color
+	    space, with the exception of the first 8 which are grayscale.
+	    We actually build a 512 entry palette with an extra bit of
+	    luminance informaton. This is because the sparkle/star circuitry
+	    on Wizard of War and Gorf replaces the luminance with a value
+	    that has a 4-bit resolution.
+	*/
+
+	// loop over color values
+	for (int color = 0; color < 32; color++)
+	{
+		// color 0 maps to ry = by = 0
+		double const angle = (color / 32.0) * (2.0 * M_PI);
+		float const ry = color ? (0.75 * std::sin(angle)) : 0;
+		float const by = color ? (1.15 * std::cos(angle)) : 0;
+
+		// iterate over luminence values
+		for (int luma = 0; luma < 16; luma++)
+		{
+			float const y = luma / 15.0;
+
+			// transform to RGB
+			int r = (ry + y) * 255;
+			int g = ((y - 0.299f * (ry + y) - 0.114f * (by + y)) / 0.587f) * 255;
+			int b = (by + y) * 255;
+
+			// clamp and store
+			r = (std::min)((std::max)(r, 0), 255);
+			g = (std::min)((std::max)(g, 0), 255);
+			b = (std::min)((std::max)(b, 0), 255);
+			palette.set_pen_color(color * 16 + luma, rgb_t(r, g, b));
+		}
+	}
+}
+
 void astrocde_state::astrocade_palette(palette_device &palette) const
 {
 	/*
@@ -222,7 +261,7 @@ void astrocde_state::astrocade_palette(palette_device &palette) const
 
 	// Resistor Ladder DACs are inside the Custom DATA chip
 
-	// Color DAC is not uniform, is is basically sinusoidal
+	// Color DAC is not uniform, it is basically sinusoidal
 	// These are the measured proportions of Vcc on the
 	// Resistor ladder used for R-Y and B-Y
 	const double color_dac[17] = {
@@ -300,8 +339,10 @@ void astrocde_state::astrocade_palette(palette_device &palette) const
 			palette.set_pen_color(color * 16 + luma, rgb_t(r, g, b));
 		}
 	}
+}
 
-#if 0
+void astrocde_state::astrocade_hardcoded_palette(palette_device &palette) const
+{
 	// Acquired Data
 	palette.set_pen_color(0, rgb_t(7, 1, 9));
 	palette.set_pen_color(1, rgb_t(7, 1, 9));
@@ -815,8 +856,6 @@ void astrocde_state::astrocade_palette(palette_device &palette) const
 	palette.set_pen_color(509, rgb_t(107, 119, 255));
 	palette.set_pen_color(510, rgb_t(181, 198, 255));
 	palette.set_pen_color(511, rgb_t(181, 198, 255));
-#endif
-
 }
 
 
@@ -1144,8 +1183,10 @@ TIMER_CALLBACK_MEMBER(astrocde_state::scanline_callback)
 	int astrocade_scanline = mame_vpos_to_astrocade_vpos(scanline);
 
 	/* force an update against the current scanline */
-	if (scanline > 0)
+	if (scanline > 0) {
 		m_screen->update_partial(scanline - 1);
+		m_screen2->update_partial(scanline - 1);
+	}
 
 	/* generate a scanline interrupt if it's time */
 	if (astrocade_scanline == m_interrupt_scanline && (m_interrupt_enabl & 0x08) != 0)

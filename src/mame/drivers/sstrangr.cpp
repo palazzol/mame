@@ -674,7 +674,7 @@ ROM_START( sstrangr )
 	ROM_LOAD( "hss-06.63",     0x1400, 0x0400, CRC(de383625) SHA1(7ec0d7171e771c4b43e026f3f50a88d8ab2236bb) )
 	ROM_LOAD( "hss-07.64",     0x1800, 0x0400, CRC(2e41d0f0) SHA1(bba720b0c5a7bd47abb8bc8498a989e17dc52428) )
 	ROM_LOAD( "hss-08.65",     0x1c00, 0x0400, CRC(bd14d0b0) SHA1(9665f639afef9c1291f2efc054216ff44c595b45) )
-ROM_END
+	ROM_END
 
 ROM_START( sstrangr2 )
 	ROM_REGION( 0x10000, "maincpu", 0 )
@@ -685,6 +685,21 @@ ROM_START( sstrangr2 )
 	ROM_LOAD( "2708.15",      0x0000, 0x0400, CRC(c176a89d) SHA1(955dd540dc3787091c3f34ae122a13e6b7523414) )
 ROM_END
 
+ROM_START( sstrangrx )
+	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_LOAD( "a.58",     0x0000, 0x0400, CRC(af4c49b5) SHA1(0f798c954817e898ae95fb784c2926ea17c9ee21) )
+	ROM_LOAD( "b.59",     0x0400, 0x0400, CRC(7281ff0b) SHA1(56649d1362be1b9f517cb8616cbf9e4f955e9a2d) )
+	ROM_LOAD( "c.60",     0x0800, 0x0400, CRC(c78771d1) SHA1(36bd408b92b9ad8304423720c7bbc55777052b0f) )
+	ROM_LOAD( "d.61",     0x0c00, 0x0400, CRC(57700ab9) SHA1(15bee6daa83584dfb3711e9e54fa1e831032d300) )
+	ROM_LOAD( "e.62",     0x1000, 0x0400, CRC(ca2d06f1) SHA1(8be113d241942e269acd9b896422e7a8ba30b668) )
+	ROM_LOAD( "f.63",     0x1400, 0x0400, CRC(de383625) SHA1(7ec0d7171e771c4b43e026f3f50a88d8ab2236bb) )
+	ROM_LOAD( "g.64",     0x1800, 0x0400, CRC(0963e1d6) SHA1(4b5fc236bd82fc17254534953b7cd5fc1c5937d3) )
+	ROM_LOAD( "h.65",     0x1c00, 0x0400, CRC(c5768084) SHA1(69c779d26703ca5ff1cb001ab9407a1565f093eb) )
+
+	ROM_REGION( 0x0400, "proms", 0 )        // color maps player 1/player 2
+	ROM_LOAD( "mb7054.77",      0x0000, 0x0400, CRC(c176a89d) SHA1(955dd540dc3787091c3f34ae122a13e6b7523414) )
+ROM_END
 
 GAMEL( 1978, sstrangr,  0,        sstrangr, sstrangr, sstrangr_state, empty_init, ROT270, "Yachiyo Electronics, Ltd.", "Space Stranger",   MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE, layout_sstrangr )
 GAME(  1979, sstrangr2, sstrangr, sstrngr2, sstrngr2, sstrangr_state, empty_init, ROT270, "Yachiyo Electronics, Ltd.", "Space Stranger 2", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )
+GAME(  1979, sstrangrx, sstrangr, sstrngr2, sstrngr2, sstrangr_state, empty_init, ROT270, "Yachiyo Electronics, Ltd.", "Space Stranger X", MACHINE_IMPERFECT_SOUND | MACHINE_SUPPORTS_SAVE )

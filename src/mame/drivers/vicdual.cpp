@@ -1212,7 +1212,8 @@ void vicdual_state::heiankyo_io_w(offs_t offset, uint8_t data)
 
 void vicdual_state::alphaho_io_w(offs_t offset, uint8_t data)
 {
-	if (offset & 0x01) { /* headon_audio_w(0, data) */ }
+	//if (offset & 0x01) { /* headon_audio_w(0, data) */ }
+	if (offset & 0x01) invho2_audio_w(data);
 	if (offset & 0x02) { /* alphaf_audio_w(0, data) */ }
 	if (offset & 0x08)  assert_coin_status();
 	if (offset & 0x40)  palette_bank_w(data);
@@ -2403,6 +2404,10 @@ void vicdual_state::alphaho(machine_config &config)
 
 	/* basic machine hardware */
 	m_maincpu->set_addrmap(AS_IO, &vicdual_state::alphaho_io_map);
+
+	/* audio hardware */
+	SPEAKER(config, "mono").front_center();
+	headon_audio(config);
 }
 
 
@@ -4047,7 +4052,8 @@ ROM_START( alphaho )
 	ROM_LOAD( "cf.bin",       0x3c00, 0x0400, CRC(d03c5a09) SHA1(eebc1d2302bd2bae28c25187bb099ae618c5cd05) )
 
 	ROM_REGION( 0x0020, "proms", 0 )
-	ROM_LOAD( "alphaho.col",  0x0000, 0x0020, NO_DUMP )
+	ROM_LOAD( "316-0138.u44", 0x0000, 0x0020, CRC(67104ea9) SHA1(26b6bd2a1973b83bb9af4e3385d8cb14cb3f62f2) )
+	//ROM_LOAD( "alphaho.col",  0x0000, 0x0020, NO_DUMP )
 ROM_END
 
 // Wanted uses 2 sound boards. One from Head On and one from Space Attack. The sound board has the name printed on the bottom
