@@ -47,6 +47,7 @@
 #define OPTION_SNAPSHOT_DIRECTORY   "snapshot_directory"
 #define OPTION_DIFF_DIRECTORY       "diff_directory"
 #define OPTION_COMMENT_DIRECTORY    "comment_directory"
+#define OPTION_SHARE_DIRECTORY      "share_directory"
 
 // core state/playback options
 #define OPTION_STATE                "state"
@@ -220,8 +221,9 @@ public:
 	core_options::entry::shared_ptr option_entry() const { return m_entry.lock(); }
 
 	// seters
-	void specify(const std::string &text, bool peg_priority = true);
+	void specify(std::string_view text, bool peg_priority = true);
 	void specify(std::string &&text, bool peg_priority = true);
+	void specify(const char *text, bool peg_priority = true) { specify(std::string_view(text), peg_priority); }
 	void set_bios(std::string &&text);
 	void set_default_card_software(std::string &&s);
 
@@ -254,8 +256,9 @@ public:
 	core_options::entry::shared_ptr option_entry() const { return m_entry.lock(); }
 
 	// mutators
-	void specify(const std::string &value, bool peg_priority = true);
+	void specify(std::string_view value, bool peg_priority = true);
 	void specify(std::string &&value, bool peg_priority = true);
+	void specify(const char *value, bool peg_priority = true) { specify(std::string_view(value), peg_priority); }
 
 	// instantiates an option entry (don't call outside of emuopts.cpp)
 	core_options::entry::shared_ptr setup_option_entry(std::vector<std::string> &&names);
@@ -291,7 +294,8 @@ public:
 	~emu_options();
 
 	// mutation
-	void set_system_name(const std::string &new_system_name);
+	void set_system_name(const char *new_system_name) { set_system_name(std::string(new_system_name)); }
+	void set_system_name(std::string_view new_system_name) { set_system_name(std::string(new_system_name)); }
 	void set_system_name(std::string &&new_system_name);
 	void set_software(std::string &&new_software);
 
@@ -328,6 +332,7 @@ public:
 	const char *snapshot_directory() const { return value(OPTION_SNAPSHOT_DIRECTORY); }
 	const char *diff_directory() const { return value(OPTION_DIFF_DIRECTORY); }
 	const char *comment_directory() const { return value(OPTION_COMMENT_DIRECTORY); }
+	const char *share_directory() const { return value(OPTION_SHARE_DIRECTORY); }
 
 	// core state/playback options
 	const char *state() const { return value(OPTION_STATE); }

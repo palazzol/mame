@@ -93,6 +93,7 @@ SUBTARGET = smart
 # OVERRIDE_CC = cc
 # OVERRIDE_CXX = c++
 # OVERRIDE_LD = ld
+# OVERRIDE_AR = ar
 
 # DEPRECATED = 0
 # LTO = 1
@@ -111,7 +112,7 @@ SUBTARGET = smart
 # FORCE_VERSION_COMPILE = 1
 
 # MSBUILD = 1
-# IGNORE_BAD_LOCALISATION=1
+# IGNORE_BAD_LOCALISATION = 1
 # PRECOMPILE = 0
 
 # DEBUG_DIR=c:\test\location
@@ -167,6 +168,9 @@ ifneq ($(filter arm%,$(UNAME_P)),)
 PLATFORM := arm
 endif
 ifneq ($(filter aarch64%,$(UNAME_M)),)
+PLATFORM := arm64
+endif
+ifneq ($(filter arm64%,$(UNAME_M)),)
 PLATFORM := arm64
 endif
 ifneq ($(filter aarch64%,$(UNAME_P)),)
@@ -238,6 +242,7 @@ endif
 # build scripts will be run from
 # scripts/target/$(TARGET)/$(SUBTARGET).lua
 #-------------------------------------------------
+
 ifdef PROJECT
 PARAMS += --PROJECT='$(PROJECT)'
 TARGET := $(PROJECT)
@@ -322,6 +327,9 @@ endif
 ifeq ($(firstword $(filter ppc64,$(UNAME))),ppc64)
 ARCHITECTURE := _x64
 endif
+ifeq ($(firstword $(filter powerpc64,$(UNAME))),powerpc64)
+ARCHITECTURE := _x64
+endif
 ifeq ($(firstword $(filter ppc64le,$(UNAME))),ppc64le)
 ARCHITECTURE := _x64
 endif
@@ -359,33 +367,6 @@ WINDRES  := $(word 1,$(TOOLCHAIN) i686-w64-mingw32-)windres
 endif
 endif
 
-ifeq ($(findstring arm,$(UNAME)),arm)
-ARCHITECTURE :=
-ifndef NOASM
-	NOASM := 1
-endif
-endif
-
-ifeq ($(findstring aarch64,$(UNAME)),aarch64)
-ARCHITECTURE :=
-ifndef NOASM
-	NOASM := 1
-endif
-endif
-
-ifeq ($(findstring s390x,$(UNAME)),s390x)
-ifndef NOASM
-	NOASM := 1
-endif
-endif
-
-ifeq ($(findstring riscv64,$(UNAME)),riscv64)
-ARCHITECTURE :=
-ifndef NOASM
-	NOASM := 1
-endif
-endif
-
 # Emscripten
 ifeq ($(findstring emcc,$(CC)),emcc)
 TARGETOS := asmjs
@@ -395,8 +376,39 @@ ifndef NOASM
 endif
 endif
 
-# ppc has inline assembly support but no DRC
 ifeq ($(findstring ppc,$(UNAME)),ppc)
+ifndef FORCE_DRC_C_BACKEND
+	FORCE_DRC_C_BACKEND := 1
+endif
+endif
+
+ifeq ($(findstring powerpc,$(UNAME)),powerpc)
+ifndef FORCE_DRC_C_BACKEND
+	FORCE_DRC_C_BACKEND := 1
+endif
+endif
+
+ifeq ($(findstring arm,$(UNAME)),arm)
+ARCHITECTURE :=
+ifndef FORCE_DRC_C_BACKEND
+	FORCE_DRC_C_BACKEND := 1
+endif
+endif
+
+ifeq ($(findstring aarch64,$(UNAME)),aarch64)
+ARCHITECTURE :=
+ifndef FORCE_DRC_C_BACKEND
+	FORCE_DRC_C_BACKEND := 1
+endif
+endif
+
+ifeq ($(findstring s390x,$(UNAME)),s390x)
+ifndef FORCE_DRC_C_BACKEND
+	FORCE_DRC_C_BACKEND := 1
+endif
+endif
+
+ifeq ($(findstring riscv64,$(UNAME)),riscv64)
 ifndef FORCE_DRC_C_BACKEND
 	FORCE_DRC_C_BACKEND := 1
 endif
@@ -420,6 +432,14 @@ ifneq (,$(findstring s390x,$(UNAME)))
 BIGENDIAN := 1
 endif
 endif # BIGENDIAN
+# FreeBSD
+ifneq (,$(findstring powerpc,$(UNAME)))
+ifneq (,$(findstring powerpc64le,$(UNAME)))
+BIGENDIAN := 0
+else
+BIGENDIAN := 1
+endif
+endif
 
 ifndef PYTHON_EXECUTABLE
 PYTHON := python
@@ -574,6 +594,12 @@ ifdef OVERRIDE_LD
 PARAMS += --LD='$(OVERRIDE_LD)'
 ifndef CROSS_BUILD
 LD := $(OVERRIDE_LD)
+endif
+endif
+ifdef OVERRIDE_AR
+PARAMS += --AR='$(OVERRIDE_AR)'
+ifndef CROSS_BUILD
+AR := $(OVERRIDE_AR)
 endif
 endif
 
@@ -878,10 +904,10 @@ endif
 ifdef SANITIZE
 PARAMS += --SANITIZE='$(SANITIZE)'
 endif
+
 #-------------------------------------------------
 # All scripts
 #-------------------------------------------------
-
 
 SCRIPTS = scripts/genie.lua \
 	scripts/src/lib.lua \
@@ -1033,7 +1059,11 @@ ifneq ($(TARGETOS),asmjs)
 ifeq ($(ARCHITECTURE),_x64)
 ARCHITECTURE := _x64_clang
 else
+ifneq ($(filter arm64%,$(UNAME_M)),)
+ARCHITECTURE := _arm64_clang
+else
 ARCHITECTURE := _x86_clang
+endif
 endif
 endif
 endif
@@ -1423,6 +1453,11 @@ $(PROJECTDIR)/$(MAKETYPE)-osx-clang/Makefile: makefile $(SCRIPTS) $(GENIE)
 
 .PHONY: macosx_x64_clang
 macosx_x64_clang: generate $(PROJECTDIR)/$(MAKETYPE)-osx-clang/Makefile
+	$(MAKE) $(MAKEPARAMS) -C $(PROJECTDIR)/$(MAKETYPE)-osx-clang config=$(CONFIG)64 precompile
+	$(SILENT) $(MAKE) $(MAKEPARAMS) -C $(PROJECTDIR)/$(MAKETYPE)-osx-clang config=$(CONFIG)64
+
+.PHONY: macosx_arm64_clang
+macosx_arm64_clang: generate $(PROJECTDIR)/$(MAKETYPE)-osx-clang/Makefile
 	$(SILENT) $(MAKE) $(MAKEPARAMS) -C $(PROJECTDIR)/$(MAKETYPE)-osx-clang config=$(CONFIG)64 precompile
 	$(SILENT) $(MAKE) $(MAKEPARAMS) -C $(PROJECTDIR)/$(MAKETYPE)-osx-clang config=$(CONFIG)64
 
@@ -1442,6 +1477,7 @@ xcode4-ios: generate
 #-------------------------------------------------
 # gmake-solaris
 #-------------------------------------------------
+
 ifndef CLANG_VERSION
 $(PROJECTDIR)/$(MAKETYPE)-solaris/Makefile: makefile $(SCRIPTS) $(GENIE)
 	$(SILENT) $(GENIE) $(PARAMS) $(TARGET_PARAMS) --gcc=solaris --gcc_version=$(GCC_VERSION) $(MAKETYPE)
@@ -1462,6 +1498,7 @@ solaris_x86: generate $(PROJECTDIR)/$(MAKETYPE)-solaris/Makefile
 #-------------------------------------------------
 # gmake-solaris-clang
 #-------------------------------------------------
+
 ifdef CLANG_VERSION
 $(PROJECTDIR)/$(MAKETYPE)-solaris/Makefile: makefile $(SCRIPTS) $(GENIE)
 	$(SILENT) $(GENIE) $(PARAMS) $(TARGET_PARAMS) --gcc=solaris --gcc_version=$(CLANG_VERSION) $(MAKETYPE)
@@ -1478,7 +1515,6 @@ solaris_clang: solaris_x86_clang
 solaris_x86_clang: generate $(PROJECTDIR)/$(MAKETYPE)-solaris/Makefile
 	$(SILENT) $(MAKE) -C $(PROJECTDIR)/$(MAKETYPE)-solaris config=$(CONFIG)32 precompile
 	$(SILENT) $(MAKE) -C $(PROJECTDIR)/$(MAKETYPE)-solaris config=$(CONFIG)32
-
 
 #-------------------------------------------------
 # gmake-freebsd
@@ -1649,6 +1685,7 @@ endif
 #-------------------------------------------------
 # cmake
 #-------------------------------------------------
+
 .PHONY: cmake
 cmake: generate
 	$(SILENT) $(GENIE) $(PARAMS) $(TARGET_PARAMS) cmake
@@ -1721,14 +1758,14 @@ endif
 
 ifeq (posix,$(SHELLTYPE))
 $(GENDIR)/version.cpp: makefile $(GENDIR)/git_desc | $(GEN_FOLDERS)
-	@echo '#define BARE_BUILD_VERSION "0.226"' > $@
+	@echo '#define BARE_BUILD_VERSION "0.231"' > $@
 	@echo 'extern const char bare_build_version[];' >> $@
 	@echo 'extern const char build_version[];' >> $@
 	@echo 'const char bare_build_version[] = BARE_BUILD_VERSION;' >> $@
 	@echo 'const char build_version[] = BARE_BUILD_VERSION " ($(NEW_GIT_VERSION))";' >> $@
 else
 $(GENDIR)/version.cpp: makefile $(GENDIR)/git_desc | $(GEN_FOLDERS)
-	@echo #define BARE_BUILD_VERSION "0.226" > $@
+	@echo #define BARE_BUILD_VERSION "0.231" > $@
 	@echo extern const char bare_build_version[]; >> $@
 	@echo extern const char build_version[]; >> $@
 	@echo const char bare_build_version[] = BARE_BUILD_VERSION; >> $@
@@ -1747,6 +1784,7 @@ ifdef IGNORE_BAD_LOCALISATION
 else
 	$(SILENT)$(PYTHON) scripts/build/msgfmt.py --output-file $@ $<
 endif
+
 #-------------------------------------------------
 # Regression tests
 #-------------------------------------------------

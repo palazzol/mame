@@ -47,7 +47,7 @@ void media_identifier::file_info::match(
 		m_matches.emplace_back(
 				util::string_format("%s:%s", list, software.shortname()),
 				std::string(software.longname()),
-				ROM_GETNAME(&rom),
+				std::string(rom.name()),
 				hashes.flag(util::hash_collection::FLAG_BAD_DUMP),
 				false);
 	}
@@ -209,12 +209,12 @@ void media_identifier::digest_file(std::vector<file_info> &info, char const *pat
 		m_total++;
 		if (err != CHDERR_NONE)
 		{
-			osd_printf_info("%-20sNOT A CHD\n", core_filename_extract_base(path));
+			osd_printf_info("%-20s NOT A CHD\n", core_filename_extract_base(path));
 			m_nonroms++;
 		}
 		else if (!chd.compressed())
 		{
-			osd_printf_info("%-20sis a writeable CHD\n", core_filename_extract_base(path));
+			osd_printf_info("%-20s is a writeable CHD\n", core_filename_extract_base(path));
 		}
 		else
 		{
@@ -353,7 +353,7 @@ void media_identifier::match_hashes(std::vector<file_info> &info)
 				}
 
 				// next iterate over softlists
-				for (software_list_device &swlistdev : software_list_device_iterator(device))
+				for (software_list_device &swlistdev : software_list_device_enumerator(device))
 				{
 					if (!listnames.insert(swlistdev.list_name()).second)
 						continue;
@@ -366,7 +366,7 @@ void media_identifier::match_hashes(std::vector<file_info> &info)
 							{
 								for (rom_entry const *rom = rom_first_file(region); rom; rom = rom_next_file(rom))
 								{
-									util::hash_collection romhashes(ROM_GETHASHDATA(rom));
+									util::hash_collection romhashes(rom->hashdata());
 									if (!romhashes.flag(util::hash_collection::FLAG_NO_DUMP))
 									{
 										for (file_info &file : info)
@@ -404,7 +404,7 @@ void media_identifier::print_results(std::vector<file_info> const &info)
 {
 	for (file_info const &file : info)
 	{
-		osd_printf_info("%-20s", core_filename_extract_base(file.name()));
+		osd_printf_info("%-20s ", core_filename_extract_base(file.name()));
 		if (file.matches().empty())
 		{
 			osd_printf_info("NO MATCH\n");
@@ -416,10 +416,10 @@ void media_identifier::print_results(std::vector<file_info> const &info)
 			for (match_data const &match : file.matches())
 			{
 				if (!first)
-					osd_printf_info("%-20s", "");
+					osd_printf_info("%-20s ", "");
 				first = false;
 				osd_printf_info(
-						"= %s%-20s  %-10s %s%s\n",
+						"= %s%-20s  %-10s  %s%s\n",
 						match.bad() ? "(BAD) " : "",
 						match.romname().c_str(),
 						match.shortname().c_str(),

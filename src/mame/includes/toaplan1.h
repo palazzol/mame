@@ -11,7 +11,7 @@
 
 #include "cpu/m68000/m68000.h"
 #include "cpu/tms32010/tms32010.h"
-#include "sound/3812intf.h"
+#include "sound/ym3812.h"
 #include "video/toaplan_scu.h"
 #include "emupal.h"
 #include "screen.h"
@@ -20,14 +20,14 @@
 class toaplan1_state : public driver_device
 {
 public:
-	toaplan1_state(const machine_config &mconfig, device_type type, const char *tag) :
+	toaplan1_state(const machine_config &mconfig, device_type type, const char *tag, bool large = false) :
 		driver_device(mconfig, type, tag),
 		m_bgpaletteram(*this, "bgpalette"),
 		m_fgpaletteram(*this, "fgpalette"),
 		m_sharedram(*this, "sharedram"),
 		m_dswb_io(*this, "DSWB"),
 		m_tjump_io(*this, "TJUMP"),
-		m_spriteram(*this, "spriteram", 0x800, ENDIANNESS_BIG),
+		m_spriteram(*this, "spriteram", large ? 0x1000 : 0x800, ENDIANNESS_BIG),
 		m_maincpu(*this, "maincpu"),
 		m_audiocpu(*this, "audiocpu"),
 		m_ymsnd(*this, "ymsnd"),
@@ -56,7 +56,7 @@ protected:
 	optional_ioport m_dswb_io;
 	optional_ioport m_tjump_io;
 
-	int m_intenable;
+	u8 m_intenable;
 
 	std::unique_ptr<u16[]> m_tilevram[4];
 	/*
@@ -162,7 +162,7 @@ class toaplan1_rallybik_state : public toaplan1_state
 {
 public:
 	toaplan1_rallybik_state(const machine_config &mconfig, device_type type, const char *tag) :
-		toaplan1_state(mconfig, type, tag),
+		toaplan1_state(mconfig, type, tag, true),
 		m_spritegen(*this, "scu")
 	{
 	}

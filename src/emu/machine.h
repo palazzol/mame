@@ -109,33 +109,6 @@ public:
 
 
 
-// ======================> dummy_space_device
-
-// a dummy address space for passing to handlers outside of the memory system
-
-class dummy_space_device : public device_t,
-	public device_memory_interface
-{
-public:
-	dummy_space_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock);
-
-	u8 read(offs_t offset);
-	void write(offs_t offset, u8 data);
-
-	void dummy(address_map &map);
-protected:
-	// device-level overrides
-	virtual void device_start() override;
-
-	// device_memory_interface overrides
-	virtual space_config_vector memory_space_config() const override;
-
-private:
-	const address_space_config  m_space_config;
-};
-
-
-
 // ======================> running_machine
 
 typedef delegate<void ()> machine_notify_delegate;
@@ -188,6 +161,7 @@ public:
 	tilemap_manager &tilemap() const { assert(m_tilemap != nullptr); return *m_tilemap; }
 	debug_view_manager &debug_view() const { assert(m_debug_view != nullptr); return *m_debug_view; }
 	debugger_manager &debugger() const { assert(m_debugger != nullptr); return *m_debugger; }
+	natural_keyboard &natkeyboard() noexcept { assert(m_natkeyboard != nullptr); return *m_natkeyboard; }
 	template <class DriverClass> DriverClass *driver_data() const { return &downcast<DriverClass &>(root_device()); }
 	machine_phase phase() const { return m_current_phase; }
 	bool paused() const { return m_paused || (m_current_phase != machine_phase::RUNNING); }
@@ -247,7 +221,6 @@ public:
 	void set_rtc_datetime(const system_time &systime);
 
 	// misc
-	address_space &dummy_space() const { return m_dummy_space.space(AS_PROGRAM); }
 	void popmessage() const { popmessage(static_cast<char const *>(nullptr)); }
 	template <typename Format, typename... Params> void popmessage(Format &&fmt, Params &&... args) const;
 	template <typename Format, typename... Params> void logerror(Format &&fmt, Params &&... args) const;
@@ -336,6 +309,7 @@ private:
 	std::unique_ptr<image_manager> m_image;            // internal data from image.cpp
 	std::unique_ptr<rom_load_manager> m_rom_load;      // internal data from romload.cpp
 	std::unique_ptr<debugger_manager> m_debugger;      // internal data from debugger.cpp
+	std::unique_ptr<natural_keyboard> m_natkeyboard;   // internal data from natkeyboard.cpp
 
 	// system state
 	machine_phase           m_current_phase;        // current execution phase
@@ -397,9 +371,6 @@ private:
 
 	// string formatting buffer
 	mutable util::ovectorstream m_string_buffer;
-
-	// configuration state
-	dummy_space_device m_dummy_space;
 
 #if defined(__EMSCRIPTEN__)
 private:
