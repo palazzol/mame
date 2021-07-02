@@ -1188,8 +1188,12 @@ void astrocde_state::astrocade_base(machine_config &config)
 	/* each game has its own map */
 
 	/* video hardware */
-	PALETTE(config, m_palette, FUNC(astrocde_state::astrocade_legacy_palette), 512);
-	PALETTE(config, m_palette2, FUNC(astrocde_state::astrocade_palette), 512);
+	// I can pick 3 palettes here:
+	// 1) astrocade_legacy_palette - known to be wrong
+	// 2) astrocade_palette - computed based on modelling the RGB converter board
+	// 3) astrocade_hardcoded_palette - acquired using a scope
+	PALETTE(config, m_palette, FUNC(astrocde_state::astrocade_palette), 512);
+	PALETTE(config, m_palette2, FUNC(astrocde_state::astrocade_hardcoded_palette), 512);
 
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_raw(ASTROCADE_CLOCK, 455, 0, 352, 262, 0, 240);
